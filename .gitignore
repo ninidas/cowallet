@@ -27,6 +27,8 @@ Thumbs.db
 
 # Local scripts
 deploy.sh
+backup.sh
+backups/
 
 # Images à la racine
 /*.png
