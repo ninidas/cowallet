@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 
 export default function GroupSetupPage() {
-  const { refreshConfig } = useAuth()
+  const { refreshConfig, logout } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab]           = useState('create') // 'create' | 'join'
   const [groupName, setGroupName] = useState('Notre budget')
@@ -78,6 +78,15 @@ export default function GroupSetupPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-violet-600 to-indigo-700 px-6 py-8">
       <div className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
+        <button
+          onClick={() => { logout(); navigate('/login') }}
+          className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-6 transition"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Retour à la connexion
+        </button>
         <h2 className="text-xl font-semibold text-slate-800 mb-2">Votre espace budget</h2>
         <p className="text-sm text-slate-400 mb-6">Créez un groupe ou rejoignez celui de votre partenaire.</p>
 
