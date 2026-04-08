@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply font-sans text-slate-900 bg-slate-50 dark:bg-slate-950 dark:text-slate-100;
+    /* Safe area pour iOS */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  input, select, textarea {
+    @apply text-base text-slate-900; /* évite le zoom iOS sur focus */
+  }
+
+  input::placeholder, textarea::placeholder {
+    @apply text-slate-500;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .safe-top {
+    padding-top: max(2.5rem, env(safe-area-inset-top));
+  }
+}
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: pageEnter 0.2s ease-out;
+}
