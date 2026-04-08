@@ -1,0 +1,32 @@
+# Environnement
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Base de données
+*.db
+*.sqlite
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local scripts
+deploy.sh
+
+# Claude Code memory
+memory/

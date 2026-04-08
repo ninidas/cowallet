@@ -1,0 +1,16 @@
+services:
+  cowallet-frontend:
+    image: ghcr.io/ninidas/cowallet-frontend:latest
+    container_name: cowallet-frontend
+    restart: unless-stopped
+    # ports:
+    #   - "3000:80"  # Uncomment and adjust to expose directly
+    depends_on:
+      - cowallet-backend
+
+  cowallet-backend:
+    image: ghcr.io/ninidas/cowallet-backend:latest
+    container_name: cowallet-backend
+    restart: unless-stopped
+    volumes:
+      - ./data:/data  # Data stored next to docker-compose.yml
