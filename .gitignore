@@ -30,4 +30,9 @@ deploy.sh
 
 # Claude Code memory
 memory/
-probleme-logo.png
+# Images à la racine
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
