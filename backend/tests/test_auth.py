@@ -11,7 +11,7 @@ def test_register(client):
 
 def test_register_duplicate(client):
     client.post("/users/register", json={"username": "nicolas", "password": "password123"})
-    r = client.post("/users/register", json={"username": "nicolas", "password": "autrepass"})
+    r = client.post("/users/register", json={"username": "nicolas", "password": "autrepass1"})
     assert r.status_code == 409
 
 
