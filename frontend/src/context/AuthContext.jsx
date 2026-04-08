@@ -30,7 +30,7 @@ export function AuthProvider({ children }) {
     if (!user) { setReady(true); return }
     api.getConfig()
       .then(setConfig)
-      .catch(() => setConfig({ has_group: false }))
+      .catch(() => {})
       .finally(() => setReady(true))
   }, [user?.userId])
 
