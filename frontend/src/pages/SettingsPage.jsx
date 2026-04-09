@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useRef } from 'react'
-import { usePushNotifications } from '../hooks/usePushNotifications'
+import { usePush } from '../context/PushContext'
 
 const PRESET_COLORS = [
   '#3b82f6', '#f97316', '#10b981', '#a855f7',
@@ -43,8 +43,7 @@ function Input({ ...props }) {
 export default function SettingsPage() {
   const navigate   = useNavigate()
   const { user, config, logout, refreshConfig } = useAuth()
-  const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePushNotifications()
-
+  const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePush()
   const [username,        setUsername]        = useState(user?.username ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword,     setNewPassword]     = useState('')
@@ -207,6 +206,18 @@ export default function SettingsPage() {
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${subscribed ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
               </div>
+              {subscribed && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const reg = await navigator.serviceWorker.ready
+                    reg.showNotification('CoWallet test', { body: 'Les notifications fonctionnent !', icon: '/cowallet-logo-512x512.png' })
+                  }}
+                  className="text-xs text-violet-600 underline mt-1"
+                >
+                  Tester une notification
+                </button>
+              )}
             </Section>
           )}
 

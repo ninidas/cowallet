@@ -1,7 +1,10 @@
 import os
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+
+logger = logging.getLogger(__name__)
 
 from ..database import get_db
 from .. import models, schemas
@@ -50,6 +53,7 @@ def _to_summary(m: models.Month) -> schemas.MonthSummary:
         user1_share=m.user1_share, user2_share=100 - m.user1_share,
         user1_transferred=m.user1_transferred,
         user2_transferred=m.user2_transferred,
+        validated_by=m.validated_by,
         total=totals["total"],
         user1_due=totals["user1_due"],
         user2_due=totals["user2_due"],
@@ -86,6 +90,7 @@ def _to_detail(m: models.Month, db: Session = None) -> schemas.MonthDetail:
         user1_share=m.user1_share, user2_share=100 - m.user1_share,
         user1_transferred=m.user1_transferred,
         user2_transferred=m.user2_transferred,
+        validated_by=m.validated_by,
         prev_total=prev_total,
         charges=_build_charges(m, prev_lookup),
         **totals,
@@ -206,8 +211,10 @@ def validate_month(
     db.refresh(month)
 
     # Notifier le partenaire si validation (pas dévalidation)
+    logger.info("validate_month: validated_by=%s current_user=%s group=%s/%s", month.validated_by, current_user.id, group.user1_id, group.user2_id)
     if month.validated_by == current_user.id:
         partner_id = group.user2_id if group.user1_id == current_user.id else group.user1_id
+        logger.info("validate_month: sending notif to partner_id=%s", partner_id)
         if partner_id:
             totals = compute_totals(month)
             send_notification(
@@ -218,6 +225,21 @@ def validate_month(
             )
 
     return _to_detail(month, db)
+
+
+@router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
+def bulk_delete_months(
+    body: schemas.BulkDeleteMonths,
+    db: Session = Depends(get_db),
+    group: models.Group = Depends(get_current_group),
+):
+    if not body.ids:
+        return
+    db.query(models.Month).filter(
+        models.Month.id.in_(body.ids),
+        models.Month.group_id == group.id,
+    ).delete(synchronize_session=False)
+    db.commit()
 
 
 @router.delete("/{month_id}", status_code=status.HTTP_204_NO_CONTENT)

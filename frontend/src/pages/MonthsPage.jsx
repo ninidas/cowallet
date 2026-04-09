@@ -21,21 +21,33 @@ function TransferPill({ done, name }) {
 
 const NOW = new Date()
 
-function MonthCard({ month, config, onClick, isCurrent }) {
+function MonthCard({ month, config, onClick, isCurrent, selectMode, selected }) {
   const bothDone = month.user1_transferred && month.user2_transferred
-  const borderColor = bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
+  const borderColor = selected ? '#7c3aed' : bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
 
   return (
     <button
       onClick={onClick}
       className={`w-full bg-white rounded-2xl p-5 shadow-sm border active:scale-[0.98] transition text-left ${
+        selected ? 'border-violet-300 ring-2 ring-violet-200 bg-violet-50' :
         isCurrent ? 'border-violet-200 ring-2 ring-violet-100' : 'border-slate-100'
       }`}
       style={{ borderLeft: `4px solid ${borderColor}` }}
     >
       <div className="flex items-start justify-between mb-3">
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
+            {selectMode && (
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                selected ? 'border-violet-600 bg-violet-600' : 'border-slate-300'
+              }`}>
+                {selected && (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="w-3 h-3">
+                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+            )}
             <h3 className="text-lg font-bold text-slate-900">{month.label}</h3>
             {isCurrent && (
               <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
@@ -52,10 +64,12 @@ function MonthCard({ month, config, onClick, isCurrent }) {
             {month.user1_share}/{100 - month.user1_share} · {formatEur(month.total)}
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-xs text-slate-400 mb-0.5">Part individuelle</p>
-          <p className="text-xl font-bold text-violet-600">{formatEur(month.user1_due)}</p>
-        </div>
+        {!selectMode && (
+          <div className="text-right">
+            <p className="text-xs text-slate-400 mb-0.5">Part individuelle</p>
+            <p className="text-xl font-bold text-violet-600">{formatEur(month.user1_due)}</p>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
@@ -63,7 +77,7 @@ function MonthCard({ month, config, onClick, isCurrent }) {
           <TransferPill done={month.user1_transferred} name={config?.user1_username ?? 'User 1'} />
           <TransferPill done={month.user2_transferred} name={config?.user2_username ?? 'User 2'} />
         </div>
-        {bothDone && (
+        {bothDone && !selectMode && (
           <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
             ✓ Clôturé
           </span>
@@ -76,9 +90,12 @@ function MonthCard({ month, config, onClick, isCurrent }) {
 export default function MonthsPage() {
   const { user, config } = useAuth()
   const navigate = useNavigate()
-  const [months, setMonths]       = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [showForm, setShowForm]   = useState(false)
+  const [months, setMonths]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [showForm, setShowForm]     = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected]     = useState(new Set())
+  const [deleting, setDeleting]     = useState(false)
 
   async function load() {
     try {
@@ -97,6 +114,33 @@ export default function MonthsPage() {
   async function handleMonthCreated(newMonth) {
     setShowForm(false)
     navigate(`/months/${newMonth.id}`)
+  }
+
+  function toggleSelect(id) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelected(new Set())
+  }
+
+  async function handleBulkDelete() {
+    if (selected.size === 0) return
+    const label = selected.size === 1 ? '1 mois' : `${selected.size} mois`
+    if (!window.confirm(`Supprimer ${label} ? Cette action est irréversible.`)) return
+    setDeleting(true)
+    try {
+      await api.deleteMonths(Array.from(selected))
+      setMonths(prev => prev.filter(m => !selected.has(m.id)))
+      exitSelectMode()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -127,16 +171,41 @@ export default function MonthsPage() {
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4 py-6 pb-safe">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">Mes mois</h2>
-          <Link
-            to="/history"
-            className="lg:hidden flex items-center gap-1.5 text-sm font-medium text-violet-600 active:text-violet-800 transition"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-            </svg>
-            Historique
-          </Link>
+          <h2 className="text-lg font-bold text-slate-800">
+            {selectMode ? (
+              selected.size === 0 ? 'Sélectionner des mois' : `${selected.size} sélectionné${selected.size > 1 ? 's' : ''}`
+            ) : 'Mes mois'}
+          </h2>
+          <div className="flex items-center gap-3">
+            {selectMode ? (
+              <button
+                onClick={exitSelectMode}
+                className="text-sm font-medium text-slate-500 active:text-slate-700 transition"
+              >
+                Annuler
+              </button>
+            ) : (
+              <>
+                {months.length > 0 && (
+                  <button
+                    onClick={() => setSelectMode(true)}
+                    className="text-sm font-medium text-slate-500 active:text-slate-700 transition"
+                  >
+                    Sélectionner
+                  </button>
+                )}
+                <Link
+                  to="/history"
+                  className="lg:hidden flex items-center gap-1.5 text-sm font-medium text-violet-600 active:text-violet-800 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                  </svg>
+                  Historique
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -161,23 +230,40 @@ export default function MonthsPage() {
                 month={m}
                 config={config}
                 isCurrent={m.year === NOW.getFullYear() && m.month === NOW.getMonth() + 1}
-                onClick={() => navigate(`/months/${m.id}`)}
+                onClick={selectMode ? () => toggleSelect(m.id) : () => navigate(`/months/${m.id}`)}
+                selectMode={selectMode}
+                selected={selected.has(m.id)}
               />
             ))}
           </div>
         )}
       </div>
 
+      {/* Barre de suppression (mode sélection) */}
+      {selectMode && (
+        <div className="fixed bottom-24 lg:bottom-8 left-4 right-4 max-w-sm mx-auto z-10">
+          <button
+            onClick={handleBulkDelete}
+            disabled={selected.size === 0 || deleting}
+            className="w-full py-4 rounded-2xl font-semibold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-40 bg-red-500 shadow-red-200"
+          >
+            {deleting ? 'Suppression…' : selected.size === 0 ? 'Sélectionner des mois' : `Supprimer ${selected.size} mois`}
+          </button>
+        </div>
+      )}
+
       {/* FAB */}
-      <button
-        onClick={() => setShowForm(true)}
-        className="fixed bottom-24 lg:bottom-8 right-5 w-14 h-14 bg-violet-600 rounded-full shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
-        aria-label="Nouveau mois"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-7 h-7">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
-      </button>
+      {!selectMode && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="fixed bottom-24 lg:bottom-8 right-5 w-14 h-14 bg-violet-600 rounded-full shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
+          aria-label="Nouveau mois"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-7 h-7">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+      )}
 
       <MonthForm
         open={showForm}

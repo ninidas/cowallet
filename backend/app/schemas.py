@@ -182,6 +182,9 @@ class MonthCreate(BaseModel):
             raise ValueError("user1_share doit être entre 1 et 99")
         return v
 
+class BulkDeleteMonths(BaseModel):
+    ids: List[int]
+
 class TransferUpdate(BaseModel):
     user1_transferred: Optional[bool] = None
     user2_transferred: Optional[bool] = None
