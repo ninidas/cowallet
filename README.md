@@ -8,18 +8,36 @@ A mobile-first PWA for couples to manage their shared budget. Track monthly expe
 
 ## Features
 
+### Budget & Expenses
 - **Monthly tracking** — create a month, add charges, mark transfers as done
 - **Configurable split** — 50/50, 60/40, or any ratio you want
 - **Recurring charges** — automatically copied to the next month
 - **Installment payments** — split a purchase over N months, auto-carried forward
+- **Actual vs planned** — enter real amounts alongside budgeted ones, see the delta
+- **Month validation** — mark a month as closed once transfers are done
+- **Bulk delete** — select and delete multiple months at once
+
+### Categories & Organization
 - **Charge suggestions** — autocomplete based on past entries
 - **Custom categories** — create categories with icon and color
 - **Custom payment methods** — add your own payment methods
+
+### History & Analytics
 - **History & charts** — monthly evolution, breakdown by category, top recurring costs
+- **Sankey diagram** — visualize income, shared expenses, personal spending and investments
 - **CSV export** — keep a backup of all your data
-- **First-run setup** — no config file needed, just open the app
-- **PWA** — installable on iOS and Android home screen
+
+### Collaboration
+- **Multi-user** — invite your partner via a private invite link
+- **Push notifications** — get notified when your partner validates a month (iOS & Android)
+- **Group isolation** — each couple's data is fully isolated
+
+### App & Security
+- **PWA** — installable on iOS (Safari) and Android home screen
+- **Sticky header** — validate button always accessible while scrolling on mobile
 - **Rate-limited login** — brute-force protection on the auth endpoint
+- **Password policy** — minimum 8 characters, at least 1 digit
+- **First-run setup** — no config file needed, just open the app
 
 ## Screenshots
 
@@ -64,6 +82,12 @@ The frontend is available on port 80 of the `cowallet-frontend` container. Expos
 
 Open the app in your browser — you'll be guided through a setup wizard to create two user accounts and configure the default split ratio.
 
+## Push Notifications
+
+Push notifications require a VAPID key pair. They are **auto-generated and persisted** on first run — no manual configuration needed. To enable notifications, open the app settings and toggle "Notifications".
+
+> Push notifications on iOS require the app to be installed via Safari → Share → Add to Home Screen.
+
 ## Configuration
 
 | Variable | Required | Description |
@@ -75,6 +99,7 @@ Open the app in your browser — you'll be guided through a setup wizard to crea
 - **Frontend** — React, Vite, Tailwind CSS, Recharts, PWA
 - **Backend** — FastAPI, SQLAlchemy, SQLite
 - **Auth** — JWT (python-jose), bcrypt
+- **Push** — Web Push API, VAPID (pywebpush), compatible iOS 16.4+ and Android
 - **Proxy** — nginx
 
 ## License
