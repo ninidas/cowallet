@@ -15,20 +15,50 @@ export function usePushNotifications() {
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading]       = useState(false)
 
-  function checkSubscription() {
+  async function checkSubscription() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-    navigator.serviceWorker.ready.then(reg =>
-      reg.pushManager.getSubscription().then(sub => setSubscribed(!!sub))
-    )
+    const reg = await navigator.serviceWorker.ready
+    const sub = await reg.pushManager.getSubscription()
+    setSubscribed(!!sub)
+
+    // iOS révoque silencieusement les subscriptions après 3 push silencieux
+    // ou après inactivité. Si la permission est accordée mais la subscription
+    // a disparu, on re-subscribe automatiquement.
+    if (!sub && Notification.permission === 'granted') {
+      try {
+        const { public_key } = await api.getVapidPublicKey()
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(public_key),
+        })
+        const json = newSub.toJSON()
+        await api.subscribePush({ endpoint: json.endpoint, keys: json.keys })
+        setSubscribed(true)
+      } catch {
+        // Échec silencieux — l'utilisateur pourra re-activer manuellement
+      }
+    }
   }
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+
+    // Dégager les anciens service workers (ex: workbox généré par vite-plugin-pwa)
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => {
+        const sw = reg.active || reg.installing || reg.waiting
+        if (sw && !sw.scriptURL.endsWith('/sw.js')) {
+          reg.unregister()
+        }
+      })
+    })
+
     navigator.serviceWorker.register('/sw.js').catch(() => {})
     checkSubscription()
 
-    document.addEventListener('visibilitychange', checkSubscription)
-    return () => document.removeEventListener('visibilitychange', checkSubscription)
+    const onVisible = () => { if (document.visibilityState === 'visible') checkSubscription() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   async function subscribe() {

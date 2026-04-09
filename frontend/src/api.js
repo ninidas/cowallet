@@ -81,6 +81,8 @@ export const api = {
   getMonth:        (id)         => cached(`month:${id}`, () => request(`/months/${id}`)),
   deleteMonth:     (id)         => request(`/months/${id}`, { method: 'DELETE' })
                                      .then(r => { invalidate('months', `month:${id}`, 'stats') ; return r }),
+  deleteMonths:    (ids)        => request('/months/bulk', { method: 'DELETE', body: JSON.stringify({ ids }) })
+                                     .then(r => { invalidate('months', 'stats') ; return r }),
   updateTransfer:  (id, data)   => request(`/months/${id}/transfer`, { method: 'PATCH', body: JSON.stringify(data) })
                                      .then(r => { invalidate('months', `month:${id}`) ; return r }),
   updateShare:     (id, data)   => request(`/months/${id}/share`, { method: 'PATCH', body: JSON.stringify(data) })
