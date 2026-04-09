@@ -6,9 +6,8 @@ import { useAuth } from '../context/AuthContext'
 export default function GroupSetupPage() {
   const { refreshConfig, logout } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab]           = useState('create') // 'create' | 'join'
-  const [groupName, setGroupName] = useState('Notre budget')
-  const [inviteCode, setInviteCode] = useState('')
+  const [tab, setTab]           = useState(() => sessionStorage.getItem('invite_code') ? 'join' : 'create')
+  const [inviteCode, setInviteCode] = useState(() => sessionStorage.getItem('invite_code') ?? '')
   const [createdGroup, setCreatedGroup] = useState(null)
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -18,7 +17,7 @@ export default function GroupSetupPage() {
     setError('')
     setLoading(true)
     try {
-      const group = await api.createGroup({ name: groupName })
+      const group = await api.createGroup({ name: 'Notre budget' })
       setCreatedGroup(group)
     } catch (err) {
       setError(err.message)
@@ -33,6 +32,7 @@ export default function GroupSetupPage() {
     setLoading(true)
     try {
       await api.joinGroup(inviteCode.trim())
+      sessionStorage.removeItem('invite_code')
       await refreshConfig()
       navigate('/months', { replace: true })
     } catch (err) {
@@ -105,17 +105,6 @@ export default function GroupSetupPage() {
 
         {tab === 'create' ? (
           <form onSubmit={handleCreate} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Nom du groupe</label>
-              <input
-                type="text"
-                value={groupName}
-                onChange={e => setGroupName(e.target.value)}
-                className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
-                placeholder="Notre budget"
-                required
-              />
-            </div>
             {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
