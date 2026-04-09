@@ -77,24 +77,42 @@ def unsubscribe(
 
 def send_notification(db: Session, user_id: int, title: str, body: str, url: str = "/"):
     """Envoie une notification push à tous les appareils d'un utilisateur."""
-    pub_key, priv_key = get_vapid_keys(db)
-    if not pub_key or not priv_key:
+    from py_vapid import Vapid
+    pub_key, priv_pem = get_vapid_keys(db)
+    if not pub_key or not priv_pem:
+        return
+
+    try:
+        vapid = Vapid.from_pem(priv_pem.encode())
+    except Exception as e:
+        logger.warning("Failed to load VAPID key: %s", e)
         return
 
     subs = db.query(models.PushSubscription).filter_by(user_id=user_id).all()
-    payload = json.dumps({"title": title, "body": body, "url": url})
+    logger.info("send_notification: user_id=%s, subs=%s", user_id, len(subs))
+    # Declarative Web Push (iOS 18.4+) — plus fiable, bypass le service worker
+    payload = json.dumps({
+        "web_push": 8030,
+        "notification": {
+            "title": title,
+            "body": body,
+            "navigate": url,
+        }
+    })
 
     for sub in subs:
         try:
-            webpush(
+            resp = webpush(
                 subscription_info={
                     "endpoint": sub.endpoint,
                     "keys": {"p256dh": sub.p256dh, "auth": sub.auth},
                 },
                 data=payload,
-                vapid_private_key=priv_key,
-                vapid_claims={"sub": "mailto:admin@cowallet.app"},
+                vapid_private_key=vapid,
+                vapid_claims={"sub": "mailto:noreply@example.com"},
+                ttl=86400,
             )
+            logger.info("Push sent to sub %s — status=%s body=%s", sub.id, resp.status_code if resp else 'N/A', resp.text[:200] if resp else '')
         except WebPushException as e:
             logger.warning("Push failed for sub %s: %s", sub.id, e)
             if e.response and e.response.status_code in (404, 410):

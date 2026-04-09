@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { usePushNotifications } from '../hooks/usePushNotifications'
+import { usePush } from '../context/PushContext'
 
 const NAV = [
   {
@@ -47,7 +47,7 @@ export default function Layout({ children }) {
   const { user, logout } = useAuth()
   const location = useLocation()
   const navigate  = useNavigate()
-  const { supported, permission, subscribed, loading, subscribe } = usePushNotifications()
+  const { supported, permission, subscribed, loading, subscribe } = usePush()
 
   const isStandalone = typeof window !== 'undefined' &&
     window.matchMedia('(display-mode: standalone)').matches

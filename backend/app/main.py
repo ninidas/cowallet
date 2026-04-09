@@ -1,4 +1,6 @@
 import os
+import logging
+logging.basicConfig(level=logging.INFO)
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -54,10 +56,13 @@ with engine.connect() as _conn:
     if not _pub:
         try:
             from py_vapid import Vapid
+            from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat, PrivateFormat, NoEncryption
+            import base64
             _v = Vapid()
             _v.generate_keys()
-            _pub_key  = _v.public_key_urlsafe_base64()
-            _priv_key = _v.private_key_urlsafe_base64()
+            _pub_bytes = _v.public_key.public_bytes(Encoding.X962, PublicFormat.UncompressedPoint)
+            _pub_key   = base64.urlsafe_b64encode(_pub_bytes).decode('utf-8').rstrip('=')
+            _priv_key  = _v.private_key.private_bytes(Encoding.PEM, PrivateFormat.TraditionalOpenSSL, NoEncryption()).decode('utf-8')
             _conn.execute(text("INSERT INTO app_config (key, value) VALUES ('vapid_public', :v)"),  {"v": _pub_key})
             _conn.execute(text("INSERT INTO app_config (key, value) VALUES ('vapid_private', :v)"), {"v": _priv_key})
             _conn.commit()

@@ -321,8 +321,8 @@ export default function MonthDetailPage() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-10 lg:pb-12">
+      {/* Header — sticky sur mobile */}
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-3 lg:pb-4">
         <div className="max-w-6xl mx-auto lg:px-6 flex items-center gap-3 lg:gap-4">
           {/* Retour */}
           <button
@@ -361,7 +361,11 @@ export default function MonthDetailPage() {
 
           {/* Valider le mois */}
           <button
-            onClick={async () => { const m = await api.validateMonth(month.id); setMonth(m) }}
+            onClick={() => {
+              const optimistic = { ...month, validated_by: month.validated_by ? null : -1 }
+              setMonth(optimistic)
+              api.validateMonth(month.id).then(m => setMonth(m)).catch(() => setMonth(month))
+            }}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition shrink-0 ${month.validated_by ? 'bg-emerald-400/80 active:bg-emerald-500/80' : 'bg-white/20 active:bg-white/30'}`}
             aria-label="Valider le mois"
             title={month.validated_by ? 'Mois validé — cliquer pour annuler' : 'Valider le mois'}
@@ -390,7 +394,7 @@ export default function MonthDetailPage() {
         {/* Colonne droite sur desktop (hero + virements) — affichée en premier sur mobile */}
         <div className="lg:col-span-1 lg:sticky lg:top-6 space-y-4">
           {/* Hero */}
-          <div className="-mt-5 mx-4 lg:mx-0 lg:-mt-10">
+          <div className="mt-4 mx-4 lg:mx-0 lg:mt-0 lg:-mt-10">
             <HeroCard month={month} />
           </div>
 
