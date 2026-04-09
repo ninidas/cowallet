@@ -30,6 +30,18 @@ def _seed_group(group: models.Group, db: Session):
         db.add(models.Category(group_id=group.id, name=name, icon=icon, color=color, sort_order=order))
 
 
+@router.get("/invite-info/{code}")
+def get_invite_info(code: str, db: Session = Depends(get_db)):
+    """Infos publiques sur une invitation (pas d'auth requise)."""
+    group = db.query(models.Group).filter_by(invite_code=code.upper()).first()
+    if not group or group.user2_id is not None:
+        raise HTTPException(status_code=404, detail="Invitation invalide ou expirée")
+    return {
+        "inviter": group.user1.username,
+        "group_name": group.name if group.name != "Notre budget" else None,
+    }
+
+
 @router.get("/me", response_model=schemas.GroupOut)
 def get_my_group(
     current_user: models.User = Depends(get_current_user),
@@ -67,6 +79,18 @@ def create_group(
     db.add(group)
     db.flush()
     _seed_group(group, db)
+    db.commit()
+    db.refresh(group)
+    return _to_out(group)
+
+
+@router.patch("/me/name", response_model=schemas.GroupOut)
+def rename_group(
+    body: schemas.GroupRename,
+    group: models.Group = Depends(get_current_group),
+    db: Session = Depends(get_db),
+):
+    group.name = body.name.strip()
     db.commit()
     db.refresh(group)
     return _to_out(group)

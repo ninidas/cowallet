@@ -11,6 +11,14 @@ const PRESET_COLORS = [
   '#64748b', '#8b5cf6', '#14b8a6', '#f59e0b',
 ]
 
+const PRESET_EMOJIS = [
+  '🛒','🍽️','🥗','☕','🍕','🍺','🚗','⛽','🚌','🚲',
+  '✈️','🅿️','🚆','🎬','🎵','📚','🎮','🏋️','🎨','🍷',
+  '💊','🏥','🧴','💆','👶','🦷','💰','💳','🏦','📈',
+  '🏠','🎁','🛍️','🧾','📦','🔧','🐾','🎓','💡','📱',
+  '🖥️','🔑','🌍','🧽','💈','🏡','🎀','🚑','👗','🎪',
+]
+
 function Section({ title, children }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -48,6 +56,7 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword,     setNewPassword]     = useState('')
   const [share,           setShare]           = useState(config?.default_user1_share ?? 50)
+  const [groupName,       setGroupName]       = useState(config?.group_name ?? '')
   const [saving,  setSaving]  = useState(false)
   const [success, setSuccess] = useState('')
   const [error,   setError]   = useState('')
@@ -64,6 +73,7 @@ export default function SettingsPage() {
   const [newCatIcon,    setNewCatIcon]    = useState('📦')
   const [newCatColor,   setNewCatColor]   = useState('#3b82f6')
   const [catError,      setCatError]      = useState('')
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   // Payment methods
   const [paymentMethods, setPaymentMethods] = useState([])
@@ -88,13 +98,15 @@ export default function SettingsPage() {
       payload.new_password     = newPassword
     }
     if (share !== config?.default_user1_share) payload.default_user1_share = share
-    if (Object.keys(payload).length === 0) {
+    const nameChanged = groupName.trim() && groupName.trim() !== (config?.group_name ?? '')
+    if (Object.keys(payload).length === 0 && !nameChanged) {
       setSaving(false)
       setSuccess('Aucune modification.')
       return
     }
     try {
-      await api.updateSettings(payload)
+      if (Object.keys(payload).length > 0) await api.updateSettings(payload)
+      if (nameChanged) await api.renameGroup(groupName.trim())
       await refreshConfig()
       setSuccess('Paramètres enregistrés.')
       setCurrentPassword('')
@@ -130,6 +142,7 @@ export default function SettingsPage() {
       setNewCatName('')
       setNewCatIcon('📦')
       setNewCatColor('#3b82f6')
+      setShowEmojiPicker(false)
     } catch (err) {
       setCatError(err.message)
     }
@@ -221,7 +234,39 @@ export default function SettingsPage() {
             </Section>
           )}
 
+          {config?.invite_code && (
+            <Section title="Inviter mon partenaire">
+              <p className="text-sm text-slate-500">Partagez ce lien pour inviter votre partenaire à rejoindre le groupe.</p>
+              <div className="flex gap-2 mt-2">
+                <div className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 font-mono truncate">
+                  {`${window.location.origin}/invite/${config.invite_code}`}
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = `${window.location.origin}/invite/${config.invite_code}`
+                    if (navigator.share) {
+                      await navigator.share({ title: 'CoWallet', text: 'Rejoins notre budget commun !', url })
+                    } else {
+                      await navigator.clipboard.writeText(url)
+                      alert('Lien copié !')
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition shrink-0"
+                >
+                  Partager
+                </button>
+              </div>
+            </Section>
+          )}
+
           <form onSubmit={handleSave} className="space-y-4">
+            <Section title="Notre groupe">
+              <Field label="Nom du groupe">
+                <Input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="Notre budget" maxLength={40} />
+              </Field>
+              <p className="text-xs text-slate-400">S'affiche dans l'app si renseigné.</p>
+            </Section>
             <Section title="Mon compte">
               <Field label="Prénom affiché">
                 <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Ton prénom" required />
@@ -325,13 +370,31 @@ export default function SettingsPage() {
             <form onSubmit={handleAddCategory} className="space-y-3 pt-4 border-t border-slate-100">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Nouvelle catégorie</p>
               <div className="flex gap-2">
-                <input value={newCatIcon} onChange={e => setNewCatIcon(e.target.value)}
-                  className="w-14 px-2 py-2.5 text-center text-xl rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  placeholder="📦" maxLength={2} />
+                <button
+                  type="button"
+                  onClick={() => setShowEmojiPicker(v => !v)}
+                  className={`w-14 h-11 text-xl rounded-xl border flex items-center justify-center transition ${showEmojiPicker ? 'border-violet-400 ring-2 ring-violet-300 bg-violet-50' : 'border-slate-200 bg-slate-50'}`}
+                >
+                  {newCatIcon}
+                </button>
                 <input value={newCatName} onChange={e => setNewCatName(e.target.value)}
                   className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
                   placeholder="Nom de la catégorie" required />
               </div>
+              {showEmojiPicker && (
+                <div className="grid grid-cols-10 gap-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  {PRESET_EMOJIS.map(e => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => { setNewCatIcon(e); setShowEmojiPicker(false) }}
+                      className={`h-9 text-xl rounded-lg flex items-center justify-center transition active:scale-95 ${newCatIcon === e ? 'bg-violet-100 ring-2 ring-violet-400' : 'hover:bg-slate-200'}`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 py-1">
                 {PRESET_COLORS.map(c => (
                   <button key={c} type="button" onClick={() => setNewCatColor(c)}
