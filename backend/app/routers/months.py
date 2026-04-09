@@ -220,7 +220,7 @@ def validate_month(
             send_notification(
                 db, partner_id,
                 title=f"{current_user.username} a validé {month.label}",
-                body=f"Total du mois : {totals['total']:.2f}€",
+                body="",
                 url=f"/months/{month.id}",
             )
 
@@ -235,10 +235,18 @@ def bulk_delete_months(
 ):
     if not body.ids:
         return
-    db.query(models.Month).filter(
-        models.Month.id.in_(body.ids),
-        models.Month.group_id == group.id,
-    ).delete(synchronize_session=False)
+    # Verify months belong to current group before deleting
+    valid_ids = [
+        m.id for m in db.query(models.Month.id).filter(
+            models.Month.id.in_(body.ids),
+            models.Month.group_id == group.id,
+        ).all()
+    ]
+    if not valid_ids:
+        return
+    # Explicitly delete charges first (synchronize_session=False bypasses ORM cascade)
+    db.query(models.Charge).filter(models.Charge.month_id.in_(valid_ids)).delete(synchronize_session=False)
+    db.query(models.Month).filter(models.Month.id.in_(valid_ids)).delete(synchronize_session=False)
     db.commit()
 
 
