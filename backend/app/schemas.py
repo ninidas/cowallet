@@ -56,6 +56,9 @@ class GroupCreate(BaseModel):
 class GroupJoin(BaseModel):
     invite_code: str
 
+class GroupRename(BaseModel):
+    name: str
+
 class GroupOut(BaseModel):
     id: int
     name: str

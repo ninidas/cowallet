@@ -1,6 +1,7 @@
 import os
 import logging
 logging.basicConfig(level=logging.INFO)
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -13,6 +14,7 @@ from .database import engine, get_db
 from . import models
 from .auth import get_current_user_optional
 from .routers import auth, months, charges, setup, export, stats, settings, categories, payment_methods, users, groups, budget, push
+from .scheduler import create_scheduler
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -184,7 +186,14 @@ with engine.connect() as _conn:
         _conn.execute(text("UPDATE payment_methods SET group_id=:g WHERE group_id IS NULL"), {"g": _gid})
         _conn.commit()
 
-app = FastAPI(title="CoWallet")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = create_scheduler()
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+app = FastAPI(title="CoWallet", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -229,6 +238,8 @@ def get_config(db: Session = Depends(get_db), current_user: models.User = Depend
                 "setup_needed":        False,
                 "has_group":           True,
                 "group_id":            group.id,
+                "group_name":          group.name if group.name != "Notre budget" else None,
+                "invite_code":         group.invite_code if group.user2_id is None else None,
                 "user1_username":      group.user1.username,
                 "user2_username":      group.user2.username if group.user2 else None,
                 "default_user1_share": group.default_share,

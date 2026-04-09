@@ -27,6 +27,7 @@ Thumbs.db
 
 # Local scripts
 deploy.sh
+redeploy-vscode.sh
 backup.sh
 backups/
 

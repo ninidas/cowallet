@@ -152,6 +152,9 @@ export default function MonthsPage() {
             <div>
               <p className="text-violet-200 text-sm">Bonjour,</p>
               <h1 className="text-2xl font-bold text-white capitalize">{user?.username}</h1>
+              {config?.group_name && (
+                <p className="text-violet-300 text-sm font-medium mt-0.5">{config.group_name}</p>
+              )}
             </div>
             {/* Bouton paramètres visible uniquement sur mobile (sidebar gère ça sur desktop) */}
             <button
@@ -213,14 +216,41 @@ export default function MonthsPage() {
             <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
           </div>
         ) : months.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-200">
-            <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-violet-400">
+          <div className="flex flex-col items-center py-10 px-4">
+            <div className="w-20 h-20 bg-violet-100 rounded-3xl flex items-center justify-center mb-5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-10 h-10 text-violet-500">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
               </svg>
             </div>
-            <p className="text-slate-700 font-semibold mb-1">Aucun mois pour l'instant</p>
-            <p className="text-slate-400 text-sm">Appuyez sur <span className="font-bold text-violet-500">+</span> pour créer votre premier mois</p>
+            <h3 className="text-xl font-bold text-slate-800 mb-2 text-center">
+              {config?.user2_username
+                ? `Bienvenue, ${user?.username} et ${config.user2_username} !`
+                : `Bienvenue, ${user?.username} !`}
+            </h3>
+            <p className="text-slate-500 text-sm text-center max-w-xs mb-7">
+              Créez votre premier mois pour commencer à suivre vos dépenses communes.
+            </p>
+            <button
+              onClick={() => setShowForm(true)}
+              className="px-8 py-4 bg-violet-600 text-white font-bold rounded-2xl shadow-lg shadow-violet-200 active:scale-95 transition mb-8"
+            >
+              Créer mon premier mois
+            </button>
+            <div className="w-full max-w-sm space-y-3">
+              {[
+                { icon: '📅', title: 'Un mois = une période', desc: 'Créez un mois par période de dépenses et ajoutez vos charges au fur et à mesure.' },
+                { icon: '⚖️', title: 'Répartition flexible', desc: 'Définissez qui paie quelle part — 50/50, 60/40, ajustable à tout moment.' },
+                { icon: '🔁', title: 'Charges récurrentes', desc: 'Loyer, abonnements, crédits — ils se reportent automatiquement au mois suivant.' },
+              ].map((tip, i) => (
+                <div key={i} className="flex items-start gap-3 bg-white rounded-2xl p-4 border border-slate-100">
+                  <span className="text-xl mt-0.5">{tip.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">{tip.title}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{tip.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
