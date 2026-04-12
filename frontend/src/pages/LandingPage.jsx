@@ -18,7 +18,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Répartition flexible',
-    desc: '50/50, 60/40 ou n\'importe quel ratio — ajustable mois par mois.',
+    desc: '50/50, 60/40 ou n\'importe quel ratio, ajustable mois par mois.',
   },
   {
     icon: (
@@ -27,7 +27,7 @@ const FEATURES = [
       </svg>
     ),
     title: 'Charges récurrentes',
-    desc: 'Loyer, abonnements, crédits — reportés automatiquement chaque mois.',
+    desc: 'Loyer, abonnements, crédits : reportés automatiquement chaque mois.',
   },
   {
     icon: (
@@ -148,9 +148,26 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* Privacy */}
+      <div className="bg-violet-50 border-t border-violet-100">
+        <div className="max-w-4xl mx-auto px-6 py-10">
+          <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+            <div className="w-14 h-14 bg-violet-100 rounded-2xl flex items-center justify-center flex-shrink-0 text-2xl">
+              🔒
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 mb-1">Vos données vous appartiennent</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Seuls vous et votre partenaire avez accès à vos dépenses. L'application est auto-hébergée : vos données restent sur ce serveur et ne sont jamais partagées avec des tiers. Aucune pub, aucun tracking.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Footer */}
       <div className="bg-white border-t border-slate-100">
-        <div className="max-w-4xl mx-auto px-6 py-8 text-center">
+        <div className="max-w-4xl mx-auto px-6 py-6 text-center">
           <p className="text-xs text-slate-400">
             Auto-hébergé · Open source · AGPL-3.0
           </p>

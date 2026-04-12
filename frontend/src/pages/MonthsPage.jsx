@@ -239,8 +239,8 @@ export default function MonthsPage() {
             <div className="w-full max-w-sm space-y-3">
               {[
                 { icon: '📅', title: 'Un mois = une période', desc: 'Créez un mois par période de dépenses et ajoutez vos charges au fur et à mesure.' },
-                { icon: '⚖️', title: 'Répartition flexible', desc: 'Définissez qui paie quelle part — 50/50, 60/40, ajustable à tout moment.' },
-                { icon: '🔁', title: 'Charges récurrentes', desc: 'Loyer, abonnements, crédits — ils se reportent automatiquement au mois suivant.' },
+                { icon: '⚖️', title: 'Répartition flexible', desc: 'Définissez qui paie quelle part : 50/50, 60/40, ajustable à tout moment.' },
+                { icon: '🔁', title: 'Charges récurrentes', desc: 'Loyer, abonnements, crédits : ils se reportent automatiquement au mois suivant.' },
               ].map((tip, i) => (
                 <div key={i} className="flex items-start gap-3 bg-white rounded-2xl p-4 border border-slate-100">
                   <span className="text-xl mt-0.5">{tip.icon}</span>

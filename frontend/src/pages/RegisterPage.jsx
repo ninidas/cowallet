@@ -97,6 +97,13 @@ export default function RegisterPage() {
           Déjà un compte ?{' '}
           <Link to="/login" className="text-violet-600 font-medium">Se connecter</Link>
         </p>
+
+        <div className="flex items-center gap-2 mt-5 pt-5 border-t border-slate-100">
+          <span className="text-base">🔒</span>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Vos données sont privées et accessibles uniquement à vous et votre partenaire.
+          </p>
+        </div>
       </div>
     </div>
   )
