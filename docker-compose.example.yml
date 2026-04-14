@@ -12,5 +12,8 @@ services:
     image: ghcr.io/ninidas/cowallet-backend:latest
     container_name: cowallet-backend
     restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
     volumes:
       - <host_folder_data>:/data
