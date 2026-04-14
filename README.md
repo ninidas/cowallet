@@ -152,9 +152,7 @@ Once configured, a **Bank connection** section appears in the app settings where
 
 ## Push Notifications
 
-Push notifications require a VAPID key pair. They are **auto-generated and persisted** on first run - no manual configuration needed. To enable notifications, open the app settings and toggle "Notifications".
-
-> Push notifications on iOS require the app to be installed via Safari → Share → Add to Home Screen.
+Push notifications are supported on mobile (iOS and Android). To receive them, install the app on your phone first (Chrome or Safari: use "Add to Home Screen"), then open the app, go to settings and toggle "Notifications". No server configuration needed.
 
 ## Configuration
 
