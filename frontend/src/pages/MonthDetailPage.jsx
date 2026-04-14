@@ -335,16 +335,22 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
                     <span className="text-xs text-slate-400 shrink-0">{tx.date.slice(8)}/{tx.date.slice(5, 7)}</span>
                   </div>
                   {/* Category selector */}
-                  <select
-                    value={tx.category ?? ''}
-                    onChange={e => handleCategorize(tx.id, e.target.value || null)}
-                    className="mt-1.5 text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full"
-                  >
-                    <option value="">Sans catégorie</option>
-                    {categories.map(c => (
-                      <option key={c.id} value={c.name}>{c.icon} {c.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: categoriesMap[tx.category]?.color ?? '#cbd5e1' }}
+                    />
+                    <select
+                      value={tx.category ?? ''}
+                      onChange={e => handleCategorize(tx.id, e.target.value || null)}
+                      className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full"
+                    >
+                      <option value="">Sans catégorie</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.name}>{c.icon} {c.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-sm font-bold tabular-nums text-slate-800">{formatEur(tx.amount)}</span>
