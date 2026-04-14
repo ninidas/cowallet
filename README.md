@@ -84,15 +84,9 @@ services:
       - <host_folder_data>:/data
 ```
 
-### 2. Start
+Then start with `docker compose up -d`. The app is available at `http://localhost:3000`. Point your reverse proxy (Traefik, nginx, Caddy…) to port 3000 of the `cowallet-frontend` container.
 
-```bash
-docker compose up -d
-```
-
-The app is available at `http://localhost:3000`. Point your reverse proxy (Traefik, nginx, Caddy…) to port 3000 of the `cowallet-frontend` container.
-
-### 3. First run
+### 2. First run
 
 Open the app in your browser - you'll be guided through a setup wizard to create two user accounts and configure the default split ratio.
 
