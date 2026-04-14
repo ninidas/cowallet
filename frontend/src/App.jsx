@@ -12,6 +12,8 @@ import MonthDetailPage from './pages/MonthDetailPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 import BudgetPage from './pages/BudgetPage'
+import BankCallbackPage from './pages/BankCallbackPage'
+import BankImportPage from './pages/BankImportPage'
 
 function PrivateRoute({ children }) {
   const { user, config, ready } = useAuth()
@@ -41,7 +43,9 @@ export default function App() {
       <Route path="/months/:id"  element={<PrivateRoute><MonthDetailPage /></PrivateRoute>} />
       <Route path="/history"     element={<PrivateRoute><HistoryPage /></PrivateRoute>} />
       <Route path="/budget"      element={<PrivateRoute><BudgetPage /></PrivateRoute>} />
-      <Route path="/settings"    element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      <Route path="/settings"      element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      <Route path="/bank/callback" element={<PrivateRoute><BankCallbackPage /></PrivateRoute>} />
+      <Route path="/bank/import/:monthId" element={<PrivateRoute><BankImportPage /></PrivateRoute>} />
       <Route path="*"            element={<Navigate to="/" replace />} />
     </Routes>
   )

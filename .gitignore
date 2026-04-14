@@ -13,6 +13,11 @@ venv/
 *.db
 *.sqlite
 
+# Clés privées
+backend/secrets/
+*.pem
+*.pem.txt
+
 # Node / frontend
 node_modules/
 dist/
@@ -30,6 +35,8 @@ deploy.sh
 redeploy-vscode.sh
 backup.sh
 backups/
+docker-compose.dev.yml
+docker-compose.yml
 
 # Claude Code memory
 memory/

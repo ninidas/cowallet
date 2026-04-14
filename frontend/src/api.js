@@ -127,6 +127,20 @@ export const api = {
   deleteBudgetEntry:   (id)         => request(`/budget/${id}`, { method: 'DELETE' })
                                          .then(r => { invalidate('budget') ; return r }),
 
+  // Bank sync
+  getBankStatus:        ()            => request('/bank/status'),
+  getAspsps:            (country = 'FR') => request(`/bank/aspsps?country=${country}`),
+  startBankConnect:     (return_to, aspsp_name, aspsp_country = 'FR') => request('/bank/connect', { method: 'POST', body: JSON.stringify({ return_to, aspsp_name, aspsp_country }) }),
+  finishBankConnect:    (auth_code)   => request('/bank/finish',    { method: 'POST', body: JSON.stringify({ auth_code }) }),
+  toggleBankAccount:    (id)          => request(`/bank/accounts/${id}`, { method: 'PATCH' }),
+  deleteBankConnection: ()            => request('/bank/connection', { method: 'DELETE' }),
+  getBankTransactions:  (from_date, to_date) => request(`/bank/transactions?${from_date ? `from_date=${from_date}` : ''}${to_date ? `&to_date=${to_date}` : ''}`),
+  importTransactions:   (data)        => request('/bank/transactions/import', { method: 'POST', body: JSON.stringify(data) }),
+  getMonthTransactions: (mid)         => request(`/bank/months/${mid}/transactions`),
+  categorizeTransaction:(id, cat)     => request(`/bank/transactions/${id}`, { method: 'PATCH', body: JSON.stringify({ category: cat }) }),
+  deleteTransaction:    (id)          => request(`/bank/transactions/${id}`, { method: 'DELETE' }),
+  getBudgetVsActual:    (mid)         => request(`/bank/months/${mid}/budget-vs-actual`),
+
   getVapidPublicKey:   ()     => request('/push/vapid-public'),
   subscribePush:       (data) => request('/push/subscribe',   { method: 'POST',   body: JSON.stringify(data) }),
   unsubscribePush:     (data) => request('/push/subscribe',   { method: 'DELETE', body: JSON.stringify(data) }),

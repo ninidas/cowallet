@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useRef } from 'react'
@@ -80,11 +80,71 @@ export default function SettingsPage() {
   const [newPmName,      setNewPmName]      = useState('')
   const [pmError,        setPmError]        = useState('')
 
+  // Bank sync
+  const [searchParams]    = useSearchParams()
+  const [bankStatus,      setBankStatus]      = useState(null)
+  const [bankConnecting,  setBankConnecting]  = useState(false)
+  const [bankDisconnecting, setBankDisc]      = useState(false)
+  const [showBankPicker,  setShowBankPicker]  = useState(false)
+  const [aspsps,          setAspsps]          = useState([])
+  const [aspspsLoading,   setAspspsLoading]   = useState(false)
+  const [aspspCountry,    setAspspCountry]    = useState('FR')
+  const [aspspSearch,     setAspspSearch]     = useState('')
+
   useEffect(() => {
     window.scrollTo(0, 0)
     api.getCategories().then(setCategories).catch(() => {})
     api.getPaymentMethods().then(setPaymentMethods).catch(() => {})
+    api.getBankStatus().then(setBankStatus).catch(() => {})
   }, [])
+
+  async function openBankPicker() {
+    setShowBankPicker(true)
+    setAspspsLoading(true)
+    setAspspSearch('')
+    try {
+      const data = await api.getAspsps(aspspCountry)
+      setAspsps(data)
+    } catch (err) {
+      setError(err.message)
+      setShowBankPicker(false)
+    } finally {
+      setAspspsLoading(false)
+    }
+  }
+
+  async function handleBankConnect(aspspName) {
+    setShowBankPicker(false)
+    setBankConnecting(true)
+    try {
+      const returnTo = `${window.location.origin}/bank/callback`
+      const { connect_url } = await api.startBankConnect(returnTo, aspspName, aspspCountry)
+      window.location.href = connect_url
+    } catch (err) {
+      setError(err.message)
+      setBankConnecting(false)
+    }
+  }
+
+  async function handleBankDisconnect() {
+    setBankDisc(true)
+    try {
+      await api.deleteBankConnection()
+      setBankStatus(s => ({ ...s, connected: false }))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBankDisc(false)
+    }
+  }
+
+  async function handleToggleAccount(id) {
+    const res = await api.toggleBankAccount(id)
+    setBankStatus(s => ({
+      ...s,
+      accounts: s.accounts.map(a => a.id === id ? { ...a, enabled: res.enabled } : a),
+    }))
+  }
 
   async function handleSave(e) {
     e.preventDefault()
@@ -438,10 +498,166 @@ export default function SettingsPage() {
             </form>
           </Section>
 
+          {/* Connexion bancaire */}
+          <Section title="Connexion bancaire">
+              {bankStatus && !bankStatus.configured && (
+                <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 text-amber-800 text-sm px-4 py-3 rounded-xl">
+                  <span className="text-lg shrink-0">⚙️</span>
+                  <div>
+                    <p className="font-semibold">Enable Banking non configuré</p>
+                    <p className="text-xs text-amber-600 mt-0.5">Les variables <code>ENABLEBANKING_APP_ID</code> et <code>ENABLEBANKING_PRIVATE_KEY_PATH</code> sont manquantes sur le serveur.</p>
+                  </div>
+                </div>
+              )}
+              {(!bankStatus || bankStatus.configured) && searchParams.get('bank') === 'connected' && (
+                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 text-sm font-medium px-4 py-3 rounded-xl">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0">
+                    <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
+                  </svg>
+                  Banque connectée avec succès
+                </div>
+              )}
+
+              {bankStatus?.configured && !bankStatus.connected ? (
+                <div>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Connectez votre compte joint pour importer vos transactions et les comparer à votre budget.
+                  </p>
+                  <button
+                    onClick={openBankPicker}
+                    disabled={bankConnecting}
+                    className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
+                  >
+                    {bankConnecting ? 'Redirection…' : 'Connecter ma banque'}
+                  </button>
+                </div>
+              ) : bankStatus?.configured ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 py-2">
+                    <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center text-xl shrink-0">
+                      🏦
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-800 text-sm">{bankStatus.provider_name}</p>
+                      <p className="text-xs text-emerald-600 font-medium">Connecté</p>
+                    </div>
+                  </div>
+
+                  {bankStatus.accounts?.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Comptes</p>
+                      {bankStatus.accounts.map(acc => (
+                        <div key={acc.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
+                          <span className="text-sm font-medium text-slate-700 flex-1 truncate">{acc.name}</span>
+                          <span className="text-xs text-slate-400">{acc.nature}</span>
+                          <button
+                            onClick={() => handleToggleAccount(acc.id)}
+                            className={`relative w-10 h-6 rounded-full transition-colors ${acc.enabled ? 'bg-violet-600' : 'bg-slate-200'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${acc.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleBankDisconnect}
+                    disabled={bankDisconnecting}
+                    className="w-full py-2.5 rounded-2xl border border-red-100 text-red-500 text-sm font-medium active:bg-red-50 transition disabled:opacity-60"
+                  >
+                    {bankDisconnecting ? 'Déconnexion…' : 'Déconnecter la banque'}
+                  </button>
+                </div>
+              ) : null}
+            </Section>
+
         </div>
       </div>
 
       <div className="h-8" />
+
+      {/* Bank picker modal */}
+      {showBankPicker && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-0 sm:px-4">
+          <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div>
+                <h2 className="font-bold text-slate-800">Choisissez votre banque</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Compte joint - connexion via Enable Banking</p>
+              </div>
+              <button onClick={() => setShowBankPicker(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="px-4 py-3 border-b border-slate-100 shrink-0 space-y-2">
+              <div className="flex gap-2">
+                {['FR', 'BE', 'ES', 'DE', 'IT', 'NL', 'PT'].map(c => (
+                  <button
+                    key={c}
+                    onClick={async () => {
+                      setAspspCountry(c)
+                      setAspspsLoading(true)
+                      setAspspSearch('')
+                      try {
+                        const data = await api.getAspsps(c)
+                        setAspsps(data)
+                      } catch (err) {
+                        setError(err.message)
+                      } finally {
+                        setAspspsLoading(false)
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${aspspCountry === c ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <input
+                value={aspspSearch}
+                onChange={e => setAspspSearch(e.target.value)}
+                placeholder="Rechercher une banque..."
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              {aspspsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-50">
+                  {aspsps
+                    .filter(b => !aspspSearch || (b.name || b.full_name || '').toLowerCase().includes(aspspSearch.toLowerCase()))
+                    .map((b, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleBankConnect(b.name || b.full_name)}
+                        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-violet-50 active:bg-violet-100 transition text-left"
+                      >
+                        {b.logo ? (
+                          <img src={b.logo} alt="" className="w-8 h-8 rounded-lg object-contain shrink-0 bg-slate-50" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-sm">🏦</div>
+                        )}
+                        <span className="text-sm font-medium text-slate-800 truncate">{b.name || b.full_name}</span>
+                      </button>
+                    ))
+                  }
+                  {!aspspsLoading && aspsps.filter(b => !aspspSearch || (b.name || b.full_name || '').toLowerCase().includes(aspspSearch.toLowerCase())).length === 0 && (
+                    <p className="text-center text-slate-400 text-sm py-8">Aucune banque trouvée</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
