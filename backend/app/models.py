@@ -32,9 +32,9 @@ class Group(Base):
 
     user1           = relationship("User", foreign_keys=[user1_id])
     user2           = relationship("User", foreign_keys=[user2_id])
-    months          = relationship("Month", back_populates="group", cascade="all, delete-orphan")
-    categories      = relationship("Category", back_populates="group", cascade="all, delete-orphan")
-    payment_methods = relationship("PaymentMethod", back_populates="group", cascade="all, delete-orphan")
+    months           = relationship("Month", back_populates="group", cascade="all, delete-orphan")
+    categories       = relationship("Category", back_populates="group", cascade="all, delete-orphan")
+    payment_methods  = relationship("PaymentMethod", back_populates="group", cascade="all, delete-orphan")
 
 
 class Category(Base):
@@ -75,8 +75,9 @@ class Month(Base):
     user2_transferred = Column(Boolean, default=False)
     validated_by      = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    group   = relationship("Group", back_populates="months")
-    charges = relationship("Charge", back_populates="month", cascade="all, delete-orphan")
+    group             = relationship("Group", back_populates="months")
+    charges           = relationship("Charge", back_populates="month", cascade="all, delete-orphan")
+    bank_transactions = relationship("BankTransaction", back_populates="month", cascade="all, delete-orphan")
 
 
 class Charge(Base):
@@ -125,3 +126,51 @@ class PushSubscription(Base):
     auth     = Column(String, nullable=False)
 
     user = relationship("User", foreign_keys=[user_id])
+
+
+class BankTransaction(Base):
+    """Transaction bancaire importée depuis Salt Edge, liée à un mois."""
+    __tablename__ = "bank_transactions"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    month_id     = Column(Integer, ForeignKey("months.id"), nullable=False)
+    saltedge_id  = Column(String, nullable=False, unique=True)
+    date         = Column(String, nullable=False)   # YYYY-MM-DD
+    description  = Column(String, nullable=False)
+    amount       = Column(Float, nullable=False)    # Toujours positif (débit)
+    category     = Column(String, nullable=True)    # Null = non catégorisée
+    account_name = Column(String, nullable=True)
+    is_card      = Column(Boolean, nullable=False, default=False)
+
+    month = relationship("Month", back_populates="bank_transactions")
+
+
+class BankConnection(Base):
+    """Connexion bancaire d'un utilisateur via Salt Edge."""
+    __tablename__ = "bank_connections"
+
+    id                     = Column(Integer, primary_key=True, index=True)
+    user_id                = Column(Integer, ForeignKey("users.id"), nullable=False)
+    saltedge_customer_id   = Column(String, nullable=False)
+    saltedge_connection_id = Column(String, nullable=True)
+    provider_name          = Column(String, nullable=True)
+    provider_code          = Column(String, nullable=True)
+    status                 = Column(String, default="pending")  # pending | active | expired | error
+
+    user     = relationship("User", foreign_keys=[user_id])
+    accounts = relationship("BankAccount", back_populates="connection", cascade="all, delete-orphan")
+
+
+class BankAccount(Base):
+    """Compte bancaire rattaché à une connexion Salt Edge."""
+    __tablename__ = "bank_accounts"
+
+    id                   = Column(Integer, primary_key=True, index=True)
+    connection_id        = Column(Integer, ForeignKey("bank_connections.id"), nullable=False)
+    saltedge_account_id  = Column(String, nullable=False)
+    name                 = Column(String, nullable=False)
+    nature               = Column(String, nullable=True)   # account | card | savings | …
+    currency             = Column(String, default="EUR")
+    enabled              = Column(Boolean, default=True)
+
+    connection = relationship("BankConnection", back_populates="accounts")

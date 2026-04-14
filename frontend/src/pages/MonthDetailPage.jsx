@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
@@ -175,17 +175,210 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
   )
 }
 
+// ── Budget vs actual card ──────────────────────────────────────────────────────
+function BudgetVsActualCard({ bva }) {
+  if (!bva || bva.rows.length === 0) return null
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
+        <p className="text-sm font-semibold text-slate-700">Prévisionnel vs Réel</p>
+        {bva.uncategorized > 0 && (
+          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+            {formatEur(bva.uncategorized)} non catégorisé
+          </span>
+        )}
+      </div>
+      <div className="divide-y divide-slate-50">
+        {bva.rows.map(row => (
+          <div key={row.category} className="flex items-center gap-3 px-4 py-3">
+            <span className="text-lg w-7 text-center shrink-0">{row.icon}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-700 truncate">{row.category}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: row.budget > 0 ? `${Math.min((row.actual / row.budget) * 100, 100)}%` : '0%',
+                      backgroundColor: row.delta > 0 ? '#ef4444' : row.color,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className={`text-sm font-bold tabular-nums ${row.delta > 0 ? 'text-red-500' : 'text-slate-800'}`}>
+                {formatEur(row.actual)}
+              </p>
+              <p className="text-xs text-slate-400 tabular-nums">/ {formatEur(row.budget)}</p>
+            </div>
+            {row.delta !== 0 && (
+              <span className={`text-xs font-bold tabular-nums w-12 text-right shrink-0 ${row.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                {row.delta > 0 ? '+' : ''}{formatEur(row.delta)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="px-4 py-3 bg-slate-50 flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-500">Total</p>
+        <div className="flex items-center gap-4">
+          <span className="text-xs text-slate-400 tabular-nums">prévu {formatEur(bva.total_budget)}</span>
+          <span className={`text-sm font-bold tabular-nums ${bva.total_actual > bva.total_budget ? 'text-red-500' : 'text-emerald-600'}`}>
+            réel {formatEur(bva.total_actual)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Transactions tab ───────────────────────────────────────────────────────────
+function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }) {
+  const [transactions, setTx]   = useState([])
+  const [bva,          setBva]  = useState(null)
+  const [loading,      setLoad] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const autoCount = parseInt(searchParams.get('auto') || '0')
+
+  const load = useCallback(async () => {
+    try {
+      const [txs, bvaData] = await Promise.all([
+        api.getMonthTransactions(monthId),
+        api.getBudgetVsActual(monthId),
+      ])
+      setTx(txs)
+      setBva(bvaData)
+    } finally {
+      setLoad(false)
+    }
+  }, [monthId])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleCategorize(txId, category) {
+    await api.categorizeTransaction(txId, category || null)
+    await load()
+  }
+
+  async function handleDelete(txId) {
+    await api.deleteTransaction(txId)
+    await load()
+  }
+
+  async function handleDeleteAll() {
+    if (!window.confirm(`Supprimer les ${transactions.length} transactions importées ?`)) return
+    await Promise.all(transactions.map(tx => api.deleteTransaction(tx.id)))
+    await load()
+  }
+
+  if (loading) return (
+    <div className="flex justify-center py-10">
+      <div className="w-6 h-6 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+    </div>
+  )
+
+  return (
+    <div className="space-y-3">
+      <BudgetVsActualCard bva={bva} />
+
+      {autoCount > 0 && (
+        <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 text-violet-700 text-sm px-4 py-3 rounded-xl">
+          <span>✨</span>
+          <span><strong>{autoCount}</strong> transaction{autoCount > 1 ? 's' : ''} catégorisée{autoCount > 1 ? 's' : ''} automatiquement</span>
+          <button onClick={() => { searchParams.delete('auto'); setSearchParams(searchParams) }} className="ml-auto text-violet-400 hover:text-violet-600">✕</button>
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center justify-between mb-2 px-1">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            Transactions réelles ({transactions.length})
+          </p>
+          <div className="flex items-center gap-2">
+            {transactions.length > 0 && (
+              <button
+                onClick={handleDeleteAll}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-50 text-red-500 text-xs font-semibold active:bg-red-100 transition"
+              >
+                Tout supprimer
+              </button>
+            )}
+            <button
+              onClick={onImport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-600 text-white text-xs font-semibold active:bg-violet-700 transition"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Importer
+            </button>
+          </div>
+        </div>
+
+        {transactions.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-200">
+            <div className="text-3xl mb-3">🏦</div>
+            <p className="font-semibold text-slate-700 mb-1">Aucune transaction importée</p>
+            <p className="text-slate-400 text-sm">Importez vos transactions du compte joint pour les comparer au budget prévisionnel.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-50">
+            {transactions.map(tx => (
+              <div key={tx.id} className="px-4 py-3 flex items-start gap-3 group">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-slate-800 truncate">{tx.description}</p>
+                    {tx.is_card && (
+                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500">CB</span>
+                    )}
+                    <span className="text-xs text-slate-400 shrink-0">{tx.date.slice(8)}/{tx.date.slice(5, 7)}</span>
+                  </div>
+                  {/* Category selector */}
+                  <select
+                    value={tx.category ?? ''}
+                    onChange={e => handleCategorize(tx.id, e.target.value || null)}
+                    className="mt-1.5 text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full"
+                  >
+                    <option value="">Sans catégorie</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.name}>{c.icon} {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm font-bold tabular-nums text-slate-800">{formatEur(tx.amount)}</span>
+                  <button
+                    onClick={() => handleDelete(tx.id)}
+                    className="w-7 h-7 rounded-lg bg-red-50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 hover:bg-red-100 transition-all"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function MonthDetailPage() {
-  const { id }    = useParams()
-  const navigate  = useNavigate()
-  const { config } = useAuth()
-  const { categoriesMap } = useCategoriesMap()
+  const { id }         = useParams()
+  const navigate       = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { config }     = useAuth()
+  const { categoriesMap, categories } = useCategoriesMap()
 
-  const [month, setMonth]         = useState(null)
-  const [months, setMonths]       = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [transferLoading, setTL]  = useState(false)
+  const [activeTab, setActiveTab]   = useState(searchParams.get('tab') === 'transactions' ? 'transactions' : 'charges')
+  const [month, setMonth]           = useState(null)
+  const [months, setMonths]         = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [transferLoading, setTL]    = useState(false)
   const touchStartX = useRef(null)
 
   // Forms / modals
@@ -420,8 +613,44 @@ export default function MonthDetailPage() {
           </div>
         </div>
 
-        {/* Colonne gauche sur desktop (charges) */}
+        {/* Colonne gauche sur desktop (charges / transactions) */}
         <div className="lg:col-span-2 px-4 lg:px-0 mt-4 lg:mt-0">
+
+          {/* Onglets */}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl mb-4">
+            <button
+              onClick={() => setActiveTab('charges')}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === 'charges'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 active:bg-white/50'
+              }`}
+            >
+              Prévisionnel
+            </button>
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition ${
+                activeTab === 'transactions'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 active:bg-white/50'
+              }`}
+            >
+              Transactions
+            </button>
+          </div>
+
+          {activeTab === 'transactions' && (
+            <TransactionsTab
+              monthId={id}
+              month={month}
+              categoriesMap={categoriesMap}
+              categories={categories ?? []}
+              onImport={() => navigate(`/bank/import/${id}`)}
+            />
+          )}
+
+          {activeTab === 'charges' && (<>
           <div className="flex items-center justify-between mb-2 px-1">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dépenses</p>
             {categoryTotals.length > 0 && (
@@ -525,11 +754,13 @@ export default function MonthDetailPage() {
               })}
             </div>
           )}
+          </>)} {/* fin activeTab === 'charges' */}
+
         </div>
       </div>
 
       {/* FAB */}
-      {!showAddCharge && !editingCharge && !suiviMode && (
+      {activeTab === 'charges' && !showAddCharge && !editingCharge && !suiviMode && (
       <button
         onClick={() => setShowAddCharge(true)}
         className="fixed bottom-24 lg:bottom-8 right-6 lg:right-10 bg-violet-600 rounded-full w-14 h-14 shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
