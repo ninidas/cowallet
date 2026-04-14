@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from .database import engine, get_db
 from . import models
 from .auth import get_current_user_optional
-from .routers import auth, months, charges, setup, export, stats, settings, categories, payment_methods, users, groups, budget, push
+from .routers import auth, months, charges, setup, export, stats, settings, categories, payment_methods, users, groups, budget, push, bank
 from .scheduler import create_scheduler
 
 models.Base.metadata.create_all(bind=engine)
@@ -142,8 +142,9 @@ with engine.connect() as _conn:
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='months'"
     )).fetchone()
     _old_months_constraint = _months_sql and "group_id" not in (_months_sql[0] or "").lower() and "unique" in (_months_sql[0] or "").lower()
+    # On cherche uniquement les index qui n'ont pas group_id ET dont le nom suggère un ancien UNIQUE sans group_id
     _months_idx = _conn.execute(text(
-        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='months' AND name NOT LIKE 'sqlite_autoindex_%' AND sql NOT LIKE '%group_id%'"
+        "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='months' AND name NOT LIKE 'sqlite_autoindex_%' AND name NOT LIKE 'ix_%' AND sql NOT LIKE '%group_id%'"
     )).fetchone()
     if _old_months_constraint or _months_idx:
         _conn.execute(text("DROP TABLE IF EXISTS months_new"))
@@ -157,13 +158,78 @@ with engine.connect() as _conn:
                 user1_share INTEGER DEFAULT 50,
                 user1_transferred BOOLEAN DEFAULT 0,
                 user2_transferred BOOLEAN DEFAULT 0,
+                validated_by INTEGER REFERENCES users(id),
                 UNIQUE (group_id, year, month)
             )
         """))
-        _conn.execute(text("INSERT INTO months_new SELECT id, group_id, label, year, month, user1_share, user1_transferred, user2_transferred FROM months"))
+        _conn.execute(text("""
+            INSERT INTO months_new
+            SELECT id, group_id, label, year, month, user1_share,
+                   user1_transferred, user2_transferred,
+                   CASE WHEN typeof(validated_by) != 'null' THEN validated_by ELSE NULL END
+            FROM months
+        """))
         _conn.execute(text("DROP TABLE months"))
         _conn.execute(text("ALTER TABLE months_new RENAME TO months"))
         _conn.commit()
+
+    # Migration : table bank_transactions
+    try:
+        _conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS bank_transactions (
+                id INTEGER PRIMARY KEY,
+                month_id INTEGER NOT NULL REFERENCES months(id),
+                saltedge_id VARCHAR NOT NULL UNIQUE,
+                date VARCHAR NOT NULL,
+                description VARCHAR NOT NULL,
+                amount REAL NOT NULL,
+                category VARCHAR,
+                account_name VARCHAR,
+                is_card BOOLEAN NOT NULL DEFAULT 0
+            )
+        """))
+        _conn.commit()
+    except Exception:
+        pass
+
+    # Migration : colonne is_card sur bank_transactions
+    try:
+        _conn.execute(text("ALTER TABLE bank_transactions ADD COLUMN is_card BOOLEAN NOT NULL DEFAULT 0"))
+        _conn.commit()
+    except Exception:
+        pass
+
+    # Migration : tables bank_connections et bank_accounts
+    try:
+        _conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS bank_connections (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                saltedge_customer_id VARCHAR NOT NULL,
+                saltedge_connection_id VARCHAR,
+                provider_name VARCHAR,
+                provider_code VARCHAR,
+                status VARCHAR DEFAULT 'pending'
+            )
+        """))
+        _conn.commit()
+    except Exception:
+        pass
+    try:
+        _conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS bank_accounts (
+                id INTEGER PRIMARY KEY,
+                connection_id INTEGER NOT NULL REFERENCES bank_connections(id),
+                saltedge_account_id VARCHAR NOT NULL,
+                name VARCHAR NOT NULL,
+                nature VARCHAR,
+                currency VARCHAR DEFAULT 'EUR',
+                enabled BOOLEAN DEFAULT 1
+            )
+        """))
+        _conn.commit()
+    except Exception:
+        pass
 
     # Migration : auto-créer un groupe pour les installations existantes (2 users, pas de groupe)
     import secrets as _secrets
@@ -218,6 +284,7 @@ app.include_router(categories.router)
 app.include_router(payment_methods.router)
 app.include_router(budget.router)
 app.include_router(push.router)
+app.include_router(bank.router)
 
 
 @app.get("/health")
