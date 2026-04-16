@@ -15,7 +15,7 @@ class SetupRequest(BaseModel):
     @classmethod
     def validate_share(cls, v: int) -> int:
         if not (1 <= v <= 99):
-            raise ValueError("La répartition doit être entre 1 et 99")
+            raise ValueError("Split must be between 1 and 99")
         return v
 
 class SetupStatus(BaseModel):
@@ -51,7 +51,7 @@ class GroupCreate(BaseModel):
     @classmethod
     def validate_share(cls, v: int) -> int:
         if not (1 <= v <= 99):
-            raise ValueError("La répartition doit être entre 1 et 99")
+            raise ValueError("Split must be between 1 and 99")
         return v
 
 class GroupJoin(BaseModel):
@@ -187,7 +187,7 @@ class MonthCreate(BaseModel):
     @classmethod
     def validate_share(cls, v: int) -> int:
         if not (1 <= v <= 99):
-            raise ValueError("user1_share doit être entre 1 et 99")
+            raise ValueError("Split must be between 1 and 99")
         return v
 
 class BulkDeleteMonths(BaseModel):
@@ -204,7 +204,7 @@ class ShareUpdate(BaseModel):
     @classmethod
     def validate_share(cls, v: int) -> int:
         if not (1 <= v <= 99):
-            raise ValueError("user1_share doit être entre 1 et 99")
+            raise ValueError("Split must be between 1 and 99")
         return v
 
 class MonthSummary(BaseModel):

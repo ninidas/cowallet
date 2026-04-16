@@ -61,11 +61,11 @@ def get_current_user(
         payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
     except (JWTError, TypeError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalide")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur introuvable")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return user
 
 
@@ -92,5 +92,5 @@ def get_current_group(
         (models.Group.user2_id == current_user.id)
     ).first()
     if not group:
-        raise HTTPException(status_code=404, detail="Aucun groupe — créez ou rejoignez un groupe")
+        raise HTTPException(status_code=404, detail="No group — create or join a group")
     return group

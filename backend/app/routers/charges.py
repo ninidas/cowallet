@@ -38,7 +38,7 @@ def add_charge(
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
 
     charge = models.Charge(month_id=month_id, **body.model_dump())
     db.add(charge)
@@ -102,7 +102,7 @@ def update_charge(
         models.Charge.id == charge_id, models.Charge.month_id.in_(group_month_ids)
     ).first()
     if not charge:
-        raise HTTPException(status_code=404, detail="Charge introuvable")
+        raise HTTPException(status_code=404, detail="Charge not found")
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(charge, field, value)
     db.commit()
@@ -120,7 +120,7 @@ def fix_installments(
         models.Charge.id == charge_id, models.Charge.month_id.in_(group_month_ids)
     ).first()
     if not charge:
-        raise HTTPException(status_code=404, detail="Charge introuvable")
+        raise HTTPException(status_code=404, detail="Charge not found")
 
     charge.installments_left = body.installments_left
     month = db.query(models.Month).filter_by(id=charge.month_id).first()
@@ -160,6 +160,6 @@ def delete_charge(
         models.Charge.id == charge_id, models.Charge.month_id.in_(group_month_ids)
     ).first()
     if not charge:
-        raise HTTPException(status_code=404, detail="Charge introuvable")
+        raise HTTPException(status_code=404, detail="Charge not found")
     db.delete(charge)
     db.commit()

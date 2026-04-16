@@ -60,7 +60,7 @@ def get_invite_info(code: str, db: Session = Depends(get_db)):
     """Infos publiques sur une invitation (pas d'auth requise)."""
     group = db.query(models.Group).filter_by(invite_code=code.upper()).first()
     if not group or group.user2_id is not None:
-        raise HTTPException(status_code=404, detail="Invitation invalide ou expirée")
+        raise HTTPException(status_code=404, detail="Invalid or expired invitation")
     return {
         "inviter": group.user1.username,
         "group_name": group.name if group.name not in DEFAULT_GROUP_NAMES.values() else None,
@@ -77,7 +77,7 @@ def get_my_group(
         (models.Group.user2_id == current_user.id)
     ).first()
     if not group:
-        raise HTTPException(status_code=404, detail="Aucun groupe")
+        raise HTTPException(status_code=404, detail="No group")
     return _to_out(group)
 
 
@@ -92,7 +92,7 @@ def create_group(
         (models.Group.user2_id == current_user.id)
     ).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Vous avez déjà un groupe")
+        raise HTTPException(status_code=409, detail="You already have a group")
 
     invite_code = secrets.token_hex(4).upper()
     lang = APP_LANG if APP_LANG in DEFAULT_GROUP_NAMES else "en"
@@ -120,7 +120,7 @@ def update_currency(
     db: Session = Depends(get_db),
 ):
     if body.currency.upper() not in SUPPORTED_CURRENCIES:
-        raise HTTPException(status_code=400, detail="Devise non supportée")
+        raise HTTPException(status_code=400, detail="Unsupported currency")
     group.currency = body.currency.upper()
     db.commit()
     db.refresh(group)
@@ -150,15 +150,15 @@ def join_group(
         (models.Group.user2_id == current_user.id)
     ).first()
     if existing:
-        raise HTTPException(status_code=409, detail="Vous avez déjà un groupe")
+        raise HTTPException(status_code=409, detail="You already have a group")
 
     group = db.query(models.Group).filter_by(invite_code=body.invite_code.upper()).first()
     if not group:
-        raise HTTPException(status_code=404, detail="Code d'invitation invalide")
+        raise HTTPException(status_code=404, detail="Invalid invite code")
     if group.user2_id is not None:
-        raise HTTPException(status_code=409, detail="Ce groupe est déjà complet")
+        raise HTTPException(status_code=409, detail="Group is already full")
     if group.user1_id == current_user.id:
-        raise HTTPException(status_code=400, detail="Vous ne pouvez pas rejoindre votre propre groupe")
+        raise HTTPException(status_code=400, detail="You cannot join your own group")
 
     group.user2_id = current_user.id
     db.commit()

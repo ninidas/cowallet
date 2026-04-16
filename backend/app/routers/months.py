@@ -22,10 +22,13 @@ router = APIRouter(prefix="/months", tags=["months"])
 
 DEFAULT_USER1_SHARE = int(os.environ.get("DEFAULT_USER1_SHARE", "50"))
 
-MONTH_LABELS = [
-    "", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
-    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"
-]
+_MONTH_LABELS = {
+    "en": ["", "January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December"],
+    "fr": ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+           "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"],
+}
+MONTH_LABELS = _MONTH_LABELS.get(APP_LANG, _MONTH_LABELS["en"])
 
 
 def effective_amount(c) -> float:
@@ -118,7 +121,7 @@ def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), group
         models.Month.year == body.year, models.Month.month == body.month
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Ce mois existe déjà")
+        raise HTTPException(status_code=400, detail="Month already exists")
 
     label = f"{MONTH_LABELS[body.month]} {body.year}"
     month = models.Month(
@@ -166,7 +169,7 @@ def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), group
 def get_month(month_id: int, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
     return _to_detail(month, db)
 
 
@@ -177,7 +180,7 @@ def update_transfer(
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
     if body.user1_transferred is not None:
         month.user1_transferred = body.user1_transferred
     if body.user2_transferred is not None:
@@ -194,7 +197,7 @@ def update_share(
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
     month.user1_share = body.user1_share
     db.commit()
     db.refresh(month)
@@ -210,7 +213,7 @@ def validate_month(
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
 
     # Toggle : re-cliquer dévalide
     month.validated_by = None if month.validated_by == current_user.id else current_user.id
@@ -261,6 +264,6 @@ def bulk_delete_months(
 def delete_month(month_id: int, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
     db.delete(month)
     db.commit()

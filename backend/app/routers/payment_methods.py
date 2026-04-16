@@ -17,7 +17,7 @@ def list_payment_methods(db: Session = Depends(get_db), group: models.Group = De
 @router.post("", response_model=schemas.PaymentMethodOut, status_code=201)
 def create_payment_method(data: schemas.PaymentMethodCreate, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     if db.query(models.PaymentMethod).filter_by(group_id=group.id, name=data.name).first():
-        raise HTTPException(status_code=400, detail="Ce moyen de paiement existe déjà")
+        raise HTTPException(status_code=400, detail="Payment method already exists")
     max_order = db.query(models.PaymentMethod).filter_by(group_id=group.id).count()
     pm = models.PaymentMethod(group_id=group.id, name=data.name, sort_order=max_order)
     db.add(pm)
@@ -30,14 +30,14 @@ def create_payment_method(data: schemas.PaymentMethodCreate, db: Session = Depen
 def update_payment_method(pm_id: int, data: schemas.PaymentMethodCreate, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     pm = db.query(models.PaymentMethod).filter_by(id=pm_id, group_id=group.id).first()
     if not pm:
-        raise HTTPException(status_code=404, detail="Moyen de paiement introuvable")
+        raise HTTPException(status_code=404, detail="Payment method not found")
     existing = db.query(models.PaymentMethod).filter(
         models.PaymentMethod.group_id == group.id,
         models.PaymentMethod.name == data.name,
         models.PaymentMethod.id != pm_id
     ).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Ce moyen de paiement existe déjà")
+        raise HTTPException(status_code=400, detail="Payment method already exists")
     pm.name = data.name
     db.commit()
     db.refresh(pm)
@@ -48,6 +48,6 @@ def update_payment_method(pm_id: int, data: schemas.PaymentMethodCreate, db: Ses
 def delete_payment_method(pm_id: int, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     pm = db.query(models.PaymentMethod).filter_by(id=pm_id, group_id=group.id).first()
     if not pm:
-        raise HTTPException(status_code=404, detail="Moyen de paiement introuvable")
+        raise HTTPException(status_code=404, detail="Payment method not found")
     db.delete(pm)
     db.commit()
