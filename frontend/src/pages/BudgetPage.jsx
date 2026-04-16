@@ -198,6 +198,7 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
 
 function CategoryGroup({ name, entries, type, onAdd, onUpdate, onDelete, onRename, onDeleteCategory }) {
   const { t } = useTranslation()
+  const fmt = useFmt({ maximumFractionDigits: 0 })
   const [editingName, setEditingName] = useState(false)
   const [newName, setNewName]         = useState(name)
   const [formKey, setFormKey]         = useState(0)
