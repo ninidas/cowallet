@@ -1,17 +1,10 @@
 services:
-  cowallet-frontend:
-    image: ghcr.io/ninidas/cowallet-frontend:latest
-    container_name: cowallet-frontend
+  cowallet:
+    image: ghcr.io/ninidas/cowallet:latest
+    container_name: cowallet
     restart: unless-stopped
     ports:
-      - "3000:80"
-    depends_on:
-      - cowallet-backend
-
-  cowallet-backend:
-    image: ghcr.io/ninidas/cowallet-backend:latest
-    container_name: cowallet-backend
-    restart: unless-stopped
+      - "8000:8000"
     environment:
       - PUID=1000
       - PGID=1000
