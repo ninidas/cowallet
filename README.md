@@ -163,6 +163,7 @@ All variables are optional. The app runs without any of them.
 | `SECRET_KEY` | JWT signing key - auto-generated and persisted on first run if not set |
 | `PUID` | User ID to run the backend process as (default: 0 / root) |
 | `PGID` | Group ID to run the backend process as (default: 0 / root) |
+| `APP_LANG` | Default language for seeded data: `en` (default) or `fr`. Sets the language of default categories and payment methods on first setup. |
 | `ENABLEBANKING_APP_ID` | Enable Banking app ID - required for bank sync |
 | `ENABLEBANKING_PRIVATE_KEY_PATH` | Path to the RSA private key inside the container - required for bank sync |
 
