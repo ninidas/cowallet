@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
+import { useFmt } from '../hooks/useFmt'
 import BottomSheet from './BottomSheet'
 
 const EMPTY = {
@@ -18,6 +19,7 @@ const INSTALLMENT_OPTIONS = [1, 2, 3, 4, 6, 12]
 
 export default function ChargeForm({ open, onClose, onSaved, monthId, charge, config }) {
   const { t } = useTranslation()
+  const fmt = useFmt()
   const isEdit = !!charge
   const [form, setForm]               = useState(EMPTY)
   const [error, setError]             = useState('')
@@ -159,7 +161,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
                 >
                   <span className="text-sm font-medium text-slate-800 truncate">{s.label}</span>
                   <span className="text-xs text-slate-400 ml-2 shrink-0">
-                    {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(s.amount)}
+                    {fmt(s.amount)}
                   </span>
                 </button>
               ))}
@@ -188,7 +190,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           </div>
           {!isEdit && form.installments > 1 && totalAmount > 0 && (
             <p className="text-sm text-violet-600 font-semibold mt-1.5 ml-1">
-              {t('chargeform.field_amount_per_month', { amount: new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(perMonth) })}
+              {t('chargeform.field_amount_per_month', { amount: fmt(perMonth) })}
             </p>
           )}
         </div>

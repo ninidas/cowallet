@@ -43,7 +43,7 @@ function UserStep({ number, title, username, setUsername, password, setPassword,
             value={username}
             onChange={e => setUsername(e.target.value)}
             className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-            placeholder="Ex : nicolas"
+            placeholder={t('setup.field_username_placeholder')}
             autoCapitalize="none"
             autoComplete="off"
             required

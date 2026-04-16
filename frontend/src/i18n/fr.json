@@ -53,6 +53,7 @@
     "share_title": "Répartition des charges",
     "share_subtitle": "Modifiable mois par mois depuis l'app",
     "field_username": "Prénom / identifiant",
+    "field_username_placeholder": "Ex : nicolas",
     "field_username_hint": "Sera utilisé pour se connecter",
     "field_password": "Mot de passe",
     "field_confirm": "Confirmer le mot de passe",
@@ -162,7 +163,9 @@
     "transferred": "Viré",
     "to_transfer": "{{amount}} à virer",
     "forecast_tag": "prévu",
-    "actual_estimated_short": "réel {{amount}}"
+    "actual_estimated_short": "réel {{amount}}",
+    "total": "Total",
+    "transfers": "Virements"
   },
   "chargeform": {
     "title_add": "Nouvelle dépense",
@@ -249,7 +252,20 @@
     "summary_investments_suf": " par mois",
     "summary_remaining_pre": ", il vous reste",
     "summary_remaining_suf": " disponible par mois.",
-    "summary_balanced": ", votre budget est équilibré."
+    "summary_balanced": ", votre budget est équilibré.",
+    "default_cat_income": "Revenus",
+    "default_cat_daily": "Vie quotidienne",
+    "default_cat_subscriptions": "Abonnements",
+    "default_cat_investments": "Investissements mensuels",
+    "hint_salary": "Salaire",
+    "hint_stocks": "Actions",
+    "hint_groceries": "Courses",
+    "hint_rent": "Loyer",
+    "hint_fuel": "Carburant",
+    "hint_restaurants": "Restaurants",
+    "hint_insurance": "Mutuelle",
+    "hint_savings": "Livret A",
+    "hint_electricity": "Électricité"
   },
   "settings": {
     "title": "Paramètres",
@@ -274,6 +290,7 @@
     "group_name_placeholder": "Notre budget",
     "group_name_hint": "S'affiche dans l'app si renseigné.",
     "field_group_name": "Nom du groupe",
+    "field_currency": "Devise",
     "field_display_name": "Prénom affiché",
     "field_current_password": "Mot de passe actuel",
     "field_new_password": "Nouveau mot de passe",
