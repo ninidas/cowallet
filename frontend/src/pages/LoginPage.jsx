@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
   const { login } = useAuth()
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -32,24 +34,24 @@ export default function LoginPage() {
       <div className="mb-6 text-center">
         <img src="/logo-white1.png" alt="CoWallet" className="w-32 object-contain mx-auto mb-5" />
         <h1 className="text-3xl font-bold text-white">CoWallet</h1>
-        <p className="text-violet-200 mt-1 text-sm">Gérez vos dépenses en commun</p>
+        <p className="text-violet-200 mt-1 text-sm">{t('login.tagline')}</p>
       </div>
 
       {/* Card */}
       <div className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
-        <h2 className="text-xl font-semibold text-slate-800 mb-6">Connexion</h2>
+        <h2 className="text-xl font-semibold text-slate-800 mb-6">{t('login.title')}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1.5">
-              Identifiant
+              {t('login.field_username')}
             </label>
             <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
-              placeholder="Votre identifiant"
+              placeholder={t('login.field_username_placeholder')}
               autoComplete="username"
               autoCapitalize="none"
               required
@@ -58,7 +60,7 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-1.5">
-              Mot de passe
+              {t('login.field_password')}
             </label>
             <input
               type="password"
@@ -82,13 +84,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold text-base shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60 disabled:scale-100 mt-2"
           >
-            {loading ? 'Connexion…' : 'Se connecter'}
+            {loading ? t('login.btn_loading') : t('login.btn_login')}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-6">
-          Pas encore de compte ?{' '}
-          <Link to="/register" className="text-violet-600 font-medium">S'inscrire</Link>
+          {t('login.no_account')}{' '}
+          <Link to="/register" className="text-violet-600 font-medium">{t('login.btn_register')}</Link>
         </p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useRef } from 'react'
@@ -49,6 +50,7 @@ function Input({ ...props }) {
 }
 
 export default function SettingsPage() {
+  const { t, i18n } = useTranslation()
   const navigate   = useNavigate()
   const { user, config, logout, refreshConfig } = useAuth()
   const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePush()
@@ -74,11 +76,15 @@ export default function SettingsPage() {
   const [newCatColor,   setNewCatColor]   = useState('#3b82f6')
   const [catError,      setCatError]      = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [editingCatId,  setEditingCatId]  = useState(null)
+  const [editingCatName, setEditingCatName] = useState('')
 
   // Payment methods
   const [paymentMethods, setPaymentMethods] = useState([])
   const [newPmName,      setNewPmName]      = useState('')
   const [pmError,        setPmError]        = useState('')
+  const [editingPmId,   setEditingPmId]   = useState(null)
+  const [editingPmName, setEditingPmName] = useState('')
 
   // Bank sync
   const [searchParams]    = useSearchParams()
@@ -161,14 +167,14 @@ export default function SettingsPage() {
     const nameChanged = groupName.trim() && groupName.trim() !== (config?.group_name ?? '')
     if (Object.keys(payload).length === 0 && !nameChanged) {
       setSaving(false)
-      setSuccess('Aucune modification.')
+      setSuccess(t('settings.success_no_change'))
       return
     }
     try {
       if (Object.keys(payload).length > 0) await api.updateSettings(payload)
       if (nameChanged) await api.renameGroup(groupName.trim())
       await refreshConfig()
-      setSuccess('Paramètres enregistrés.')
+      setSuccess(t('settings.success_saved'))
       setCurrentPassword('')
       setNewPassword('')
     } catch (err) {
@@ -217,6 +223,18 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleRenameCategory(id) {
+    const name = editingCatName.trim()
+    if (!name) return
+    try {
+      const updated = await api.updateCategory(id, { name })
+      setCategories(cs => cs.map(c => c.id === id ? updated : c))
+      setEditingCatId(null)
+    } catch (err) {
+      setCatError(err.message)
+    }
+  }
+
   async function handleAddPaymentMethod(e) {
     e.preventDefault()
     setPmError('')
@@ -239,6 +257,18 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleRenamePaymentMethod(id) {
+    const name = editingPmName.trim()
+    if (!name) return
+    try {
+      const updated = await api.updatePaymentMethod(id, { name })
+      setPaymentMethods(pms => pms.map(p => p.id === id ? updated : p))
+      setEditingPmId(null)
+    } catch (err) {
+      setPmError(err.message)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 pb-safe page-enter">
       {/* Header */}
@@ -252,7 +282,7 @@ export default function SettingsPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-white">Paramètres</h1>
+          <h1 className="text-xl font-bold text-white">{t('settings.title')}</h1>
         </div>
       </div>
 
@@ -263,12 +293,12 @@ export default function SettingsPage() {
 
           {/* Notifications */}
           {pushSupported && (
-            <Section title="Notifications">
+            <Section title={t('settings.section_notifications')}>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Nouvelles dépenses</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Sois notifié quand ton partenaire ajoute une dépense</p>
-                  {permission === 'denied' && <p className="text-xs text-red-500 mt-1">Notifications bloquées dans le navigateur</p>}
+                  <p className="text-sm font-medium text-slate-700">{t('settings.notif_label')}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t('settings.notif_hint')}</p>
+                  {permission === 'denied' && <p className="text-xs text-red-500 mt-1">{t('settings.notif_blocked')}</p>}
                 </div>
                 <button
                   type="button"
@@ -288,15 +318,15 @@ export default function SettingsPage() {
                   }}
                   className="text-xs text-violet-600 underline mt-1"
                 >
-                  Tester une notification
+                  {t('settings.notif_test')}
                 </button>
               )}
             </Section>
           )}
 
           {config?.invite_code && (
-            <Section title="Inviter mon partenaire">
-              <p className="text-sm text-slate-500">Partagez ce lien pour inviter votre partenaire à rejoindre le groupe.</p>
+            <Section title={t('settings.section_invite')}>
+              <p className="text-sm text-slate-500">{t('settings.invite_hint')}</p>
               <div className="flex gap-2 mt-2">
                 <div className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 font-mono truncate">
                   {`${window.location.origin}/invite/${config.invite_code}`}
@@ -306,43 +336,43 @@ export default function SettingsPage() {
                   onClick={async () => {
                     const url = `${window.location.origin}/invite/${config.invite_code}`
                     if (navigator.share) {
-                      await navigator.share({ title: 'CoWallet', text: 'Rejoins notre budget commun !', url })
+                      await navigator.share({ title: 'CoWallet', text: t('settings.invite_text'), url })
                     } else {
                       await navigator.clipboard.writeText(url)
-                      alert('Lien copié !')
+                      alert(t('settings.invite_copied'))
                     }
                   }}
                   className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition shrink-0"
                 >
-                  Partager
+                  {t('settings.invite_share')}
                 </button>
               </div>
             </Section>
           )}
 
           <form onSubmit={handleSave} className="space-y-4">
-            <Section title="Notre groupe">
-              <Field label="Nom du groupe">
-                <Input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder="Notre budget" maxLength={40} />
+            <Section title={t('settings.section_group')}>
+              <Field label={t('settings.field_group_name')}>
+                <Input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder={t('settings.group_name_placeholder')} maxLength={40} />
               </Field>
-              <p className="text-xs text-slate-400">S'affiche dans l'app si renseigné.</p>
+              <p className="text-xs text-slate-400">{t('settings.group_name_hint')}</p>
             </Section>
-            <Section title="Mon compte">
-              <Field label="Prénom affiché">
-                <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Ton prénom" required />
+            <Section title={t('settings.section_account')}>
+              <Field label={t('settings.field_display_name')}>
+                <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('settings.username_placeholder')} required />
               </Field>
             </Section>
 
-            <Section title="Changer le mot de passe">
-              <Field label="Mot de passe actuel">
+            <Section title={t('settings.section_password')}>
+              <Field label={t('settings.field_current_password')}>
                 <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
               </Field>
-              <Field label="Nouveau mot de passe">
+              <Field label={t('settings.field_new_password')}>
                 <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
               </Field>
             </Section>
 
-            <Section title="Répartition par défaut">
+            <Section title={t('settings.section_split')}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-slate-600">{config?.user1_username ?? 'User 1'}</span>
                 <span className="text-sm font-bold text-violet-600">{share} / {100 - share}</span>
@@ -364,39 +394,39 @@ export default function SettingsPage() {
 
             <button type="submit" disabled={saving}
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
+              {saving ? t('settings.btn_saving') : t('settings.btn_save')}
             </button>
 
             <button type="button" onClick={logout}
               className="w-full py-4 rounded-2xl bg-white text-red-500 font-semibold border border-red-100 active:bg-red-50 transition">
-              Se déconnecter
+              {t('settings.btn_logout')}
             </button>
 
             {!showDeleteConfirm ? (
               <button type="button" onClick={() => setShowDeleteConfirm(true)}
                 className="w-full py-3 text-sm text-slate-400 hover:text-red-400 transition">
-                Supprimer mon compte
+                {t('settings.btn_delete_account')}
               </button>
             ) : (
               <div className="bg-red-50 rounded-2xl p-4 space-y-3">
-                <p className="text-sm font-semibold text-red-600">Supprimer mon compte</p>
-                <p className="text-xs text-red-400">Cette action est irréversible. Confirmez avec votre mot de passe.</p>
+                <p className="text-sm font-semibold text-red-600">{t('settings.delete_confirm_title')}</p>
+                <p className="text-xs text-red-400">{t('settings.delete_confirm_hint')}</p>
                 <input
                   type="password"
                   value={deletePassword}
                   onChange={e => setDeletePassword(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-red-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm"
-                  placeholder="Mot de passe"
+                  placeholder={t('settings.delete_password_placeholder')}
                 />
                 {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError('') }}
                     className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white active:bg-slate-50 transition">
-                    Annuler
+                    {t('settings.btn_cancel')}
                   </button>
                   <button type="button" onClick={handleDeleteAccount} disabled={deleting || !deletePassword}
                     className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold active:scale-95 transition disabled:opacity-60">
-                    {deleting ? 'Suppression…' : 'Confirmer'}
+                    {deleting ? t('settings.btn_deleting') : t('settings.btn_confirm_delete')}
                   </button>
                 </div>
               </div>
@@ -407,14 +437,30 @@ export default function SettingsPage() {
         {/* Colonne droite */}
         <div className="space-y-4">
 
-          {/* Catégories */}
-          <Section title="Catégories">
+          {/* Categories */}
+          <Section title={t('settings.section_categories')}>
             <div className="space-y-2">
               {categories.map(cat => (
                 <div key={cat.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
                   <span className="text-lg">{cat.icon}</span>
                   <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                  <span className="text-sm font-medium text-slate-700 flex-1">{cat.name}</span>
+                  {editingCatId === cat.id ? (
+                    <>
+                      <input
+                        value={editingCatName}
+                        onChange={e => setEditingCatName(e.target.value)}
+                        onBlur={() => handleRenameCategory(cat.id)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleRenameCategory(cat.id); if (e.key === 'Escape') setEditingCatId(null) }}
+                        className="flex-1 px-2 py-1 text-sm rounded-lg border border-violet-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400"
+                        autoFocus
+                      />
+                    </>
+                  ) : (
+                    <span
+                      className="text-sm font-medium text-slate-700 flex-1 cursor-pointer hover:text-violet-600 transition"
+                      onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name) }}
+                    >{cat.name}</span>
+                  )}
                   <button onClick={() => handleDeleteCategory(cat.id)}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -428,7 +474,7 @@ export default function SettingsPage() {
             {catError && <p className="text-xs text-red-500">{catError}</p>}
 
             <form onSubmit={handleAddCategory} className="space-y-3 pt-4 border-t border-slate-100">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Nouvelle catégorie</p>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('settings.new_category')}</p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -439,7 +485,7 @@ export default function SettingsPage() {
                 </button>
                 <input value={newCatName} onChange={e => setNewCatName(e.target.value)}
                   className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                  placeholder="Nom de la catégorie" required />
+                  placeholder={t('settings.category_name_placeholder')} required />
               </div>
               {showEmojiPicker && (
                 <div className="grid grid-cols-10 gap-1 p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -464,17 +510,31 @@ export default function SettingsPage() {
               </div>
               <button type="submit"
                 className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition">
-                Ajouter
+                {t('settings.btn_add')}
               </button>
             </form>
           </Section>
 
-          {/* Moyens de paiement */}
-          <Section title="Moyens de paiement">
+          {/* Payment methods */}
+          <Section title={t('settings.section_payment_methods')}>
             <div className="space-y-2">
               {paymentMethods.map(pm => (
                 <div key={pm.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
-                  <span className="text-sm font-medium text-slate-700 flex-1">{pm.name}</span>
+                  {editingPmId === pm.id ? (
+                    <input
+                      value={editingPmName}
+                      onChange={e => setEditingPmName(e.target.value)}
+                      onBlur={() => handleRenamePaymentMethod(pm.id)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleRenamePaymentMethod(pm.id); if (e.key === 'Escape') setEditingPmId(null) }}
+                      className="flex-1 px-2 py-1 text-sm rounded-lg border border-violet-300 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400"
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      className="text-sm font-medium text-slate-700 flex-1 cursor-pointer hover:text-violet-600 transition"
+                      onClick={() => { setEditingPmId(pm.id); setEditingPmName(pm.name) }}
+                    >{pm.name}</span>
+                  )}
                   <button onClick={() => handleDeletePaymentMethod(pm.id)}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -490,22 +550,22 @@ export default function SettingsPage() {
             <form onSubmit={handleAddPaymentMethod} className="flex gap-2 pt-2 border-t border-slate-100">
               <input value={newPmName} onChange={e => setNewPmName(e.target.value)}
                 className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
-                placeholder="Ex : Virement, Lydia…" required />
+                placeholder={t('settings.payment_method_placeholder')} required />
               <button type="submit"
                 className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition">
-                Ajouter
+                {t('settings.btn_add')}
               </button>
             </form>
           </Section>
 
-          {/* Connexion bancaire */}
-          <Section title="Connexion bancaire">
+          {/* Bank connection */}
+          <Section title={t('settings.section_bank')}>
               {bankStatus && !bankStatus.configured && (
                 <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 text-amber-800 text-sm px-4 py-3 rounded-xl">
                   <span className="text-lg shrink-0">⚙️</span>
                   <div>
-                    <p className="font-semibold">Enable Banking non configuré</p>
-                    <p className="text-xs text-amber-600 mt-0.5">Les variables <code>ENABLEBANKING_APP_ID</code> et <code>ENABLEBANKING_PRIVATE_KEY_PATH</code> sont manquantes sur le serveur.</p>
+                    <p className="font-semibold">{t('settings.bank_not_configured')}</p>
+                    <p className="text-xs text-amber-600 mt-0.5">{t('settings.bank_not_configured_hint')}</p>
                   </div>
                 </div>
               )}
@@ -514,21 +574,21 @@ export default function SettingsPage() {
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0">
                     <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
                   </svg>
-                  Banque connectée avec succès
+                  {t('settings.bank_connected_success')}
                 </div>
               )}
 
               {bankStatus?.configured && !bankStatus.connected ? (
                 <div>
                   <p className="text-sm text-slate-500 mb-4">
-                    Connectez votre compte joint pour importer vos transactions et les comparer à votre budget.
+                    {t('settings.bank_connect_hint')}
                   </p>
                   <button
                     onClick={openBankPicker}
                     disabled={bankConnecting}
                     className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
                   >
-                    {bankConnecting ? 'Redirection…' : 'Connecter ma banque'}
+                    {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_connect_bank')}
                   </button>
                 </div>
               ) : bankStatus?.configured ? (
@@ -539,13 +599,13 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{bankStatus.provider_name}</p>
-                      <p className="text-xs text-emerald-600 font-medium">Connecté</p>
+                      <p className="text-xs text-emerald-600 font-medium">{t('settings.bank_connected_label')}</p>
                     </div>
                   </div>
 
                   {bankStatus.accounts?.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Comptes</p>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('settings.bank_accounts')}</p>
                       {bankStatus.accounts.map(acc => (
                         <div key={acc.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
                           <span className="text-sm font-medium text-slate-700 flex-1 truncate">{acc.name}</span>
@@ -566,11 +626,26 @@ export default function SettingsPage() {
                     disabled={bankDisconnecting}
                     className="w-full py-2.5 rounded-2xl border border-red-100 text-red-500 text-sm font-medium active:bg-red-50 transition disabled:opacity-60"
                   >
-                    {bankDisconnecting ? 'Déconnexion…' : 'Déconnecter la banque'}
+                    {bankDisconnecting ? t('settings.btn_disconnecting') : t('settings.btn_disconnect_bank')}
                   </button>
                 </div>
               ) : null}
             </Section>
+
+          {/* Language */}
+          <Section title={t('settings.section_language')}>
+            <div className="flex gap-2">
+              {['en', 'fr'].map(lang => (
+                <button
+                  key={lang}
+                  onClick={() => i18n.changeLanguage(lang)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition ${i18n.language === lang || (lang === 'en' && !['fr'].includes(i18n.language)) ? 'bg-violet-600 text-white border-violet-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                >
+                  {t(`settings.lang_${lang}`)}
+                </button>
+              ))}
+            </div>
+          </Section>
 
         </div>
       </div>
@@ -583,8 +658,8 @@ export default function SettingsPage() {
           <div className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[85vh]">
             <div className="px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div>
-                <h2 className="font-bold text-slate-800">Choisissez votre banque</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Compte joint - connexion via Enable Banking</p>
+                <h2 className="font-bold text-slate-800">{t('settings.bank_picker_title')}</h2>
+                <p className="text-xs text-slate-400 mt-0.5">{t('settings.bank_picker_subtitle')}</p>
               </div>
               <button onClick={() => setShowBankPicker(false)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
@@ -620,7 +695,7 @@ export default function SettingsPage() {
               <input
                 value={aspspSearch}
                 onChange={e => setAspspSearch(e.target.value)}
-                placeholder="Rechercher une banque..."
+                placeholder={t('settings.bank_search_placeholder')}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
             </div>
@@ -650,7 +725,7 @@ export default function SettingsPage() {
                     ))
                   }
                   {!aspspsLoading && aspsps.filter(b => !aspspSearch || (b.name || b.full_name || '').toLowerCase().includes(aspspSearch.toLowerCase())).length === 0 && (
-                    <p className="text-center text-slate-400 text-sm py-8">Aucune banque trouvée</p>
+                    <p className="text-center text-slate-400 text-sm py-8">{t('settings.bank_no_results')}</p>
                   )}
                 </div>
               )}

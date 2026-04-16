@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import BottomSheet from './BottomSheet'
 
@@ -16,6 +17,7 @@ const EMPTY = {
 const INSTALLMENT_OPTIONS = [1, 2, 3, 4, 6, 12]
 
 export default function ChargeForm({ open, onClose, onSaved, monthId, charge, config }) {
+  const { t } = useTranslation()
   const isEdit = !!charge
   const [form, setForm]               = useState(EMPTY)
   const [error, setError]             = useState('')
@@ -84,7 +86,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.category) { setError('Choisissez une catégorie'); return }
+    if (!form.category) { setError(t('chargeform.error_no_category')); return }
     setError('')
     setLoading(true)
 
@@ -126,13 +128,13 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Modifier la dépense' : 'Nouvelle dépense'}
+      title={isEdit ? t('chargeform.title_edit') : t('chargeform.title_add')}
     >
       <form onSubmit={handleSubmit} className="px-4 pb-safe space-y-5">
 
         {/* Label + suggestions */}
         <div className="relative">
-          <label className="block text-sm font-medium text-slate-600 mb-1.5">Libellé</label>
+          <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('chargeform.field_label')}</label>
           <input
             ref={labelRef}
             type="text"
@@ -141,7 +143,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
             onFocus={() => setShowSugg(true)}
             onBlur={() => setTimeout(() => setShowSugg(false), 100)}
             className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-            placeholder="Ex : Courses alimentaires"
+            placeholder={t('chargeform.field_label_placeholder')}
             autoComplete="off"
             required
           />
@@ -168,7 +170,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
         {/* Montant */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
-            {!isEdit && form.installments > 1 ? 'Montant total' : 'Montant'}
+            {!isEdit && form.installments > 1 ? t('chargeform.field_amount_total') : t('chargeform.field_amount')}
           </label>
           <div className="relative">
             <input
@@ -186,7 +188,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           </div>
           {!isEdit && form.installments > 1 && totalAmount > 0 && (
             <p className="text-sm text-violet-600 font-semibold mt-1.5 ml-1">
-              = {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(perMonth)} / mois
+              {t('chargeform.field_amount_per_month', { amount: new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(perMonth) })}
             </p>
           )}
         </div>
@@ -195,7 +197,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
         {!isEdit && (
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-2">
-              Paiement fractionné <span className="text-slate-400 font-normal">(optionnel)</span>
+              {t('chargeform.field_installments')} <span className="text-slate-400 font-normal">{t('chargeform.field_optional')}</span>
             </label>
             <div className="flex gap-2">
               {INSTALLMENT_OPTIONS.map(n => (
@@ -219,9 +221,9 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
         {/* Correction échéance — edit only, fractionné uniquement */}
         {isEdit && isInstallmentCharge && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
-            <p className="text-sm font-semibold text-amber-800">Correction de l'échéance</p>
+            <p className="text-sm font-semibold text-amber-800">{t('chargeform.field_installment_fix')}</p>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-amber-700">Échéance</span>
+              <span className="text-sm text-amber-700">{t('chargeform.installment_label')}</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -243,7 +245,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
               onClick={() => setCascadeInstallments(v => !v)}
               className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-white border border-amber-200 transition"
             >
-              <span className="text-sm text-amber-800">Corriger les mois suivants</span>
+              <span className="text-sm text-amber-800">{t('chargeform.field_installment_cascade')}</span>
               <div className={`w-9 h-5 rounded-full transition-colors ${cascadeInstallments ? 'bg-amber-500' : 'bg-slate-300'}`}>
                 <div className={`w-4 h-4 bg-white rounded-full shadow-sm m-0.5 transition-transform ${cascadeInstallments ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
@@ -253,7 +255,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
 
         {/* Catégorie */}
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-2">Catégorie</label>
+          <label className="block text-sm font-medium text-slate-600 mb-2">{t('chargeform.field_category')}</label>
           <div className="grid grid-cols-3 gap-2">
             {categories.map(cat => {
               const selected = form.category === cat.name
@@ -278,7 +280,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
 
         {/* Type de paiement */}
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-2">Type de paiement <span className="text-slate-400 font-normal">(optionnel)</span></label>
+          <label className="block text-sm font-medium text-slate-600 mb-2">{t('chargeform.field_payment_type')} <span className="text-slate-400 font-normal">{t('chargeform.field_optional')}</span></label>
           <div className="flex flex-wrap gap-2">
             {paymentMethods.map(pm => (
               <button
@@ -299,7 +301,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
 
         {/* Avancé par */}
         <div>
-          <label className="block text-sm font-medium text-slate-600 mb-2">Avancé par <span className="text-slate-400 font-normal">(optionnel)</span></label>
+          <label className="block text-sm font-medium text-slate-600 mb-2">{t('chargeform.field_paid_by')} <span className="text-slate-400 font-normal">{t('chargeform.field_optional')}</span></label>
           <div className="flex gap-2">
             {[
               { value: '1', label: config?.user1_username ?? 'User 1' },
@@ -335,8 +337,8 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
               <div className="text-left">
-                <p className={`text-sm font-semibold ${form.is_recurring ? 'text-violet-700' : 'text-slate-700'}`}>Charge récurrente</p>
-                <p className="text-xs text-slate-400">Se recopie chaque mois automatiquement</p>
+                <p className={`text-sm font-semibold ${form.is_recurring ? 'text-violet-700' : 'text-slate-700'}`}>{t('chargeform.field_recurring')}</p>
+                <p className="text-xs text-slate-400">{t('chargeform.field_recurring_hint')}</p>
               </div>
             </div>
             <div className={`w-11 h-6 rounded-full transition-colors ${form.is_recurring ? 'bg-violet-600' : 'bg-slate-300'}`}>
@@ -348,14 +350,14 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
         {/* Note */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
-            Note <span className="text-slate-400 font-normal">(optionnel)</span>
+            {t('chargeform.field_note')} <span className="text-slate-400 font-normal">{t('chargeform.field_optional')}</span>
           </label>
           <textarea
             value={form.note}
             onChange={e => set('note', e.target.value)}
             rows={2}
             className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-none text-sm"
-            placeholder="Ex : promo Black Friday, remboursement mutuelle…"
+            placeholder={t('chargeform.field_note_placeholder')}
           />
         </div>
 
@@ -368,7 +370,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           disabled={loading}
           className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60 disabled:scale-100"
         >
-          {loading ? 'Enregistrement…' : isEdit ? 'Enregistrer les modifications' : 'Ajouter la dépense'}
+          {loading ? t('chargeform.btn_loading') : isEdit ? t('chargeform.btn_save') : t('chargeform.btn_add')}
         </button>
 
         <div className="h-2" />
