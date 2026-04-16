@@ -116,6 +116,8 @@ export const api = {
   getPaymentMethods:    ()           => cached('payment_methods', () => request('/payment-methods')),
   createPaymentMethod:  (data)       => request('/payment-methods', { method: 'POST', body: JSON.stringify(data) })
                                           .then(r => { invalidate('payment_methods') ; return r }),
+  updatePaymentMethod:  (id, data)   => request(`/payment-methods/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+                                          .then(r => { invalidate('payment_methods') ; return r }),
   deletePaymentMethod:  (id)         => request(`/payment-methods/${id}`, { method: 'DELETE' })
                                           .then(r => { invalidate('payment_methods') ; return r }),
 

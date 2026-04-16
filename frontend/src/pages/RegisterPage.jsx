@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 
 export default function RegisterPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm,  setConfirm]  = useState('')
@@ -15,9 +17,9 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (password.length < 8) { setError('Mot de passe trop court (8 caractères min.)'); return }
-    if (!/\d/.test(password)) { setError('Le mot de passe doit contenir au moins un chiffre'); return }
-    if (password !== confirm) { setError('Les mots de passe ne correspondent pas'); return }
+    if (password.length < 8) { setError(t('register.error_password_short')); return }
+    if (!/\d/.test(password)) { setError(t('register.error_password_no_digit')); return }
+    if (password !== confirm) { setError(t('register.error_password_mismatch')); return }
     setLoading(true)
     try {
       const data = await api.register(username.trim(), password)
@@ -35,21 +37,21 @@ export default function RegisterPage() {
       <div className="mb-6 text-center">
         <img src="/logo-white1.png" alt="CoWallet" className="w-40 object-contain mx-auto mb-5" />
         <h1 className="text-3xl font-bold text-white">CoWallet</h1>
-        <p className="text-violet-200 mt-1 text-sm">Gérez vos dépenses en commun</p>
+        <p className="text-violet-200 mt-1 text-sm">{t('register.subtitle')}</p>
       </div>
 
       <div className="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
-        <h2 className="text-xl font-semibold text-slate-800 mb-6">Créer un compte</h2>
+        <h2 className="text-xl font-semibold text-slate-800 mb-6">{t('register.title')}</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Identifiant</label>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('register.field_username')}</label>
             <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition"
-              placeholder="Ton prénom"
+              placeholder={t('register.field_username_placeholder')}
               autoComplete="username"
               autoCapitalize="none"
               required
@@ -57,7 +59,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Mot de passe</label>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('register.field_password')}</label>
             <input
               type="password"
               value={password}
@@ -70,7 +72,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Confirmer le mot de passe</label>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('register.field_confirm')}</label>
             <input
               type="password"
               value={confirm}
@@ -89,19 +91,19 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold text-base shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60 disabled:scale-100 mt-2"
           >
-            {loading ? 'Création…' : 'Créer mon compte'}
+            {loading ? t('register.btn_loading') : t('register.btn_submit')}
           </button>
         </form>
 
         <p className="text-center text-sm text-slate-500 mt-6">
-          Déjà un compte ?{' '}
-          <Link to="/login" className="text-violet-600 font-medium">Se connecter</Link>
+          {t('register.has_account')}{' '}
+          <Link to="/login" className="text-violet-600 font-medium">{t('register.login_link')}</Link>
         </p>
 
         <div className="flex items-center gap-2 mt-5 pt-5 border-t border-slate-100">
           <span className="text-base">🔒</span>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Vos données sont privées et accessibles uniquement à vous et votre partenaire.
+            {t('register.privacy')}
           </p>
         </div>
       </div>

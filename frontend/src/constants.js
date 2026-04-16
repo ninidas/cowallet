@@ -11,7 +11,14 @@ export const CATEGORY_NAMES = Object.keys(CATEGORIES)
 
 export const PAYMENT_TYPES = ['Prélèvement', 'Carte', 'Virement Manuel', 'PayPal']
 
-export const MONTH_NAMES = [
-  '', 'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-]
+export function getMonthNames(lang = 'en') {
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-US'
+  const names = ['']
+  for (let m = 1; m <= 12; m++) {
+    names.push(new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date(2024, m - 1, 1)))
+  }
+  return names
+}
+
+// Keep for backwards compat
+export const MONTH_NAMES = getMonthNames('fr')
