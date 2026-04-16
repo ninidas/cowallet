@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-import { MONTH_NAMES } from '../constants'
+import { getMonthNames } from '../constants'
 import BottomSheet from './BottomSheet'
 
 function getDefaultYearMonth() {
@@ -12,6 +13,8 @@ function getDefaultYearMonth() {
 }
 
 export default function MonthForm({ open, onClose, onCreated, config }) {
+  const { t, i18n } = useTranslation()
+  const MONTH_NAMES = getMonthNames(i18n.language)
   const defaults = getDefaultYearMonth()
   const [year, setYear]       = useState(defaults.year)
   const [month, setMonth]     = useState(defaults.month)
@@ -52,13 +55,13 @@ export default function MonthForm({ open, onClose, onCreated, config }) {
   const years = [currentYear - 1, currentYear, currentYear + 1]
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Nouveau mois">
+    <BottomSheet open={open} onClose={onClose} title={t('monthform.title')}>
       <form onSubmit={handleSubmit} className="px-4 pb-safe space-y-5">
 
-        {/* Sélection mois / année */}
+        {/* Month / year selection */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Mois</label>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('monthform.field_month')}</label>
             <select
               value={month}
               onChange={e => setMonth(e.target.value)}
@@ -70,7 +73,7 @@ export default function MonthForm({ open, onClose, onCreated, config }) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1.5">Année</label>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('monthform.field_year')}</label>
             <select
               value={year}
               onChange={e => setYear(parseInt(e.target.value))}
@@ -84,7 +87,7 @@ export default function MonthForm({ open, onClose, onCreated, config }) {
         {/* Répartition */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-3">
-            Répartition
+            {t('monthform.field_split')}
             <span className="ml-2 font-bold text-violet-600 capitalize">{user1} {share}%</span>
             <span className="text-slate-400"> · </span>
             <span className="font-bold text-indigo-500 capitalize">{user2} {user2Share}%</span>
@@ -133,7 +136,7 @@ export default function MonthForm({ open, onClose, onCreated, config }) {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-violet-500 mt-0.5 shrink-0">
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
           </svg>
-          <p className="text-xs text-violet-700">Les charges récurrentes du mois précédent seront copiées automatiquement.</p>
+          <p className="text-xs text-violet-700">{t('monthform.recurring_hint')}</p>
         </div>
 
         {error && (
@@ -145,7 +148,7 @@ export default function MonthForm({ open, onClose, onCreated, config }) {
           disabled={loading}
           className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60 disabled:scale-100"
         >
-          {loading ? 'Création…' : `Créer ${MONTH_NAMES[month]} ${year}`}
+          {loading ? t('monthform.btn_loading') : t('monthform.btn_create', { month: MONTH_NAMES[month], year })}
         </button>
 
         <div className="h-2" />
