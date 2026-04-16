@@ -365,22 +365,12 @@ export default function SettingsPage() {
                   onChange={e => setCurrency(e.target.value)}
                   className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
                 >
-                  {[
-                    { code: 'EUR', label: 'Euro (€)' },
-                    { code: 'USD', label: 'US Dollar ($)' },
-                    { code: 'GBP', label: 'British Pound (£)' },
-                    { code: 'CHF', label: 'Swiss Franc (CHF)' },
-                    { code: 'CAD', label: 'Canadian Dollar (CA$)' },
-                    { code: 'AUD', label: 'Australian Dollar (A$)' },
-                    { code: 'JPY', label: 'Japanese Yen (¥)' },
-                    { code: 'SEK', label: 'Swedish Krona (SEK)' },
-                    { code: 'NOK', label: 'Norwegian Krone (NOK)' },
-                    { code: 'DKK', label: 'Danish Krone (DKK)' },
-                    { code: 'PLN', label: 'Polish Zloty (PLN)' },
-                    { code: 'CZK', label: 'Czech Koruna (CZK)' },
-                  ].map(({ code, label }) => (
-                    <option key={code} value={code}>{label}</option>
-                  ))}
+                  {['EUR','USD','GBP','CHF','CAD','AUD','JPY','SEK','NOK','DKK','PLN','CZK'].map(code => {
+                    const symbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: code })
+                      .formatToParts(0).find(p => p.type === 'currency')?.value || code
+                    const name = new Intl.DisplayNames([navigator.language], { type: 'currency' }).of(code) || code
+                    return <option key={code} value={code}>{name} ({symbol})</option>
+                  })}
                 </select>
               </Field>
             </Section>
