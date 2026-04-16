@@ -180,7 +180,7 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
       <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={trySubmit} onKeyDown={handleKeyDown}
         type="number" min="0" step="0.01"
         className="w-24 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none text-right placeholder-slate-400"
-        placeholder="0 €" />
+        placeholder="0" />
       {saved
         ? <span className="text-xs text-emerald-500 pr-2 shrink-0">✓</span>
         : onCancel && (
