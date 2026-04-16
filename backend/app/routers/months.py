@@ -1,5 +1,12 @@
 import os
 import logging
+
+APP_LANG = os.environ.get("APP_LANG", "en").lower()
+
+NOTIF_VALIDATED = {
+    "en": "{user} validated {label}",
+    "fr": "{user} a validé {label}",
+}
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -219,7 +226,7 @@ def validate_month(
             totals = compute_totals(month)
             send_notification(
                 db, partner_id,
-                title=f"{current_user.username} a validé {month.label}",
+                title=NOTIF_VALIDATED.get(APP_LANG, NOTIF_VALIDATED["en"]).format(user=current_user.username, label=month.label),
                 body="",
                 url=f"/months/{month.id}",
             )
