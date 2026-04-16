@@ -368,8 +368,7 @@ export default function SettingsPage() {
                   {['EUR','USD','GBP','CHF','CAD','AUD','JPY','SEK','NOK','DKK','PLN','CZK'].map(code => {
                     const symbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: code })
                       .formatToParts(0).find(p => p.type === 'currency')?.value || code
-                    const name = new Intl.DisplayNames([navigator.language], { type: 'currency' }).of(code) || code
-                    return <option key={code} value={code}>{name} ({symbol})</option>
+                    return <option key={code} value={code}>{code} — {symbol}</option>
                   })}
                 </select>
               </Field>
