@@ -2,8 +2,11 @@ import os
 import logging
 logging.basicConfig(level=logging.INFO)
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, Request
+from pathlib import Path
+from fastapi import FastAPI, APIRouter, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from .limiter import limiter
@@ -281,20 +284,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(setup.router)
-app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(groups.router)
-app.include_router(months.router)
-app.include_router(charges.router)
-app.include_router(export.router)
-app.include_router(stats.router)
-app.include_router(settings.router)
-app.include_router(categories.router)
-app.include_router(payment_methods.router)
-app.include_router(budget.router)
-app.include_router(push.router)
-app.include_router(bank.router)
+# ── API routes (all under /api) ───────────────────────────────────────────────
+api_router = APIRouter(prefix="/api")
+api_router.include_router(setup.router)
+api_router.include_router(auth.router)
+api_router.include_router(users.router)
+api_router.include_router(groups.router)
+api_router.include_router(months.router)
+api_router.include_router(charges.router)
+api_router.include_router(export.router)
+api_router.include_router(stats.router)
+api_router.include_router(settings.router)
+api_router.include_router(categories.router)
+api_router.include_router(payment_methods.router)
+api_router.include_router(budget.router)
+api_router.include_router(push.router)
+api_router.include_router(bank.router)
+
+app.include_router(api_router)
 
 
 @app.get("/health")
@@ -302,7 +309,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/config")
+@app.get("/api/config")
 def get_config(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user_optional)):
     """Configuration exposée au frontend — groupe si authentifié, sinon infos minimales."""
     if current_user:
@@ -326,3 +333,23 @@ def get_config(db: Session = Depends(get_db), current_user: models.User = Depend
         "setup_needed": False,
         "has_group":    False,
     }
+
+
+# ── Frontend static files (single-image mode) ─────────────────────────────────
+_FRONTEND_DIST = Path(__file__).parent.parent / "frontend_dist"
+
+if (_FRONTEND_DIST / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=str(_FRONTEND_DIST / "assets")), name="static_assets")
+
+
+@app.get("/{full_path:path}")
+async def spa_handler(full_path: str):
+    if _FRONTEND_DIST.exists():
+        candidate = _FRONTEND_DIST / full_path
+        if full_path and candidate.is_file():
+            headers = {}
+            if full_path in ("sw.js",) or full_path.endswith(".webmanifest"):
+                headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return FileResponse(str(candidate), headers=headers)
+        return FileResponse(str(_FRONTEND_DIST / "index.html"))
+    return {"detail": "Frontend not available"}

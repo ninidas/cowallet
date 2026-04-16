@@ -1,4 +1,4 @@
-name: Build & Push Docker Images
+name: Build & Push Docker Image
 
 on:
   push:
@@ -35,20 +35,11 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Build and push frontend
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
-          context: ./frontend
+          context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/cowallet-frontend:${{ steps.tag.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/cowallet-frontend:${{ github.sha }}
-
-      - name: Build and push backend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/cowallet-backend:${{ steps.tag.outputs.tag }}
-            ghcr.io/${{ github.repository_owner }}/cowallet-backend:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/cowallet:${{ steps.tag.outputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/cowallet:${{ github.sha }}
