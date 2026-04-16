@@ -65,6 +65,14 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('')
   const [error,   setError]   = useState('')
 
+  const hasChanges = (
+    username.trim() !== (user?.username ?? '') ||
+    !!newPassword ||
+    share !== (config?.default_user1_share ?? 50) ||
+    (groupName.trim() !== '' && groupName.trim() !== (config?.group_name ?? '')) ||
+    currency !== (config?.currency ?? 'EUR')
+  )
+
   // Suppression de compte
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deletePassword, setDeletePassword]       = useState('')
@@ -410,7 +418,7 @@ export default function SettingsPage() {
             {success && <div className="bg-emerald-50 text-emerald-700 text-sm px-4 py-3 rounded-xl">{success}</div>}
 
             <button type="submit" disabled={saving}
-              className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
+              className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60">
               {saving ? t('settings.btn_saving') : t('settings.btn_save')}
             </button>
 
@@ -750,6 +758,20 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Sticky save bar */}
+      <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className={`fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-xl transition-all duration-300 ${hasChanges ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}>
+        <div className="px-4 py-3 flex items-center gap-3 max-w-6xl mx-auto">
+          <p className="text-sm text-slate-500 flex-1">{t('settings.unsaved_changes')}</p>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2.5 rounded-2xl bg-violet-600 text-white font-semibold text-sm shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60"
+          >
+            {saving ? t('settings.btn_saving') : t('settings.btn_save')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
