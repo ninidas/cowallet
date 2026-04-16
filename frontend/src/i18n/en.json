@@ -373,5 +373,24 @@
   "common": {
     "back": "Back",
     "logout": "Sign out"
+  },
+  "errors": {
+    "invalid_credentials":        "Invalid credentials",
+    "username_required":          "Username is required",
+    "password_too_short":         "Password too short (8 characters min.)",
+    "password_no_digit":          "Password must contain at least one digit",
+    "username_taken":             "Username already taken",
+    "invalid_password":           "Invalid password",
+    "name_empty":                 "Name cannot be empty",
+    "name_taken":                 "Name already in use",
+    "current_password_required":  "Current password is required",
+    "current_password_invalid":   "Invalid current password",
+    "new_password_too_short":     "New password is too short",
+    "already_have_group":         "You already have a group",
+    "invalid_invite_code":        "Invalid invite code",
+    "group_full":                 "Group is already full",
+    "own_group":                  "You cannot join your own group",
+    "unsupported_currency":       "Unsupported currency",
+    "generic":                    "An error occurred"
   }
 }

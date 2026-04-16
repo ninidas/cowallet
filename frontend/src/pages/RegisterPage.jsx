@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
+import { tError } from '../utils/tError'
 
 export default function RegisterPage() {
   const { login } = useAuth()
@@ -84,7 +85,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
+          {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
 
           <button
             type="submit"

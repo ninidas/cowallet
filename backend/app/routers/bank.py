@@ -14,7 +14,7 @@ router = APIRouter(prefix="/bank", tags=["bank"])
 
 def _require_enablebanking():
     if not enablebanking.is_configured():
-        raise HTTPException(status_code=503, detail="Enable Banking non configuré sur ce serveur")
+        raise HTTPException(status_code=503, detail="Enable Banking not configured on this server")
 
 
 # ── Schemas ────────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ def list_aspsps(
     try:
         aspsps = enablebanking.get_aspsps(country)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Erreur Enable Banking : {exc}")
+        raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
     return aspsps
 
 
@@ -102,7 +102,7 @@ def start_connect(
     try:
         result = enablebanking.start_auth(body.aspsp_name, body.aspsp_country, body.return_to)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Erreur Enable Banking : {exc}")
+        raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
     # Stocke la connexion en état pending avec l'auth_code
     auth_code = result.get("auth_code") or result.get("code", "")
@@ -131,12 +131,12 @@ def finish_connect(
 
     conn = db.query(models.BankConnection).filter_by(user_id=user.id, status="pending").first()
     if not conn:
-        raise HTTPException(status_code=404, detail="Connexion introuvable")
+        raise HTTPException(status_code=404, detail="Connection not found")
 
     try:
         session = enablebanking.create_session(body.auth_code)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Erreur Enable Banking : {exc}")
+        raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
     session_id = session.get("session_id") or session.get("id", "")
     conn.saltedge_connection_id = session_id
@@ -173,7 +173,7 @@ def get_transactions(
 
     conn = db.query(models.BankConnection).filter_by(user_id=user.id, status="active").first()
     if not conn or not conn.saltedge_connection_id:
-        raise HTTPException(status_code=404, detail="Aucune connexion bancaire active")
+        raise HTTPException(status_code=404, detail="No active bank connection")
 
     if not from_date:
         today     = datetime.date.today()
@@ -238,7 +238,7 @@ def get_transactions(
                     "account_id":   str(account.id),
                 })
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Erreur Enable Banking : {exc}")
+        raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
     result.sort(key=lambda x: x["date"], reverse=True)
     return result
@@ -252,10 +252,10 @@ def toggle_account(
 ):
     conn = db.query(models.BankConnection).filter_by(user_id=user.id).first()
     if not conn:
-        raise HTTPException(status_code=404, detail="Connexion introuvable")
+        raise HTTPException(status_code=404, detail="Connection not found")
     account = db.query(models.BankAccount).filter_by(id=account_id, connection_id=conn.id).first()
     if not account:
-        raise HTTPException(status_code=404, detail="Compte introuvable")
+        raise HTTPException(status_code=404, detail="Account not found")
     account.enabled = not account.enabled
     db.commit()
     return {"id": account.id, "enabled": account.enabled}
@@ -268,7 +268,7 @@ def delete_connection(
 ):
     conn = db.query(models.BankConnection).filter_by(user_id=user.id).first()
     if not conn:
-        raise HTTPException(status_code=404, detail="Connexion introuvable")
+        raise HTTPException(status_code=404, detail="Connection not found")
     db.delete(conn)
     db.commit()
     return {"status": "disconnected"}
@@ -284,7 +284,7 @@ def import_transactions(
 ):
     month = db.query(models.Month).filter_by(id=body.month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
 
     # Index des catégories connues : description -> catégorie la plus récente
     known = {}
@@ -331,7 +331,7 @@ def get_month_transactions(
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
 
     txs = db.query(models.BankTransaction).filter_by(month_id=month_id).order_by(
         models.BankTransaction.date.desc()
@@ -365,7 +365,7 @@ def categorize_transaction(
         models.BankTransaction.month_id.in_(group_month_ids),
     ).first()
     if not tx:
-        raise HTTPException(status_code=404, detail="Transaction introuvable")
+        raise HTTPException(status_code=404, detail="Transaction not found")
     tx.category = body.category
     db.commit()
     return {"id": tx.id, "category": tx.category}
@@ -383,7 +383,7 @@ def delete_transaction(
         models.BankTransaction.month_id.in_(group_month_ids),
     ).first()
     if not tx:
-        raise HTTPException(status_code=404, detail="Transaction introuvable")
+        raise HTTPException(status_code=404, detail="Transaction not found")
     db.delete(tx)
     db.commit()
 
@@ -396,7 +396,7 @@ def budget_vs_actual(
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
-        raise HTTPException(status_code=404, detail="Mois introuvable")
+        raise HTTPException(status_code=404, detail="Month not found")
 
     categories = db.query(models.Category).filter_by(group_id=group.id).order_by(
         models.Category.sort_order

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { getDefaultCurrency } from '../utils/currency'
+import { tError } from '../utils/tError'
 
 export default function GroupSetupPage() {
   const { refreshConfig, logout } = useAuth()
@@ -107,7 +108,7 @@ export default function GroupSetupPage() {
 
         {tab === 'create' ? (
           <form onSubmit={handleCreate} className="space-y-4">
-            {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
+            {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
             <button type="submit" disabled={loading}
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
               {loading ? t('group_setup.btn_creating') : t('group_setup.btn_create')}
@@ -127,7 +128,7 @@ export default function GroupSetupPage() {
                 required
               />
             </div>
-            {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
+            {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
             <button type="submit" disabled={loading}
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
               {loading ? t('group_setup.btn_joining') : t('group_setup.btn_join')}

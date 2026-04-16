@@ -373,5 +373,24 @@
   "common": {
     "back": "Retour",
     "logout": "Se déconnecter"
+  },
+  "errors": {
+    "invalid_credentials":        "Identifiants incorrects",
+    "username_required":          "Identifiant requis",
+    "password_too_short":         "Mot de passe trop court (8 caractères min.)",
+    "password_no_digit":          "Le mot de passe doit contenir au moins un chiffre",
+    "username_taken":             "Cet identifiant est déjà pris",
+    "invalid_password":           "Mot de passe incorrect",
+    "name_empty":                 "Le prénom ne peut pas être vide",
+    "name_taken":                 "Ce prénom est déjà utilisé",
+    "current_password_required":  "Mot de passe actuel requis",
+    "current_password_invalid":   "Mot de passe actuel incorrect",
+    "new_password_too_short":     "Le nouveau mot de passe est trop court",
+    "already_have_group":         "Vous avez déjà un groupe",
+    "invalid_invite_code":        "Code d'invitation invalide",
+    "group_full":                 "Ce groupe est déjà complet",
+    "own_group":                  "Vous ne pouvez pas rejoindre votre propre groupe",
+    "unsupported_currency":       "Devise non supportée",
+    "generic":                    "Une erreur est survenue"
   }
 }

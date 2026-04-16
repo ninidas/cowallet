@@ -20,7 +20,7 @@ class SettingsUpdate(BaseModel):
     @classmethod
     def validate_share(cls, v):
         if v is not None and not (1 <= v <= 99):
-            raise ValueError("La répartition doit être entre 1 et 99")
+            raise ValueError("Split must be between 1 and 99")
         return v
 
 
@@ -34,22 +34,22 @@ def update_settings(
     if body.username is not None:
         name = body.username.strip()
         if not name:
-            raise HTTPException(status_code=400, detail="Le prénom ne peut pas être vide")
+            raise HTTPException(status_code=400, detail="Name cannot be empty")
         existing = db.query(models.User).filter(
             models.User.username == name,
             models.User.id != current_user.id,
         ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Ce prénom est déjà utilisé")
+            raise HTTPException(status_code=400, detail="Name already in use")
         current_user.username = name
 
     if body.new_password is not None:
         if not body.current_password:
-            raise HTTPException(status_code=400, detail="Mot de passe actuel requis")
+            raise HTTPException(status_code=400, detail="Current password is required")
         if not verify_password(body.current_password, current_user.password_hash):
-            raise HTTPException(status_code=400, detail="Mot de passe actuel incorrect")
+            raise HTTPException(status_code=400, detail="Invalid current password")
         if len(body.new_password) < 4:
-            raise HTTPException(status_code=400, detail="Le nouveau mot de passe est trop court")
+            raise HTTPException(status_code=400, detail="New password is too short")
         current_user.password_hash = hash_password(body.new_password)
 
     if body.default_user1_share is not None:
