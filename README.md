@@ -80,6 +80,10 @@ services:
     image: ghcr.io/ninidas/cowallet-backend:latest
     container_name: cowallet-backend
     restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - APP_LANG=en  # Default language for seeded data: en or fr
     volumes:
       - <host_folder_data>:/data
 ```
