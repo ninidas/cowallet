@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.database import Base, get_db
 from app.limiter import limiter
+from fastapi import APIRouter
 from app.routers import auth, users, groups, months, charges, budget, categories, payment_methods
 
 TEST_DATABASE_URL = "sqlite:///:memory:"
@@ -21,14 +22,16 @@ def _make_app(session):
     app = FastAPI()
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-    app.include_router(auth.router)
-    app.include_router(users.router)
-    app.include_router(groups.router)
-    app.include_router(months.router)
-    app.include_router(charges.router)
-    app.include_router(budget.router)
-    app.include_router(categories.router)
-    app.include_router(payment_methods.router)
+    api = APIRouter(prefix="/api")
+    api.include_router(auth.router)
+    api.include_router(users.router)
+    api.include_router(groups.router)
+    api.include_router(months.router)
+    api.include_router(charges.router)
+    api.include_router(budget.router)
+    api.include_router(categories.router)
+    api.include_router(payment_methods.router)
+    app.include_router(api)
 
     def override_get_db():
         yield session
@@ -64,7 +67,7 @@ def client(db):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def register(client, username, password="password123"):
-    r = client.post("/users/register", json={"username": username, "password": password})
+    r = client.post("/api/users/register", json={"username": username, "password": password})
     assert r.status_code == 201, r.text
     return r.json()["access_token"]
 
@@ -74,6 +77,6 @@ def headers(token):
 
 
 def create_group(client, token, name="Mon budget"):
-    r = client.post("/groups", json={"name": name}, headers=headers(token))
+    r = client.post("/api/groups", json={"name": name}, headers=headers(token))
     assert r.status_code == 201, r.text
     return r.json()
