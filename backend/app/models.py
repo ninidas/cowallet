@@ -24,9 +24,10 @@ class Group(Base):
     __tablename__ = "groups"
 
     id            = Column(Integer, primary_key=True, index=True)
-    name          = Column(String, nullable=False, default="Notre budget")
+    name          = Column(String, nullable=False, default="My budget")
     invite_code   = Column(String, unique=True, nullable=False)
     default_share = Column(Integer, default=50)
+    currency      = Column(String, nullable=False, default="EUR")
     user1_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
     user2_id      = Column(Integer, ForeignKey("users.id"), nullable=True)
 

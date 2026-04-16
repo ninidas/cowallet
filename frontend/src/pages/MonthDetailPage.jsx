@@ -4,18 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
+import { useFmt } from '../hooks/useFmt'
 
 import CategoryBadge from '../components/CategoryBadge'
 import ChargeForm from '../components/ChargeForm'
 import BottomSheet from '../components/BottomSheet'
 
-function formatEur(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
-}
-
 // ── Hero card ──────────────────────────────────────────────────────────────────
 function HeroCard({ month }) {
   const { t } = useTranslation()
+  const fmt = useFmt()
   const delta = month.prev_total != null ? month.total - month.prev_total : null
   const deltaPositive = delta > 0
 
@@ -24,10 +22,10 @@ function HeroCard({ month }) {
       <div className="flex justify-between items-start mb-3 lg:mb-5">
         <div>
           <p className="text-violet-200 text-xs lg:text-sm font-medium">{t('month_detail.total_month')}</p>
-          <p className="text-white/90 text-xl lg:text-2xl font-bold">{formatEur(month.total)}</p>
+          <p className="text-white/90 text-xl lg:text-2xl font-bold">{fmt(month.total)}</p>
           {delta !== null && delta !== 0 && (
             <p className={`text-xs font-semibold mt-0.5 ${deltaPositive ? 'text-red-200' : 'text-emerald-200'}`}>
-              {deltaPositive ? '▲' : '▼'} {formatEur(Math.abs(delta))} {t('month_detail.vs_last_month')}
+              {deltaPositive ? '▲' : '▼'} {fmt(Math.abs(delta))} {t('month_detail.vs_last_month')}
             </p>
           )}
         </div>
@@ -38,7 +36,7 @@ function HeroCard({ month }) {
       <div className="border-t border-white/20 pt-3 lg:pt-4">
         <p className="text-violet-200 text-xs lg:text-sm mb-0.5">{t('month_detail.each_share')}</p>
         <span className="text-white text-3xl lg:text-4xl font-extrabold tabular-nums">
-          {formatEur(month.user1_due)}
+          {fmt(month.user1_due)}
         </span>
       </div>
     </div>
@@ -48,6 +46,7 @@ function HeroCard({ month }) {
 // ── Transfer button ────────────────────────────────────────────────────────────
 function TransferButton({ name, amount, done, onToggle, loading }) {
   const { t } = useTranslation()
+  const fmt = useFmt()
   return (
     <button
       onClick={onToggle}
@@ -67,7 +66,7 @@ function TransferButton({ name, amount, done, onToggle, loading }) {
       <div className="text-left min-w-0">
         <p className="text-sm font-semibold text-slate-700 capitalize truncate">{name}</p>
         <p className={`text-xs font-medium ${done ? 'text-emerald-600' : 'text-slate-400'}`}>
-          {done ? t('month_detail.transferred') : t('month_detail.to_transfer', { amount: formatEur(amount) })}
+          {done ? t('month_detail.transferred') : t('month_detail.to_transfer', { amount: fmt(amount) })}
         </p>
       </div>
     </button>
@@ -77,6 +76,7 @@ function TransferButton({ name, amount, done, onToggle, loading }) {
 // ── Charge item ────────────────────────────────────────────────────────────────
 function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualValue, onActualChange }) {
   const { t } = useTranslation()
+  const fmt = useFmt()
   const paidBy = charge.paid_by === 1 ? config?.user1_username : charge.paid_by === 2 ? config?.user2_username : null
 
   if (suiviMode) {
@@ -86,7 +86,7 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
       <div className="flex items-center gap-3 py-3 px-4">
         <div className="flex-1 min-w-0">
           <p className="font-medium text-slate-900 truncate text-sm">{charge.label}</p>
-          <p className="text-xs text-slate-400">{formatEur(charge.amount)} {t('month_detail.forecast_tag')}</p>
+          <p className="text-xs text-slate-400">{fmt(charge.amount)} {t('month_detail.forecast_tag')}</p>
         </div>
         <input
           type="number" min="0" step="0.01"
@@ -97,7 +97,7 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
         />
         {delta !== null && delta !== 0 && (
           <span className={`text-xs font-semibold shrink-0 w-16 text-right ${delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-            {delta > 0 ? '+' : ''}{formatEur(delta)}
+            {delta > 0 ? '+' : ''}{fmt(delta)}
           </span>
         )}
         {delta === null && <span className="w-16 shrink-0" />}
@@ -141,22 +141,22 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
           <div className="flex flex-col items-end shrink-0 gap-0.5">
             {charge.actual_amount != null ? (
               <>
-                <span className="text-xs text-slate-400 line-through tabular-nums">{formatEur(charge.amount)}</span>
+                <span className="text-xs text-slate-400 line-through tabular-nums">{fmt(charge.amount)}</span>
                 <span className={`text-base font-bold tabular-nums ${charge.actual_amount > charge.amount ? 'text-red-600' : charge.actual_amount < charge.amount ? 'text-emerald-600' : 'text-slate-800'}`}>
-                  {formatEur(charge.actual_amount)}
+                  {fmt(charge.actual_amount)}
                 </span>
                 {charge.actual_amount !== charge.amount && (
                   <span className={`text-xs font-semibold tabular-nums ${charge.actual_amount > charge.amount ? 'text-red-400' : 'text-emerald-400'}`}>
-                    {charge.actual_amount > charge.amount ? '+' : ''}{formatEur(charge.actual_amount - charge.amount)}
+                    {charge.actual_amount > charge.amount ? '+' : ''}{fmt(charge.actual_amount - charge.amount)}
                   </span>
                 )}
               </>
             ) : (
               <>
-                <span className="text-base font-bold text-slate-800 tabular-nums">{formatEur(charge.amount)}</span>
+                <span className="text-base font-bold text-slate-800 tabular-nums">{fmt(charge.amount)}</span>
                 {charge.delta != null && charge.delta !== 0 && (
                   <span className={`text-xs font-semibold tabular-nums flex items-center gap-0.5 ${charge.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {charge.delta > 0 ? '▲' : '▼'}{formatEur(Math.abs(charge.delta))}
+                    {charge.delta > 0 ? '▲' : '▼'}{fmt(Math.abs(charge.delta))}
                   </span>
                 )}
               </>
@@ -181,6 +181,8 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
 
 // ── Budget vs actual card ──────────────────────────────────────────────────────
 function BudgetVsActualCard({ bva }) {
+  const { t } = useTranslation()
+  const fmt = useFmt()
   if (!bva || bva.rows.length === 0) return null
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -188,7 +190,7 @@ function BudgetVsActualCard({ bva }) {
         <p className="text-sm font-semibold text-slate-700">{t('month_detail.forecast_vs_actual')}</p>
         {bva.uncategorized > 0 && (
           <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-            {t('month_detail.uncategorized', { amount: formatEur(bva.uncategorized) })}
+            {t('month_detail.uncategorized', { amount: fmt(bva.uncategorized) })}
           </span>
         )}
       </div>
@@ -212,24 +214,24 @@ function BudgetVsActualCard({ bva }) {
             </div>
             <div className="text-right shrink-0">
               <p className={`text-sm font-bold tabular-nums ${row.delta > 0 ? 'text-red-500' : 'text-slate-800'}`}>
-                {formatEur(row.actual)}
+                {fmt(row.actual)}
               </p>
-              <p className="text-xs text-slate-400 tabular-nums">/ {formatEur(row.budget)}</p>
+              <p className="text-xs text-slate-400 tabular-nums">/ {fmt(row.budget)}</p>
             </div>
             {row.delta !== 0 && (
               <span className={`text-xs font-bold tabular-nums w-12 text-right shrink-0 ${row.delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                {row.delta > 0 ? '+' : ''}{formatEur(row.delta)}
+                {row.delta > 0 ? '+' : ''}{fmt(row.delta)}
               </span>
             )}
           </div>
         ))}
       </div>
       <div className="px-4 py-3 bg-slate-50 flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-500">Total</p>
+        <p className="text-xs font-semibold text-slate-500">{t('month_detail.total')}</p>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400 tabular-nums">{t('month_detail.forecast_tag')} {formatEur(bva.total_budget)}</span>
+          <span className="text-xs text-slate-400 tabular-nums">{t('month_detail.forecast_tag')} {fmt(bva.total_budget)}</span>
           <span className={`text-sm font-bold tabular-nums ${bva.total_actual > bva.total_budget ? 'text-red-500' : 'text-emerald-600'}`}>
-            {t('month_detail.actual_estimated_short', { amount: formatEur(bva.total_actual) })}
+            {t('month_detail.actual_estimated_short', { amount: fmt(bva.total_actual) })}
           </span>
         </div>
       </div>
@@ -239,6 +241,7 @@ function BudgetVsActualCard({ bva }) {
 
 // ── Transactions tab ───────────────────────────────────────────────────────────
 function TransactionsTab({ monthId, month, categoriesMap, categories, onImport, t }) {
+  const fmt = useFmt()
   const [transactions, setTx]   = useState([])
   const [bva,          setBva]  = useState(null)
   const [loading,      setLoad] = useState(true)
@@ -357,7 +360,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport, 
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-sm font-bold tabular-nums text-slate-800">{formatEur(tx.amount)}</span>
+                  <span className="text-sm font-bold tabular-nums text-slate-800">{fmt(tx.amount)}</span>
                   <button
                     onClick={() => handleDelete(tx.id)}
                     className="w-7 h-7 rounded-lg bg-red-50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 hover:bg-red-100 transition-all"
@@ -379,6 +382,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport, 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function MonthDetailPage() {
   const { t } = useTranslation()
+  const fmt = useFmt()
   const { id }         = useParams()
   const navigate       = useNavigate()
   const [searchParams] = useSearchParams()
@@ -604,7 +608,7 @@ export default function MonthDetailPage() {
 
           {/* Virements */}
           <div className="px-4 lg:px-0">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">Virements</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">{t('month_detail.transfers')}</p>
             <div className="flex gap-3">
               <TransferButton
                 name={config?.user1_username ?? 'User 1'}
@@ -693,16 +697,16 @@ export default function MonthDetailPage() {
               <div className={`mb-3 p-4 rounded-2xl ${delta > 0 ? 'bg-red-50 border border-red-100' : delta < 0 ? 'bg-emerald-50 border border-emerald-100' : 'bg-slate-50 border border-slate-100'}`}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="text-slate-500">{t('month_detail.forecast')}</span>
-                  <span className="font-semibold text-slate-800">{formatEur(totalPrevu)}</span>
+                  <span className="font-semibold text-slate-800">{fmt(totalPrevu)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">{t('month_detail.actual_estimated')}</span>
-                  <span className={`font-bold ${delta > 0 ? 'text-red-600' : delta < 0 ? 'text-emerald-600' : 'text-slate-800'}`}>{formatEur(totalReel)}</span>
+                  <span className={`font-bold ${delta > 0 ? 'text-red-600' : delta < 0 ? 'text-emerald-600' : 'text-slate-800'}`}>{fmt(totalReel)}</span>
                 </div>
                 {delta !== 0 && (
                   <div className={`flex justify-between text-sm font-bold mt-2 pt-2 border-t ${delta > 0 ? 'border-red-100 text-red-600' : 'border-emerald-100 text-emerald-600'}`}>
                     <span>{delta > 0 ? t('month_detail.overspend') : t('month_detail.savings')}</span>
-                    <span>{delta > 0 ? '+' : ''}{formatEur(delta)}</span>
+                    <span>{delta > 0 ? '+' : ''}{fmt(delta)}</span>
                   </div>
                 )}
               </div>
@@ -740,11 +744,11 @@ export default function MonthDetailPage() {
                           const d = actualTotal - total
                           return d !== 0 ? (
                             <span className={`text-xs font-semibold ${d > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                              {d > 0 ? '+' : ''}{formatEur(d)}
+                              {d > 0 ? '+' : ''}{fmt(d)}
                             </span>
                           ) : null
                         })()}
-                        <span className="text-sm font-bold text-slate-700 tabular-nums">{formatEur(total)}</span>
+                        <span className="text-sm font-bold text-slate-700 tabular-nums">{fmt(total)}</span>
                       </div>
                     </div>
                     <div className="divide-y divide-slate-100">
@@ -810,7 +814,7 @@ export default function MonthDetailPage() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="font-semibold text-slate-900">{chargeOptions.label}</p>
-                <p className="text-violet-600 font-bold text-lg">{formatEur(chargeOptions.amount)}</p>
+                <p className="text-violet-600 font-bold text-lg">{fmt(chargeOptions.amount)}</p>
               </div>
               <CategoryBadge category={chargeOptions.category} icon={categoriesMap.get(chargeOptions.category)?.icon} color={categoriesMap.get(chargeOptions.category)?.color} />
             </div>
@@ -836,7 +840,7 @@ export default function MonthDetailPage() {
                 const delta = parseFloat(actualInput) - chargeOptions.amount
                 return delta !== 0 ? (
                   <p className={`text-xs font-semibold ${delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {delta > 0 ? t('month_detail.overspend_of') : t('month_detail.savings_of')} {formatEur(Math.abs(delta))}
+                    {delta > 0 ? t('month_detail.overspend_of') : t('month_detail.savings_of')} {fmt(Math.abs(delta))}
                   </p>
                 ) : null
               })()}

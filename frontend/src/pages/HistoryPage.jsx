@@ -7,17 +7,7 @@ import {
 } from 'recharts'
 import { api } from '../api'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
-
-function formatEur(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
-}
-
-function formatEurShort(n) {
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency', currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
+import { useFmt } from '../hooks/useFmt'
 
 function shortLabel(label) {
   // label is "Month Year" e.g. "January 2025" or "Janvier 2025"
@@ -38,17 +28,20 @@ function StatCard({ label, value, sub, color = 'text-slate-800' }) {
 }
 
 function CustomTooltip({ active, payload, label }) {
+  const fmt = useFmt()
   if (!active || !payload?.length) return null
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-3 text-sm">
       <p className="font-semibold text-slate-700 mb-1">{label}</p>
-      <p className="font-bold text-violet-600">{formatEur(payload[0]?.value)}</p>
+      <p className="font-bold text-violet-600">{fmt(payload[0]?.value)}</p>
     </div>
   )
 }
 
 export default function HistoryPage() {
   const { t } = useTranslation()
+  const fmt = useFmt()
+  const fmtShort = useFmt({ maximumFractionDigits: 0 })
   const navigate = useNavigate()
   const { categoriesMap } = useCategoriesMap()
   const [months, setMonths]       = useState([])
@@ -138,14 +131,14 @@ export default function HistoryPage() {
             <div className="grid grid-cols-3 gap-2">
               <StatCard
                 label={t('history.stat_avg')}
-                value={formatEurShort(avgTotal)}
+                value={fmtShort(avgTotal)}
                 sub={`${months.length} mois`}
                 color="text-violet-600"
               />
               {maxMonth && (
                 <StatCard
                   label={t('history.stat_max')}
-                  value={formatEurShort(maxMonth.total)}
+                  value={fmtShort(maxMonth.total)}
                   sub={shortLabel(maxMonth.label)}
                   color="text-red-500"
                 />
@@ -153,7 +146,7 @@ export default function HistoryPage() {
               {minMonth && (
                 <StatCard
                   label={t('history.stat_min')}
-                  value={formatEurShort(minMonth.total)}
+                  value={fmtShort(minMonth.total)}
                   sub={shortLabel(minMonth.label)}
                   color="text-emerald-600"
                 />
@@ -199,7 +192,7 @@ export default function HistoryPage() {
                       domain={['auto', 'auto']}
                     />
                     <Tooltip
-                      formatter={(value, name) => [formatEur(value), name]}
+                      formatter={(value, name) => [fmt(value), name]}
                       contentStyle={{ borderRadius: 16, border: '1px solid #e2e8f0', fontSize: 12 }}
                     />
                     {activeCategories.map(cat => {
@@ -251,7 +244,7 @@ export default function HistoryPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-slate-400">{pct}%</span>
-                            <span className="text-sm font-bold text-slate-800 tabular-nums">{formatEurShort(total)}</span>
+                            <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
                           </div>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -281,9 +274,9 @@ export default function HistoryPage() {
                         <span className="text-lg w-7 text-center shrink-0">{catData?.icon ?? '•'}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{t('history.recurring_months', { count: c.count })} {formatEur(c.avg)}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{t('history.recurring_months', { count: c.count })} {fmt(c.avg)}</p>
                         </div>
-                        <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{formatEurShort(c.total)}</p>
+                        <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
                       </div>
                     )
                   })}
@@ -308,10 +301,10 @@ export default function HistoryPage() {
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.label}</p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {t('history.each_person', { amount: formatEurShort(m.total / 2) })}
+                        {t('history.each_person', { amount: fmtShort(m.total / 2) })}
                       </p>
                     </div>
-                    <p className="text-sm font-bold text-slate-700 tabular-nums">{formatEur(m.total)}</p>
+                    <p className="text-sm font-bold text-slate-700 tabular-nums">{fmt(m.total)}</p>
                   </button>
                 ))}
               </div>

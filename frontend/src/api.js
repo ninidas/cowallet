@@ -72,7 +72,8 @@ export const api = {
   getMyGroup:      ()           => request('/groups/me'),
   createGroup:     (data)       => request('/groups', { method: 'POST', body: JSON.stringify(data) }),
   joinGroup:       (code)       => request('/groups/join', { method: 'POST', body: JSON.stringify({ invite_code: code }) }),
-  renameGroup:     (name)       => request('/groups/me/name', { method: 'PATCH', body: JSON.stringify({ name }) }),
+  renameGroup:     (name)       => request('/groups/me/name',     { method: 'PATCH', body: JSON.stringify({ name }) }),
+  updateCurrency:  (currency)   => request('/groups/me/currency', { method: 'PATCH', body: JSON.stringify({ currency }) }),
 
   getStats:        ()           => cached('stats',  () => request('/stats')),
   updateSettings:  (data)       => request('/settings', { method: 'PATCH', body: JSON.stringify(data) }),

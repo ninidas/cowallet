@@ -3,38 +3,9 @@ import { Sankey, Tooltip, ResponsiveContainer } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
+import { useFmt } from '../hooks/useFmt'
 
-const DEFAULT_CATEGORIES = {
-  income:     ['Revenus'],
-  expense:    ['Vie quotidienne', 'Abonnements'],
-  investment: ['Investissements mensuels'],
-}
-
-const DEFAULT_ENTRY_HINTS = {
-  'Revenus':                  { label: 'Salaire',        amount: '2500' },
-  'Investissements mensuels': { label: 'Actions',        amount: '150'  },
-  'Abonnements':              { label: 'Netflix',        amount: '18'   },
-  'Vie quotidienne':          { label: 'Courses',        amount: '400'  },
-  'Logement':                 { label: 'Loyer',          amount: '800'  },
-  'Transport':                { label: 'Carburant',      amount: '100'  },
-  'Loisirs':                  { label: 'Restaurants',    amount: '80'   },
-  'Santé':                    { label: 'Mutuelle',       amount: '50'   },
-  'Épargne':                  { label: 'Livret A',       amount: '200'  },
-  'Charges communes':         { label: 'Électricité',    amount: '60'   },
-}
-
-// Données de démonstration pour le Sankey quand aucune entrée n'est saisie
-const DEMO_ENTRIES = [
-  { id: -1, type: 'income',     category: 'Revenus',                  label: 'Salaire',   amount: 2500 },
-  { id: -2, type: 'investment', category: 'Investissements mensuels', label: 'Actions', amount: 150  },
-  { id: -3, type: 'expense',    category: 'Abonnements',              label: 'Netflix',   amount: 18   },
-  { id: -4, type: 'expense',    category: 'Vie quotidienne',          label: 'Courses',   amount: 400  },
-]
 const DEMO_SHARED = 600
-
-function fmt(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
-}
 
 const INCOME_COLORS     = ['#7c82d6','#6870cc','#555ec2']
 const EXPENSE_COLORS    = ['#9068c0','#4898c0','#48b090','#c09048','#c05050','#a06898','#5088b8','#80a848','#c08050','#9050a0']
@@ -272,7 +243,12 @@ function CategoryGroup({ name, entries, type, onAdd, onUpdate, onDelete, onRenam
           <EntryRow key={entry.id} entry={entry} onUpdate={onUpdate} onDelete={onDelete} />
         ))}
         {showForm && (
-          <AddEntryForm key={formKey} type={type} onAdd={handleAdd} onCancel={() => setFormKey(0)} category={name} hint={entries.length === 0 ? (DEFAULT_ENTRY_HINTS[name] || null) : null} />
+          <AddEntryForm key={formKey} type={type} onAdd={handleAdd} onCancel={() => setFormKey(0)} category={name} hint={entries.length === 0 ? ({
+            [t('budget.default_cat_income')]:        { label: t('budget.hint_salary'),       amount: '2500' },
+            [t('budget.default_cat_investments')]:   { label: t('budget.hint_stocks'),        amount: '150'  },
+            [t('budget.default_cat_subscriptions')]: { label: 'Netflix',                      amount: '18'   },
+            [t('budget.default_cat_daily')]:         { label: t('budget.hint_groceries'),     amount: '400'  },
+          }[name] || null) : null} />
         )}
         <button
           onClick={() => setFormKey(k => k + 1)}
@@ -290,7 +266,12 @@ function TabContent({ type, entries, onAdd, onUpdate, onDelete, onRename, onDele
   const [newCatName, setNewCatName] = useState('')
   const [tempCats, setTempCats]     = useState([])
 
-  const defaults    = DEFAULT_CATEGORIES[type] || []
+  const defaultCategories = {
+    income:     [t('budget.default_cat_income')],
+    expense:    [t('budget.default_cat_daily'), t('budget.default_cat_subscriptions')],
+    investment: [t('budget.default_cat_investments')],
+  }
+  const defaults = defaultCategories[type] || []
   const fromEntries = [...new Set(entries.filter(e => e.category).map(e => e.category))]
   const allCats     = [...new Set([...defaults, ...fromEntries, ...tempCats])]
 
@@ -357,7 +338,7 @@ function SvgLabel({ x, y, text, anchor = 'start' }) {
   )
 }
 
-function makeSankeyRenderers(colors, centerIdx, nodeNames) {
+function makeSankeyRenderers(colors, centerIdx, nodeNames, fmt) {
   const colorByName = {}
   nodeNames.forEach((name, i) => { colorByName[name] = colors[i] })
   const NodeRenderer = ({ x, y, width, height, index, payload }) => {
@@ -415,6 +396,7 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames) {
 
 export default function BudgetPage() {
   const { t } = useTranslation()
+  const fmt = useFmt({ maximumFractionDigits: 0 })
   const { config, getMyUserKey } = useAuth()
   const [entries, setEntries]         = useState([])
   const [months, setMonths]           = useState([])
@@ -432,7 +414,13 @@ export default function BudgetPage() {
         const shared = budgetData.find(e => e.type === 'shared')
         let real = budgetData.filter(e => e.type !== 'shared')
         if (real.length === 0) {
-          const created = await Promise.all(DEMO_ENTRIES.map((e, i) =>
+          const demoEntries = [
+            { type: 'income',     category: t('budget.default_cat_income'),      label: t('budget.hint_salary'),    amount: 2500 },
+            { type: 'investment', category: t('budget.default_cat_investments'), label: t('budget.hint_stocks'),    amount: 150  },
+            { type: 'expense',    category: t('budget.default_cat_subscriptions'), label: 'Netflix',                amount: 18   },
+            { type: 'expense',    category: t('budget.default_cat_daily'),        label: t('budget.hint_groceries'), amount: 400  },
+          ]
+          const created = await Promise.all(demoEntries.map((e, i) =>
             api.createBudgetEntry({ type: e.type, label: e.label, amount: e.amount, category: e.category, sort_order: i })
           ))
           real = created
@@ -518,7 +506,7 @@ export default function BudgetPage() {
   const sharedTotal = getSharedTotal()
   const sankeyData  = buildSankeyData(entries, sharedTotal, t('budget.tab_shared'))
   const nodeNames   = sankeyData?.nodes.map(n => n.name) || []
-  const { NodeRenderer, LinkRenderer } = makeSankeyRenderers(sankeyData?.colors || [], sankeyData?.centerIdx ?? 0, nodeNames)
+  const { NodeRenderer, LinkRenderer } = makeSankeyRenderers(sankeyData?.colors || [], sankeyData?.centerIdx ?? 0, nodeNames, fmt)
 
   const totalIncome     = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0)
   const totalExpense    = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0)

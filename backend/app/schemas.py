@@ -43,8 +43,9 @@ class TokenResponse(BaseModel):
 # --- Groups ---
 
 class GroupCreate(BaseModel):
-    name: str = "Notre budget"
+    name: str = ""
     default_share: int = 50
+    currency: str = "EUR"
 
     @field_validator("default_share")
     @classmethod
@@ -59,11 +60,15 @@ class GroupJoin(BaseModel):
 class GroupRename(BaseModel):
     name: str
 
+class GroupCurrencyUpdate(BaseModel):
+    currency: str
+
 class GroupOut(BaseModel):
     id: int
     name: str
     invite_code: str
     default_share: int
+    currency: str = "EUR"
     user1_id: int
     user1_username: str
     user2_id: Optional[int] = None

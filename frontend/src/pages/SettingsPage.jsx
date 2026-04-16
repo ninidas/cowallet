@@ -59,6 +59,7 @@ export default function SettingsPage() {
   const [newPassword,     setNewPassword]     = useState('')
   const [share,           setShare]           = useState(config?.default_user1_share ?? 50)
   const [groupName,       setGroupName]       = useState(config?.group_name ?? '')
+  const [currency,        setCurrency]        = useState(config?.currency ?? 'EUR')
   const [saving,  setSaving]  = useState(false)
   const [success, setSuccess] = useState('')
   const [error,   setError]   = useState('')
@@ -164,8 +165,9 @@ export default function SettingsPage() {
       payload.new_password     = newPassword
     }
     if (share !== config?.default_user1_share) payload.default_user1_share = share
-    const nameChanged = groupName.trim() && groupName.trim() !== (config?.group_name ?? '')
-    if (Object.keys(payload).length === 0 && !nameChanged) {
+    const nameChanged     = groupName.trim() && groupName.trim() !== (config?.group_name ?? '')
+    const currencyChanged = currency !== (config?.currency ?? 'EUR')
+    if (Object.keys(payload).length === 0 && !nameChanged && !currencyChanged) {
       setSaving(false)
       setSuccess(t('settings.success_no_change'))
       return
@@ -173,6 +175,7 @@ export default function SettingsPage() {
     try {
       if (Object.keys(payload).length > 0) await api.updateSettings(payload)
       if (nameChanged) await api.renameGroup(groupName.trim())
+      if (currencyChanged) await api.updateCurrency(currency)
       await refreshConfig()
       setSuccess(t('settings.success_saved'))
       setCurrentPassword('')
@@ -356,6 +359,30 @@ export default function SettingsPage() {
                 <Input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder={t('settings.group_name_placeholder')} maxLength={40} />
               </Field>
               <p className="text-xs text-slate-400">{t('settings.group_name_hint')}</p>
+              <Field label={t('settings.field_currency')}>
+                <select
+                  value={currency}
+                  onChange={e => setCurrency(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  {[
+                    { code: 'EUR', label: 'Euro (€)' },
+                    { code: 'USD', label: 'US Dollar ($)' },
+                    { code: 'GBP', label: 'British Pound (£)' },
+                    { code: 'CHF', label: 'Swiss Franc (CHF)' },
+                    { code: 'CAD', label: 'Canadian Dollar (CA$)' },
+                    { code: 'AUD', label: 'Australian Dollar (A$)' },
+                    { code: 'JPY', label: 'Japanese Yen (¥)' },
+                    { code: 'SEK', label: 'Swedish Krona (SEK)' },
+                    { code: 'NOK', label: 'Norwegian Krone (NOK)' },
+                    { code: 'DKK', label: 'Danish Krone (DKK)' },
+                    { code: 'PLN', label: 'Polish Zloty (PLN)' },
+                    { code: 'CZK', label: 'Czech Koruna (CZK)' },
+                  ].map(({ code, label }) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </select>
+              </Field>
             </Section>
             <Section title={t('settings.section_account')}>
               <Field label={t('settings.field_display_name')}>

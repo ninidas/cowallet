@@ -11,6 +11,11 @@ router = APIRouter(prefix="/groups", tags=["groups"])
 
 APP_LANG = os.environ.get("APP_LANG", "en").lower()
 
+DEFAULT_GROUP_NAMES = {
+    "en": "My budget",
+    "fr": "Notre budget",
+}
+
 DEFAULT_CATEGORIES = {
     "en": [
         ("Housing",       "🏠", "#3b82f6", 0),
@@ -58,7 +63,7 @@ def get_invite_info(code: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Invitation invalide ou expirée")
     return {
         "inviter": group.user1.username,
-        "group_name": group.name if group.name != "Notre budget" else None,
+        "group_name": group.name if group.name not in DEFAULT_GROUP_NAMES.values() else None,
     }
 
 
@@ -90,8 +95,10 @@ def create_group(
         raise HTTPException(status_code=409, detail="Vous avez déjà un groupe")
 
     invite_code = secrets.token_hex(4).upper()
+    lang = APP_LANG if APP_LANG in DEFAULT_GROUP_NAMES else "en"
     group = models.Group(
-        name=body.name,
+        name=body.name or DEFAULT_GROUP_NAMES[lang],
+        currency=body.currency.upper() if body.currency.upper() in SUPPORTED_CURRENCIES else "EUR",
         invite_code=invite_code,
         default_share=body.default_share,
         user1_id=current_user.id,
@@ -99,6 +106,22 @@ def create_group(
     db.add(group)
     db.flush()
     _seed_group(group, db)
+    db.commit()
+    db.refresh(group)
+    return _to_out(group)
+
+
+SUPPORTED_CURRENCIES = {"EUR", "USD", "GBP", "CHF", "CAD", "AUD", "JPY", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON", "BGN"}
+
+@router.patch("/me/currency", response_model=schemas.GroupOut)
+def update_currency(
+    body: schemas.GroupCurrencyUpdate,
+    group: models.Group = Depends(get_current_group),
+    db: Session = Depends(get_db),
+):
+    if body.currency.upper() not in SUPPORTED_CURRENCIES:
+        raise HTTPException(status_code=400, detail="Devise non supportée")
+    group.currency = body.currency.upper()
     db.commit()
     db.refresh(group)
     return _to_out(group)
@@ -149,6 +172,7 @@ def _to_out(group: models.Group) -> schemas.GroupOut:
         name=group.name,
         invite_code=group.invite_code,
         default_share=group.default_share,
+        currency=group.currency,
         user1_id=group.user1_id,
         user1_username=group.user1.username,
         user2_id=group.user2_id,

@@ -3,11 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
+import { useFmt } from '../hooks/useFmt'
 import MonthForm from '../components/MonthForm'
-
-function formatEur(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
-}
 
 function TransferPill({ done, name }) {
   return (
@@ -23,6 +20,7 @@ function TransferPill({ done, name }) {
 const NOW = new Date()
 
 function MonthCard({ month, config, onClick, isCurrent, selectMode, selected, t }) {
+  const fmt = useFmt()
   const bothDone = month.user1_transferred && month.user2_transferred
   const borderColor = selected ? '#7c3aed' : bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
 
@@ -62,13 +60,13 @@ function MonthCard({ month, config, onClick, isCurrent, selectMode, selected, t 
             )}
           </div>
           <p className="text-sm text-slate-400 mt-0.5">
-            {month.user1_share}/{100 - month.user1_share} · {formatEur(month.total)}
+            {month.user1_share}/{100 - month.user1_share} · {fmt(month.total)}
           </p>
         </div>
         {!selectMode && (
           <div className="text-right">
             <p className="text-xs text-slate-400 mb-0.5">{t('months.per_person')}</p>
-            <p className="text-xl font-bold text-violet-600">{formatEur(month.user1_due)}</p>
+            <p className="text-xl font-bold text-violet-600">{fmt(month.user1_due)}</p>
           </div>
         )}
       </div>
