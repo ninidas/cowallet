@@ -49,12 +49,12 @@ async function request(path, options = {}) {
       return
     }
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Identifiants incorrects')
+    throw new Error(err.detail || 'Invalid credentials')
   }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Une erreur est survenue')
+    throw new Error(err.detail || 'An error occurred')
   }
 
   if (res.status === 204) return null
@@ -96,7 +96,7 @@ export const api = {
     const res = await fetch('/api/export/csv', {
       headers: { Authorization: `Bearer ${getToken()}` },
     })
-    if (!res.ok) throw new Error('Export échoué')
+    if (!res.ok) throw new Error('Export failed')
     const blob = await res.blob()
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')

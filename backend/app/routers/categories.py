@@ -17,7 +17,7 @@ def list_categories(db: Session = Depends(get_db), group: models.Group = Depends
 @router.post("", response_model=schemas.CategoryOut, status_code=201)
 def create_category(data: schemas.CategoryCreate, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     if db.query(models.Category).filter_by(group_id=group.id, name=data.name).first():
-        raise HTTPException(status_code=400, detail="Une catégorie avec ce nom existe déjà")
+        raise HTTPException(status_code=400, detail="A category with this name already exists")
     max_order = db.query(models.Category).filter_by(group_id=group.id).count()
     cat = models.Category(group_id=group.id, name=data.name, icon=data.icon, color=data.color, sort_order=max_order)
     db.add(cat)
@@ -30,7 +30,7 @@ def create_category(data: schemas.CategoryCreate, db: Session = Depends(get_db),
 def update_category(cat_id: int, data: schemas.CategoryUpdate, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     cat = db.query(models.Category).filter_by(id=cat_id, group_id=group.id).first()
     if not cat:
-        raise HTTPException(status_code=404, detail="Catégorie introuvable")
+        raise HTTPException(status_code=404, detail="Category not found")
     if data.name is not None:
         existing = db.query(models.Category).filter(
             models.Category.group_id == group.id,
@@ -38,7 +38,7 @@ def update_category(cat_id: int, data: schemas.CategoryUpdate, db: Session = Dep
             models.Category.id != cat_id
         ).first()
         if existing:
-            raise HTTPException(status_code=400, detail="Ce nom est déjà utilisé")
+            raise HTTPException(status_code=400, detail="Name already in use")
         cat.name = data.name
     if data.icon is not None:
         cat.icon = data.icon
@@ -55,6 +55,6 @@ def update_category(cat_id: int, data: schemas.CategoryUpdate, db: Session = Dep
 def delete_category(cat_id: int, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     cat = db.query(models.Category).filter_by(id=cat_id, group_id=group.id).first()
     if not cat:
-        raise HTTPException(status_code=404, detail="Catégorie introuvable")
+        raise HTTPException(status_code=404, detail="Category not found")
     db.delete(cat)
     db.commit()

@@ -5,6 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useRef } from 'react'
 import { usePush } from '../context/PushContext'
+import { tError } from '../utils/tError'
 
 const PRESET_COLORS = [
   '#3b82f6', '#f97316', '#10b981', '#a855f7',
@@ -405,7 +406,7 @@ export default function SettingsPage() {
               </div>
             </Section>
 
-            {error   && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
+            {error   && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
             {success && <div className="bg-emerald-50 text-emerald-700 text-sm px-4 py-3 rounded-xl">{success}</div>}
 
             <button type="submit" disabled={saving}
@@ -434,7 +435,7 @@ export default function SettingsPage() {
                   className="w-full px-4 py-3 rounded-xl border border-red-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm"
                   placeholder={t('settings.delete_password_placeholder')}
                 />
-                {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
+                {deleteError && <p className="text-xs text-red-600">{tError(t, deleteError)}</p>}
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError('') }}
                     className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white active:bg-slate-50 transition">

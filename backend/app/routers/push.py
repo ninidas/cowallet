@@ -34,7 +34,7 @@ def get_vapid_keys(db: Session):
 def vapid_public(db: Session = Depends(get_db)):
     pub, _ = get_vapid_keys(db)
     if not pub:
-        raise HTTPException(status_code=503, detail="VAPID non configuré")
+        raise HTTPException(status_code=503, detail="VAPID not configured")
     return {"public_key": pub}
 
 
@@ -57,7 +57,7 @@ def subscribe(
             auth     = body.keys.auth,
         ))
     db.commit()
-    return {"detail": "Subscription enregistrée"}
+    return {"detail": "Subscription registered"}
 
 
 @router.delete("/subscribe")
@@ -72,7 +72,7 @@ def unsubscribe(
     if sub:
         db.delete(sub)
         db.commit()
-    return {"detail": "Subscription supprimée"}
+    return {"detail": "Subscription removed"}
 
 
 def send_notification(db: Session, user_id: int, title: str, body: str, url: str = "/"):

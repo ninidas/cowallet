@@ -16,13 +16,13 @@ class DeleteAccountRequest(BaseModel):
 @router.post("/register", response_model=schemas.TokenResponse, status_code=201)
 def register(body: schemas.RegisterRequest, db: Session = Depends(get_db)):
     if not body.username.strip():
-        raise HTTPException(status_code=400, detail="Identifiant requis")
+        raise HTTPException(status_code=400, detail="Username is required")
     if len(body.password) < 8:
-        raise HTTPException(status_code=400, detail="Mot de passe trop court (8 caractères min.)")
+        raise HTTPException(status_code=400, detail="Password too short (8 characters min.)")
     if not any(c.isdigit() for c in body.password):
-        raise HTTPException(status_code=400, detail="Le mot de passe doit contenir au moins un chiffre")
+        raise HTTPException(status_code=400, detail="Password must contain at least one digit")
     if db.query(models.User).filter_by(username=body.username.strip()).first():
-        raise HTTPException(status_code=409, detail="Cet identifiant est déjà pris")
+        raise HTTPException(status_code=409, detail="Username already taken")
 
     user = models.User(username=body.username.strip(), password_hash=hash_password(body.password))
     db.add(user)
@@ -41,7 +41,7 @@ def delete_account(
     current_user: models.User = Depends(get_current_user),
 ):
     if not verify_password(body.password, current_user.password_hash):
-        raise HTTPException(status_code=400, detail="Mot de passe incorrect")
+        raise HTTPException(status_code=400, detail="Invalid password")
 
     # Gérer le groupe
     group = db.query(models.Group).filter(

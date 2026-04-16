@@ -50,7 +50,7 @@ def update_entry(
 ):
     entry = db.query(models.BudgetEntry).filter_by(id=entry_id, user_id=current_user.id).first()
     if not entry:
-        raise HTTPException(status_code=404, detail="Entrée introuvable")
+        raise HTTPException(status_code=404, detail="Entry not found")
     if body.label is not None:
         entry.label = body.label
     if body.amount is not None:
@@ -72,6 +72,6 @@ def delete_entry(
 ):
     entry = db.query(models.BudgetEntry).filter_by(id=entry_id, user_id=current_user.id).first()
     if not entry:
-        raise HTTPException(status_code=404, detail="Entrée introuvable")
+        raise HTTPException(status_code=404, detail="Entry not found")
     db.delete(entry)
     db.commit()
