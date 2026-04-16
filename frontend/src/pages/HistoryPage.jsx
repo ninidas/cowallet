@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   ResponsiveContainer, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -19,11 +20,11 @@ function formatEurShort(n) {
 }
 
 function shortLabel(label) {
-  const [month, year] = label.split(' ')
-  const abbr = { Janvier:'Jan.', Février:'Fév.', Mars:'Mar.', Avril:'Avr.',
-                  Mai:'Mai', Juin:'Juin', Juillet:'Juil.', Août:'Aoû.',
-                  Septembre:'Sep.', Octobre:'Oct.', Novembre:'Nov.', Décembre:'Déc.' }
-  return `${abbr[month] ?? month} ${String(year).slice(2)}`
+  // label is "Month Year" e.g. "January 2025" or "Janvier 2025"
+  const parts = label.split(' ')
+  const year = parts[parts.length - 1]
+  const month = parts.slice(0, parts.length - 1).join(' ')
+  return `${month.slice(0, 3)}. ${String(year).slice(2)}`
 }
 
 function StatCard({ label, value, sub, color = 'text-slate-800' }) {
@@ -47,6 +48,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function HistoryPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { categoriesMap } = useCategoriesMap()
   const [months, setMonths]       = useState([])
@@ -98,8 +100,8 @@ export default function HistoryPage() {
             </svg>
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-white">Historique</h1>
-            <p className="text-violet-200 text-xs">{months.length} mois enregistrés</p>
+            <h1 className="text-xl font-bold text-white">{t('history.title')}</h1>
+            <p className="text-violet-200 text-xs">{t('history.months_count_other', { count: months.length })}</p>
           </div>
           {months.length > 0 && (
             <button
@@ -128,21 +130,21 @@ export default function HistoryPage() {
         ) : months.length === 0 ? (
           <div className="bg-white rounded-3xl p-10 text-center border border-slate-100 mt-4">
             <div className="text-4xl mb-3">📊</div>
-            <p className="font-semibold text-slate-700">Aucun mois enregistré</p>
+            <p className="font-semibold text-slate-700">{t('history.no_data')}</p>
           </div>
         ) : (
           <>
             {/* Stats — 3 cartes */}
             <div className="grid grid-cols-3 gap-2">
               <StatCard
-                label="Moyenne / mois"
+                label={t('history.stat_avg')}
                 value={formatEurShort(avgTotal)}
                 sub={`${months.length} mois`}
                 color="text-violet-600"
               />
               {maxMonth && (
                 <StatCard
-                  label="Mois le + cher"
+                  label={t('history.stat_max')}
                   value={formatEurShort(maxMonth.total)}
                   sub={shortLabel(maxMonth.label)}
                   color="text-red-500"
@@ -150,7 +152,7 @@ export default function HistoryPage() {
               )}
               {minMonth && (
                 <StatCard
-                  label="Mois le + léger"
+                  label={t('history.stat_min')}
                   value={formatEurShort(minMonth.total)}
                   sub={shortLabel(minMonth.label)}
                   color="text-emerald-600"
@@ -162,7 +164,7 @@ export default function HistoryPage() {
             {/* Graphe évolution totale */}
             {months.length >= 2 && (
               <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">Évolution mensuelle</p>
+                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">{t('history.section_monthly_trend')}</p>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -184,8 +186,8 @@ export default function HistoryPage() {
             {/* Graphe lignes par catégorie */}
             {months.length >= 2 && byMonthChart.length > 0 && (
               <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-1 px-1">Dépenses par catégorie</p>
-                <p className="text-xs text-slate-400 mb-4 px-1">Évolution mois par mois</p>
+                <p className="text-sm font-semibold text-slate-700 mb-1 px-1">{t('history.section_by_category')}</p>
+                <p className="text-xs text-slate-400 mb-4 px-1">{t('history.section_by_month')}</p>
                 <ResponsiveContainer width="100%" height={220}>
                   <LineChart data={byMonthChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -235,7 +237,7 @@ export default function HistoryPage() {
             {/* Répartition par catégorie */}
             {statsData?.by_category?.length > 0 && (
               <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">Répartition par catégorie</p>
+                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">{t('history.section_category_breakdown')}</p>
                 <div className="space-y-3">
                   {statsData.by_category.map(({ category, total, pct }) => {
                     const catData = categoriesMap.get(category)
@@ -269,7 +271,7 @@ export default function HistoryPage() {
             {statsData?.top_recurring?.length > 0 && (
               <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-50">
-                  <p className="text-sm font-semibold text-slate-700">Charges fixes — top coûts</p>
+                  <p className="text-sm font-semibold text-slate-700">{t('history.section_recurring')}</p>
                 </div>
                 <div className="divide-y divide-slate-50">
                   {statsData.top_recurring.map((c, i) => {
@@ -279,7 +281,7 @@ export default function HistoryPage() {
                         <span className="text-lg w-7 text-center shrink-0">{catData?.icon ?? '•'}</span>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{c.count} mois · moy. {formatEur(c.avg)}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{t('history.recurring_months', { count: c.count })} {formatEur(c.avg)}</p>
                         </div>
                         <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{formatEurShort(c.total)}</p>
                       </div>
@@ -294,7 +296,7 @@ export default function HistoryPage() {
             {/* Table récap par mois */}
             <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-50">
-                <p className="text-sm font-semibold text-slate-700">Détail par mois</p>
+                <p className="text-sm font-semibold text-slate-700">{t('history.section_month_detail')}</p>
               </div>
               <div className="divide-y divide-slate-50">
                 {[...months].reverse().map(m => (
@@ -306,7 +308,7 @@ export default function HistoryPage() {
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.label}</p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {formatEurShort(m.total / 2)} chacun
+                        {t('history.each_person', { amount: formatEurShort(m.total / 2) })}
                       </p>
                     </div>
                     <p className="text-sm font-bold text-slate-700 tabular-nums">{formatEur(m.total)}</p>

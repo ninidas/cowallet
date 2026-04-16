@@ -15,5 +15,6 @@ services:
     environment:
       - PUID=1000
       - PGID=1000
+      - APP_LANG=en  # Default language for seeded data: en or fr
     volumes:
       - <host_folder_data>:/data

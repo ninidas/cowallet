@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Sankey, Tooltip, ResponsiveContainer } from 'recharts'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
-
-const TYPE_LABELS = {
-  income:     { label: 'Revenus',         color: '#10b981', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700' },
-  expense:    { label: 'Dépenses perso',  color: '#f97316', bg: 'bg-orange-50',  border: 'border-orange-200',  text: 'text-orange-700',  badge: 'bg-orange-100 text-orange-700' },
-  investment: { label: 'Investissements', color: '#8b5cf6', bg: 'bg-violet-50',  border: 'border-violet-200',  text: 'text-violet-700',  badge: 'bg-violet-100 text-violet-700' },
-}
 
 const DEFAULT_CATEGORIES = {
   income:     ['Revenus'],
@@ -57,7 +52,7 @@ function groupByCategory(entries) {
   return groups
 }
 
-function buildSankeyData(entries, sharedTotal) {
+function buildSankeyData(entries, sharedTotal, sharedLabel = 'Shared expenses') {
   const incomes     = entries.filter(e => e.type === 'income')
   const expenses    = entries.filter(e => e.type === 'expense')
   const investments = entries.filter(e => e.type === 'investment')
@@ -88,7 +83,7 @@ function buildSankeyData(entries, sharedTotal) {
   // Charges communes — nœud intermédiaire factice pour aligner avec les autres colonnes
   if (sharedTotal > 0) {
     const dummyIdx = addNode('__shared_dummy__', SHARED_COLOR)
-    const leafIdx  = addNode('Charges communes', SHARED_COLOR)
+    const leafIdx  = addNode(sharedLabel, SHARED_COLOR)
     links.push({ source: centerIdx, target: dummyIdx, value: sharedTotal })
     links.push({ source: dummyIdx,  target: leafIdx,  value: sharedTotal })
   }
@@ -186,6 +181,7 @@ function EntryRow({ entry, onUpdate, onDelete }) {
 }
 
 function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = null }) {
+  const { t } = useTranslation()
   const [label, setLabel]   = useState(hint?.label || '')
   const [amount, setAmount] = useState(hint?.amount || '')
   const [saved, setSaved]   = useState(false)
@@ -204,13 +200,11 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
     if (e.key === 'Escape' && onCancel) { e.preventDefault(); onCancel() }
   }
 
-  const { border, text } = TYPE_LABELS[type] || {}
-
   return (
     <div className="flex items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 overflow-hidden">
       <input value={label} onChange={e => setLabel(e.target.value)} onBlur={trySubmit} onKeyDown={handleKeyDown}
         className="flex-1 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none placeholder-slate-400"
-        placeholder="Libellé" />
+        placeholder={t('budget.field_label_placeholder')} />
       <div className="w-px h-6 bg-slate-200 shrink-0" />
       <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={trySubmit} onKeyDown={handleKeyDown}
         type="number" min="0" step="0.01"
@@ -231,13 +225,8 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
   )
 }
 
-const ADD_LABELS = {
-  income:     'Ajouter une source de revenu',
-  expense:    'Ajouter une dépense',
-  investment: 'Ajouter un investissement',
-}
-
 function CategoryGroup({ name, entries, type, onAdd, onUpdate, onDelete, onRename, onDeleteCategory }) {
+  const { t } = useTranslation()
   const [editingName, setEditingName] = useState(false)
   const [newName, setNewName]         = useState(name)
   const [formKey, setFormKey]         = useState(0)
@@ -288,7 +277,7 @@ function CategoryGroup({ name, entries, type, onAdd, onUpdate, onDelete, onRenam
         <button
           onClick={() => setFormKey(k => k + 1)}
           className="w-full text-left px-3 py-2 text-xs text-slate-400 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition">
-          + {ADD_LABELS[type] || 'Ajouter'}
+          + {t(`budget.add_${type}`)}
         </button>
       </div>
     </div>
@@ -296,6 +285,7 @@ function CategoryGroup({ name, entries, type, onAdd, onUpdate, onDelete, onRenam
 }
 
 function TabContent({ type, entries, onAdd, onUpdate, onDelete, onRename, onDeleteCategory }) {
+  const { t } = useTranslation()
   const [addingCat, setAddingCat]   = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [tempCats, setTempCats]     = useState([])
@@ -334,14 +324,14 @@ function TabContent({ type, entries, onAdd, onUpdate, onDelete, onRename, onDele
         <form onSubmit={handleNewCat} className="flex gap-2 items-center">
           <input value={newCatName} onChange={e => setNewCatName(e.target.value)}
             className="flex-1 px-3 py-2 text-sm text-slate-900 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400 placeholder-slate-400"
-            placeholder="Nom du groupe (ex: Logement)" autoFocus />
+            placeholder={t('budget.category_name_placeholder')} autoFocus />
           <button type="submit" className="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold">OK</button>
           <button type="button" onClick={() => setAddingCat(false)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-500">✕</button>
         </form>
       ) : (
         <button onClick={() => setAddingCat(true)}
           className="w-full py-2 rounded-xl border border-dashed border-slate-300 text-slate-500 text-sm font-medium hover:border-violet-400 hover:text-violet-600 transition">
-          + Ajouter une catégorie
+          {t('budget.add_category')}
         </button>
       )}
     </div>
@@ -424,6 +414,7 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames) {
 }
 
 export default function BudgetPage() {
+  const { t } = useTranslation()
   const { config, getMyUserKey } = useAuth()
   const [entries, setEntries]         = useState([])
   const [months, setMonths]           = useState([])
@@ -525,7 +516,7 @@ export default function BudgetPage() {
   }
 
   const sharedTotal = getSharedTotal()
-  const sankeyData  = buildSankeyData(entries, sharedTotal)
+  const sankeyData  = buildSankeyData(entries, sharedTotal, t('budget.tab_shared'))
   const nodeNames   = sankeyData?.nodes.map(n => n.name) || []
   const { NodeRenderer, LinkRenderer } = makeSankeyRenderers(sankeyData?.colors || [], sankeyData?.centerIdx ?? 0, nodeNames)
 
@@ -534,7 +525,7 @@ export default function BudgetPage() {
   const totalInvestment = entries.filter(e => e.type === 'investment').reduce((s, e) => s + e.amount, 0)
   const remaining       = Math.max(0, totalIncome - totalExpense - totalInvestment - sharedTotal)
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen text-slate-400">Chargement…</div>
+  if (loading) return <div className="flex items-center justify-center min-h-screen text-slate-400">{t('budget.loading')}</div>
 
   const savingsRate = totalIncome > 0 ? ((remaining / totalIncome) * 100).toFixed(1) : 0
 
@@ -551,13 +542,12 @@ export default function BudgetPage() {
       <div className="bg-gradient-to-br from-violet-600 to-indigo-700 px-4 pt-6 pb-6 sm:px-6 lg:px-10 sm:pt-8 sm:pb-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="text-white flex-1 min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold">Calculateur de budget</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">{t('budget.title')}</h1>
             <p className="text-violet-200 mt-1 sm:mt-2 leading-relaxed text-xs sm:text-sm hidden sm:block">
-              Visualisez la répartition de vos revenus et découvrez votre taux d'épargne mensuel.
-              Renseignez vos revenus, dépenses et investissements — les charges communes sont calculées depuis vos mois partagés.
+              {t('budget.subtitle_lg')}
             </p>
-            <p className="text-violet-200 mt-1 text-xs sm:hidden">Renseignez vos revenus, dépenses et investissements.</p>
-            <p className="text-violet-300 text-xs mt-1">Données personnelles, non visibles par votre partenaire.</p>
+            <p className="text-violet-200 mt-1 text-xs sm:hidden">{t('budget.subtitle_sm')}</p>
+            <p className="text-violet-300 text-xs mt-1">{t('budget.personal_note')}</p>
           </div>
           {totalIncome > 0 && (
             <div className="shrink-0 flex flex-col items-center">
@@ -567,7 +557,7 @@ export default function BudgetPage() {
                   strokeDasharray={`${gaugeDash} ${gaugeCirc}`}
                   strokeLinecap="round" transform="rotate(-90 55 55)" />
                 <text x={55} y={50} textAnchor="middle" fontSize={20} fontWeight="bold" fill="white">{savingsRate}%</text>
-                <text x={55} y={66} textAnchor="middle" fontSize={9} fill="rgba(255,255,255,0.7)">taux d'épargne</text>
+                <text x={55} y={66} textAnchor="middle" fontSize={9} fill="rgba(255,255,255,0.7)">{t('budget.savings_rate')}</text>
               </svg>
             </div>
           )}
@@ -577,10 +567,10 @@ export default function BudgetPage() {
       {/* Onglets de saisie */}
       <div className="px-4 lg:px-6"><div className="max-w-3xl mx-auto">{(() => {
         const TABS = [
-          { key: 'income',     label: 'Revenus',          short: 'Revenus',   color: INCOME_COLORS[0],  badge: 'bg-indigo-100 text-indigo-700' },
-          { key: 'investment', label: 'Investissements',  short: 'Invest.',   color: INVEST_COLORS[0],  badge: 'bg-red-100 text-red-700' },
-          { key: 'expense',    label: 'Dépenses perso',   short: 'Dépenses',  color: EXPENSE_COLORS[0], badge: 'bg-purple-100 text-purple-700' },
-          { key: 'shared',     label: 'Charges communes', short: 'Communes',  color: SHARED_COLOR,      badge: 'bg-slate-100 text-slate-600' },
+          { key: 'income',     label: t('budget.tab_income'),     short: t('budget.tab_income_short'),     color: INCOME_COLORS[0],  badge: 'bg-indigo-100 text-indigo-700' },
+          { key: 'investment', label: t('budget.tab_investment'), short: t('budget.tab_investment_short'), color: INVEST_COLORS[0],  badge: 'bg-red-100 text-red-700' },
+          { key: 'expense',    label: t('budget.tab_expense'),    short: t('budget.tab_expense_short'),    color: EXPENSE_COLORS[0], badge: 'bg-purple-100 text-purple-700' },
+          { key: 'shared',     label: t('budget.tab_shared'),     short: t('budget.tab_shared_short'),     color: SHARED_COLOR,      badge: 'bg-slate-100 text-slate-600' },
         ]
         const active = TABS.find(t => t.key === activeTab)
 
@@ -621,9 +611,9 @@ export default function BudgetPage() {
                 <div className="space-y-3">
                   <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
                     {[
-                      { key: 'avg',    label: 'Moyenne 3 mois' },
-                      { key: 'last',   label: 'Dernier mois' },
-                      { key: 'custom', label: 'Personnalisé' },
+                      { key: 'avg',    label: t('budget.shared_avg') },
+                      { key: 'last',   label: t('budget.shared_last') },
+                      { key: 'custom', label: t('budget.shared_custom') },
                     ].map(({ key, label }) => (
                       <button key={key}
                         onClick={() => key === 'custom' ? (setSharedMode('custom'), setSharedInput(String(sharedCustom?.amount ?? calcAutoShared(sharedMode))), setEditingShared(true)) : resetSharedAuto(key)}
@@ -644,7 +634,7 @@ export default function BudgetPage() {
                   ) : (
                     <div className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
                       <span className="flex-1 text-sm text-slate-600">
-                        {sharedMode === 'avg' ? 'Ma part — moyenne 3 derniers mois' : sharedMode === 'last' ? 'Ma part — dernier mois' : 'Valeur personnalisée'}
+                        {sharedMode === 'avg' ? t('budget.shared_label_avg') : sharedMode === 'last' ? t('budget.shared_label_last') : t('budget.shared_label_custom')}
                       </span>
                       <span className="text-sm font-semibold text-slate-900">{fmt(sharedTotal)}</span>
                       {sharedMode === 'custom' && (
@@ -672,14 +662,14 @@ export default function BudgetPage() {
           <div className="max-w-3xl mx-auto">
             <div className="bg-violet-50 border border-violet-100 rounded-2xl px-5 py-4 text-sm text-slate-700 leading-relaxed">
               {remaining >= 0
-                ? <>Votre taux d'épargne est de <strong className="text-violet-700">{savingsRate} %</strong>. </>
-                : <>⚠️ Vos dépenses dépassent vos revenus de <strong className="text-red-600">{fmt(Math.abs(remaining))}</strong>. </>
+                ? <>{t('budget.summary_rate_prefix')} <strong className="text-violet-700">{savingsRate} %</strong>. </>
+                : <>{t('budget.summary_deficit_prefix')} <strong className="text-red-600">{fmt(Math.abs(remaining))}</strong>. </>
               }
-              Vous avez un revenu total de <strong>{fmt(totalIncome)}</strong>
-              {(totalExpense + sharedTotal) > 0 && <>, des dépenses de <strong>{fmt(totalExpense + sharedTotal)}</strong></>}
-              {totalInvestment > 0 && <> et vous investissez <strong>{fmt(totalInvestment)}</strong> par mois</>}
-              {remaining > 0 && <>, il vous reste <strong className="text-emerald-600">{fmt(remaining)}</strong> disponible par mois.</>}
-              {remaining === 0 && <>, votre budget est équilibré.</>}
+              {t('budget.summary_income_prefix')} <strong>{fmt(totalIncome)}</strong>
+              {(totalExpense + sharedTotal) > 0 && <>{t('budget.summary_expenses_prefix')} <strong>{fmt(totalExpense + sharedTotal)}</strong></>}
+              {totalInvestment > 0 && <>{t('budget.summary_investments_pre')} <strong>{fmt(totalInvestment)}</strong>{t('budget.summary_investments_suf')}</>}
+              {remaining > 0 && <>{t('budget.summary_remaining_pre')} <strong className="text-emerald-600">{fmt(remaining)}</strong>{t('budget.summary_remaining_suf')}</>}
+              {remaining === 0 && <>{t('budget.summary_balanced')}</>}
               {remaining < 0 && <>.</>}
             </div>
           </div>
@@ -691,10 +681,10 @@ export default function BudgetPage() {
         <div className="px-4 lg:px-6">
           <div className="max-w-3xl mx-auto grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: 'Revenus',         value: totalIncome,                color: 'text-indigo-600', bar: 'bg-indigo-400' },
-              { label: 'Dépenses',        value: totalExpense + sharedTotal, color: 'text-purple-600', bar: 'bg-purple-400' },
-              { label: 'Investissements', value: totalInvestment,            color: 'text-red-600',    bar: 'bg-red-400' },
-              { label: 'Épargne',         value: remaining,                  color: remaining >= 0 ? 'text-blue-600' : 'text-red-600', bar: remaining >= 0 ? 'bg-blue-400' : 'bg-red-400' },
+              { label: t('budget.card_income'),      value: totalIncome,                color: 'text-indigo-600', bar: 'bg-indigo-400' },
+              { label: t('budget.card_expenses'),    value: totalExpense + sharedTotal, color: 'text-purple-600', bar: 'bg-purple-400' },
+              { label: t('budget.card_investments'), value: totalInvestment,            color: 'text-red-600',    bar: 'bg-red-400' },
+              { label: t('budget.card_savings'),     value: remaining,                  color: remaining >= 0 ? 'text-blue-600' : 'text-red-600', bar: remaining >= 0 ? 'bg-blue-400' : 'bg-red-400' },
             ].map(({ label, value, color, bar }) => (
               <div key={label} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
                 <div className={`w-6 h-1 rounded-full ${bar} mb-2`} />
@@ -710,7 +700,7 @@ export default function BudgetPage() {
       {sankeyData && (
         <div className="px-4 lg:px-6">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <h2 className="text-sm font-semibold text-slate-700 mb-4">Flux budgétaire</h2>
+            <h2 className="text-sm font-semibold text-slate-700 mb-4">{t('budget.chart_title')}</h2>
             <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
               <div style={{ minWidth: 700 }}>
                 <ResponsiveContainer width="100%" height={Math.max(250, sankeyData.nodes.length * 28)}>
