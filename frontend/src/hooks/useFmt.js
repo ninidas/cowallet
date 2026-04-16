@@ -7,6 +7,7 @@ export function useFmt({ maximumFractionDigits } = {}) {
   return (n) => new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    currencyDisplay: 'narrowSymbol',
     maximumFractionDigits: maximumFractionDigits ?? (currency === 'JPY' ? 0 : 2),
   }).format(n)
 }

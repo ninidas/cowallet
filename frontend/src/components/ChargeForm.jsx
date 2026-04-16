@@ -22,7 +22,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
   const { t } = useTranslation()
   const { config: authConfig } = useAuth()
   const fmt = useFmt()
-  const currencySymbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: authConfig?.currency || 'EUR' })
+  const currencySymbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: authConfig?.currency || 'EUR', currencyDisplay: 'narrowSymbol' })
     .formatToParts(0).find(p => p.type === 'currency')?.value || '€'
   const isEdit = !!charge
   const [form, setForm]               = useState(EMPTY)
