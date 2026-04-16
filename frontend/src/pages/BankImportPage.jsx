@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 
 function formatEur(n) {
@@ -15,6 +16,7 @@ function formatDate(str) {
 export default function BankImportPage() {
   const { monthId } = useParams()
   const navigate    = useNavigate()
+  const { t } = useTranslation()
 
   const [month,         setMonth]     = useState(null)
   const [transactions,  setTx]        = useState([])
@@ -39,7 +41,7 @@ export default function BankImportPage() {
         const toDate   = `${m.year}-${String(m.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
         const txs      = await api.getBankTransactions(fromDate, toDate)
 
-        setTx(txs.map(t => ({ ...t, already_imported: importedIds.has(t.id) })))
+        setTx(txs.map(tx => ({ ...tx, already_imported: importedIds.has(tx.id) })))
       } catch (e) {
         setError(e.message)
       } finally {
@@ -49,14 +51,14 @@ export default function BankImportPage() {
     load()
   }, [monthId])
 
-  const displayed = transactions.filter(t =>
-    !t.already_imported && (debitsOnly ? t.is_debit : true)
+  const displayed = transactions.filter(tx =>
+    !tx.already_imported && (debitsOnly ? tx.is_debit : true)
   )
-  const alreadyCount = transactions.filter(t => t.already_imported).length
+  const alreadyCount = transactions.filter(tx => tx.already_imported).length
 
   function toggleAll() {
     if (selected.size === displayed.length) setSelected(new Set())
-    else setSelected(new Set(displayed.map(t => t.id)))
+    else setSelected(new Set(displayed.map(tx => tx.id)))
   }
 
   function toggle(id) {
@@ -67,19 +69,19 @@ export default function BankImportPage() {
   }
 
   async function handleImport() {
-    const toImport = displayed.filter(t => selected.has(t.id))
+    const toImport = displayed.filter(tx => selected.has(tx.id))
     if (!toImport.length) return
     setImporting(true)
     try {
       const result = await api.importTransactions({
         month_id: parseInt(monthId),
-        transactions: toImport.map(t => ({
-          saltedge_id:  t.id,
-          date:         t.date,
-          description:  t.description,
-          amount:       t.amount,
-          account_name: t.account_name,
-          is_card:      t.is_card ?? false,
+        transactions: toImport.map(tx => ({
+          saltedge_id:  tx.id,
+          date:         tx.date,
+          description:  tx.description,
+          amount:       tx.amount,
+          account_name: tx.account_name,
+          is_card:      tx.is_card ?? false,
         })),
       })
       const msg = result.auto_categorized
@@ -102,7 +104,7 @@ export default function BankImportPage() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-6">
       <div className="text-center">
         <p className="text-red-500 mb-4 text-sm">{error}</p>
-        <button onClick={() => navigate(-1)} className="text-violet-600 font-medium text-sm">Retour</button>
+        <button onClick={() => navigate(-1)} className="text-violet-600 font-medium text-sm">{t('common.back')}</button>
       </div>
     </div>
   )
@@ -122,7 +124,7 @@ export default function BankImportPage() {
             </svg>
           </button>
           <div>
-            <h1 className="text-lg font-bold text-white">Importer des transactions</h1>
+            <h1 className="text-lg font-bold text-white">{t('bank_import.title')}</h1>
             <p className="text-violet-200 text-xs">{month?.label}</p>
           </div>
         </div>
@@ -130,7 +132,7 @@ export default function BankImportPage() {
 
       <div className="max-w-2xl mx-auto px-4 pt-4 space-y-3">
 
-        {/* Barre de filtres */}
+        {/* Filter bar */}
         <div className="flex items-center justify-between">
           <button
             onClick={() => setDebitsOnly(!debitsOnly)}
@@ -138,11 +140,11 @@ export default function BankImportPage() {
               debitsOnly ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600'
             }`}
           >
-            {debitsOnly ? 'Débits uniquement' : 'Toutes les transactions'}
+            {debitsOnly ? t('bank_import.debits_only') : t('bank_import.all_transactions')}
           </button>
           {displayed.length > 0 && (
             <button onClick={toggleAll} className="text-xs text-violet-600 font-medium">
-              {selected.size === displayed.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+              {selected.size === displayed.length ? t('bank_import.deselect_all') : t('bank_import.select_all')}
             </button>
           )}
         </div>
@@ -150,8 +152,8 @@ export default function BankImportPage() {
         {displayed.length === 0 ? (
           <div className="bg-white rounded-2xl p-10 text-center border border-slate-100">
             <div className="text-3xl mb-3">🏦</div>
-            <p className="font-semibold text-slate-700 mb-1">Aucune transaction disponible</p>
-            <p className="text-slate-400 text-sm">Aucune transaction trouvée pour {month?.label}</p>
+            <p className="font-semibold text-slate-700 mb-1">{t('bank_import.no_transactions')}</p>
+            <p className="text-slate-400 text-sm">{t('bank_import.no_transactions_hint', { month: month?.label })}</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-50">
@@ -163,7 +165,6 @@ export default function BankImportPage() {
                   selected.has(tx.id) ? 'bg-violet-50' : 'active:bg-slate-50'
                 }`}
               >
-                {/* Checkbox */}
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
                   selected.has(tx.id) ? 'bg-violet-600 border-violet-600' : 'border-slate-300'
                 }`}>
@@ -198,13 +199,12 @@ export default function BankImportPage() {
 
         {alreadyCount > 0 && (
           <p className="text-xs text-slate-400 text-center">
-            {alreadyCount} transaction{alreadyCount > 1 ? 's' : ''} déjà importée{alreadyCount > 1 ? 's' : ''} masquée{alreadyCount > 1 ? 's' : ''}
+            {t('bank_import.already_imported_other', { count: alreadyCount })}
           </p>
         )}
 
       </div>
 
-      {/* Bottom bar */}
       {selected.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 pb-safe pt-3 z-10">
           <div className="max-w-2xl mx-auto">
@@ -214,8 +214,8 @@ export default function BankImportPage() {
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
             >
               {importing
-                ? 'Import en cours…'
-                : `Importer ${selected.size} transaction${selected.size > 1 ? 's' : ''}`}
+                ? t('bank_import.btn_importing')
+                : t('bank_import.btn_import_other', { count: selected.size })}
             </button>
           </div>
         </div>

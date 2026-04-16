@@ -26,6 +26,24 @@ def create_payment_method(data: schemas.PaymentMethodCreate, db: Session = Depen
     return pm
 
 
+@router.patch("/{pm_id}", response_model=schemas.PaymentMethodOut)
+def update_payment_method(pm_id: int, data: schemas.PaymentMethodCreate, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
+    pm = db.query(models.PaymentMethod).filter_by(id=pm_id, group_id=group.id).first()
+    if not pm:
+        raise HTTPException(status_code=404, detail="Moyen de paiement introuvable")
+    existing = db.query(models.PaymentMethod).filter(
+        models.PaymentMethod.group_id == group.id,
+        models.PaymentMethod.name == data.name,
+        models.PaymentMethod.id != pm_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce moyen de paiement existe déjà")
+    pm.name = data.name
+    db.commit()
+    db.refresh(pm)
+    return pm
+
+
 @router.delete("/{pm_id}", status_code=204)
 def delete_payment_method(pm_id: int, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
     pm = db.query(models.PaymentMethod).filter_by(id=pm_id, group_id=group.id).first()

@@ -1,3 +1,4 @@
+import os
 import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,25 +9,44 @@ from ..auth import get_current_user, get_current_group
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
-DEFAULT_CATEGORIES = [
-    ("Maison",         "🏠", "#3b82f6", 0),
-    ("Voiture",        "🚗", "#f97316", 1),
-    ("Alimentation",   "🛒", "#10b981", 2),
-    ("Divertissement", "🎬", "#a855f7", 3),
-    ("Projet",         "🎯", "#ef4444", 4),
-    ("Voyage",         "✈️", "#06b6d4", 5),
-    ("Santé",          "❤️", "#ec4899", 6),
-    ("Épargne",        "💰", "#eab308", 7),
-    ("Autre",          "📦", "#94a3b8", 8),
-]
+APP_LANG = os.environ.get("APP_LANG", "en").lower()
 
-DEFAULT_PAYMENT_METHODS = ["Prélèvement", "Carte", "Virement", "PayPal", "Espèces", "Chèque"]
+DEFAULT_CATEGORIES = {
+    "en": [
+        ("Housing",       "🏠", "#3b82f6", 0),
+        ("Car",           "🚗", "#f97316", 1),
+        ("Groceries",     "🛒", "#10b981", 2),
+        ("Entertainment", "🎬", "#a855f7", 3),
+        ("Projects",      "🎯", "#ef4444", 4),
+        ("Travel",        "✈️", "#06b6d4", 5),
+        ("Health",        "❤️", "#ec4899", 6),
+        ("Savings",       "💰", "#eab308", 7),
+        ("Other",         "📦", "#94a3b8", 8),
+    ],
+    "fr": [
+        ("Maison",         "🏠", "#3b82f6", 0),
+        ("Voiture",        "🚗", "#f97316", 1),
+        ("Alimentation",   "🛒", "#10b981", 2),
+        ("Divertissement", "🎬", "#a855f7", 3),
+        ("Projet",         "🎯", "#ef4444", 4),
+        ("Voyage",         "✈️", "#06b6d4", 5),
+        ("Santé",          "❤️", "#ec4899", 6),
+        ("Épargne",        "💰", "#eab308", 7),
+        ("Autre",          "📦", "#94a3b8", 8),
+    ],
+}
+
+DEFAULT_PAYMENT_METHODS = {
+    "en": ["Direct debit", "Card", "Transfer", "PayPal", "Cash", "Cheque"],
+    "fr": ["Prélèvement", "Carte", "Virement", "PayPal", "Espèces", "Chèque"],
+}
 
 
 def _seed_group(group: models.Group, db: Session):
-    for i, name in enumerate(DEFAULT_PAYMENT_METHODS):
+    lang = APP_LANG if APP_LANG in DEFAULT_CATEGORIES else "en"
+    for i, name in enumerate(DEFAULT_PAYMENT_METHODS[lang]):
         db.add(models.PaymentMethod(group_id=group.id, name=name, sort_order=i))
-    for name, icon, color, order in DEFAULT_CATEGORIES:
+    for name, icon, color, order in DEFAULT_CATEGORIES[lang]:
         db.add(models.Category(group_id=group.id, name=name, icon=icon, color=color, sort_order=order))
 
 

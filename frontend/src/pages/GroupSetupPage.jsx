@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 
 export default function GroupSetupPage() {
   const { refreshConfig, logout } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [tab, setTab]           = useState(() => sessionStorage.getItem('invite_code') ? 'join' : 'create')
   const [inviteCode, setInviteCode] = useState(() => sessionStorage.getItem('invite_code') ?? '')
   const [createdGroup, setCreatedGroup] = useState(null)
@@ -56,11 +58,11 @@ export default function GroupSetupPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Groupe créé !</h2>
-          <p className="text-slate-500 text-sm mb-6">Partagez ce code avec votre partenaire pour qu'il rejoigne le groupe.</p>
+          <h2 className="text-xl font-bold text-slate-800 mb-2">{t('group_setup.group_created_title')}</h2>
+          <p className="text-slate-500 text-sm mb-6">{t('group_setup.group_created_hint')}</p>
 
           <div className="bg-violet-50 rounded-2xl p-4 mb-6">
-            <p className="text-xs text-violet-400 font-medium mb-1">Code d'invitation</p>
+            <p className="text-xs text-violet-400 font-medium mb-1">{t('group_setup.invite_code_label')}</p>
             <p className="text-3xl font-bold tracking-widest text-violet-700">{createdGroup.invite_code}</p>
           </div>
 
@@ -68,7 +70,7 @@ export default function GroupSetupPage() {
             onClick={handleContinue}
             className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition"
           >
-            Continuer
+            {t('group_setup.btn_continue')}
           </button>
         </div>
       </div>
@@ -85,14 +87,13 @@ export default function GroupSetupPage() {
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
           </svg>
-          Retour à la connexion
+          {t('group_setup.btn_back_login')}
         </button>
-        <h2 className="text-xl font-semibold text-slate-800 mb-2">Votre espace budget</h2>
-        <p className="text-sm text-slate-400 mb-6">Créez un groupe ou rejoignez celui de votre partenaire.</p>
+        <h2 className="text-xl font-semibold text-slate-800 mb-2">{t('group_setup.title')}</h2>
+        <p className="text-sm text-slate-400 mb-6">{t('group_setup.subtitle')}</p>
 
-        {/* Tabs */}
         <div className="flex bg-slate-100 rounded-2xl p-1 mb-6">
-          {[['create', 'Créer'], ['join', 'Rejoindre']].map(([key, label]) => (
+          {[['create', t('group_setup.tab_create')], ['join', t('group_setup.tab_join')]].map(([key, label]) => (
             <button
               key={key}
               onClick={() => { setTab(key); setError('') }}
@@ -108,13 +109,13 @@ export default function GroupSetupPage() {
             {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
-              {loading ? 'Création…' : 'Créer le groupe'}
+              {loading ? t('group_setup.btn_creating') : t('group_setup.btn_create')}
             </button>
           </form>
         ) : (
           <form onSubmit={handleJoin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1.5">Code d'invitation</label>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">{t('group_setup.field_invite_code')}</label>
               <input
                 type="text"
                 value={inviteCode}
@@ -128,7 +129,7 @@ export default function GroupSetupPage() {
             {error && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>}
             <button type="submit" disabled={loading}
               className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition disabled:opacity-60">
-              {loading ? 'Vérification…' : 'Rejoindre le groupe'}
+              {loading ? t('group_setup.btn_joining') : t('group_setup.btn_join')}
             </button>
           </form>
         )}
