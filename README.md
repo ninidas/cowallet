@@ -67,19 +67,12 @@ Replace `<host_folder_data>` with the folder on your host where data will be sto
 
 ```yaml
 services:
-  cowallet-frontend:
-    image: ghcr.io/ninidas/cowallet-frontend:latest
-    container_name: cowallet-frontend
+  cowallet:
+    image: ghcr.io/ninidas/cowallet:latest
+    container_name: cowallet
     restart: unless-stopped
     ports:
-      - "3000:80"
-    depends_on:
-      - cowallet-backend
-
-  cowallet-backend:
-    image: ghcr.io/ninidas/cowallet-backend:latest
-    container_name: cowallet-backend
-    restart: unless-stopped
+      - "8000:8000"
     environment:
       - PUID=1000
       - PGID=1000
@@ -88,7 +81,7 @@ services:
       - <host_folder_data>:/data
 ```
 
-Then start with `docker compose up -d`. The app is available at `http://localhost:3000`. Point your reverse proxy (Traefik, nginx, Caddy…) to port 3000 of the `cowallet-frontend` container.
+Then start with `docker compose up -d`. The app is available at `http://localhost:8000`. Point your reverse proxy (Traefik, nginx, Caddy…) to port 8000 of the `cowallet` container.
 
 ### 2. First run
 
@@ -127,7 +120,7 @@ https://your-domain.com/bank/callback
 
 ### 4. Update your `docker-compose.yml`
 
-Add the following environment variables and volume to the `cowallet-backend` service. Replace `<host_folder_secrets>` with the folder containing your `enablebanking.pem` file (e.g. `/home/user/cowallet/secrets`).
+Add the following environment variables and volume to the `cowallet` service. Replace `<host_folder_secrets>` with the folder containing your `enablebanking.pem` file (e.g. `/home/user/cowallet/secrets`).
 
 ```yaml
     environment:
