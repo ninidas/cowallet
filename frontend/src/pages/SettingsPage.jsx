@@ -317,7 +317,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={async () => {
                     const reg = await navigator.serviceWorker.ready
-                    reg.showNotification('CoWallet test', { body: 'Les notifications fonctionnent !', icon: '/cowallet-logo-512x512.png' })
+                    reg.showNotification('CoWallet', { body: t('settings.notif_test_body'), icon: '/cowallet-logo-512x512.png' })
                   }}
                   className="text-xs text-violet-600 underline mt-1"
                 >
