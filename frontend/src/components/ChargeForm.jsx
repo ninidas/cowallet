@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useFmt } from '../hooks/useFmt'
+import { useAuth } from '../context/AuthContext'
 import BottomSheet from './BottomSheet'
 
 const EMPTY = {
@@ -19,7 +20,10 @@ const INSTALLMENT_OPTIONS = [1, 2, 3, 4, 6, 12]
 
 export default function ChargeForm({ open, onClose, onSaved, monthId, charge, config }) {
   const { t } = useTranslation()
+  const { config: authConfig } = useAuth()
   const fmt = useFmt()
+  const currencySymbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: authConfig?.currency || 'EUR' })
+    .formatToParts(0).find(p => p.type === 'currency')?.value || '€'
   const isEdit = !!charge
   const [form, setForm]               = useState(EMPTY)
   const [error, setError]             = useState('')
@@ -186,7 +190,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
               placeholder="0,00"
               required
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">€</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">{currencySymbol}</span>
           </div>
           {!isEdit && form.installments > 1 && totalAmount > 0 && (
             <p className="text-sm text-violet-600 font-semibold mt-1.5 ml-1">
