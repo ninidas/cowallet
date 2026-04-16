@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-
-function formatEur(n) {
-  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n)
-}
+import { useFmt } from '../hooks/useFmt'
 
 function formatDate(str) {
   if (!str) return ''
@@ -17,6 +14,7 @@ export default function BankImportPage() {
   const { monthId } = useParams()
   const navigate    = useNavigate()
   const { t } = useTranslation()
+  const fmt = useFmt()
 
   const [month,         setMonth]     = useState(null)
   const [transactions,  setTx]        = useState([])
@@ -190,7 +188,7 @@ export default function BankImportPage() {
                 <span className={`text-sm font-bold tabular-nums shrink-0 ${
                   tx.is_debit ? 'text-slate-800' : 'text-emerald-600'
                 }`}>
-                  {tx.is_debit ? '' : '+'}{formatEur(tx.amount)}
+                  {tx.is_debit ? '' : '+'}{fmt(tx.amount)}
                 </span>
               </button>
             ))}

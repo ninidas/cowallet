@@ -53,6 +53,7 @@
     "share_title": "Expense split",
     "share_subtitle": "Adjustable month by month in the app",
     "field_username": "First name / username",
+    "field_username_placeholder": "e.g. nicolas",
     "field_username_hint": "Used to log in",
     "field_password": "Password",
     "field_confirm": "Confirm password",
@@ -162,7 +163,9 @@
     "transferred": "Transferred",
     "to_transfer": "{{amount}} to transfer",
     "forecast_tag": "forecast",
-    "actual_estimated_short": "actual {{amount}}"
+    "actual_estimated_short": "actual {{amount}}",
+    "total": "Total",
+    "transfers": "Transfers"
   },
   "chargeform": {
     "title_add": "New expense",
@@ -249,7 +252,20 @@
     "summary_investments_suf": " per month",
     "summary_remaining_pre": ", leaving",
     "summary_remaining_suf": " available per month.",
-    "summary_balanced": ", your budget is balanced."
+    "summary_balanced": ", your budget is balanced.",
+    "default_cat_income": "Income",
+    "default_cat_daily": "Daily life",
+    "default_cat_subscriptions": "Subscriptions",
+    "default_cat_investments": "Monthly investments",
+    "hint_salary": "Salary",
+    "hint_stocks": "Stocks",
+    "hint_groceries": "Groceries",
+    "hint_rent": "Rent",
+    "hint_fuel": "Fuel",
+    "hint_restaurants": "Restaurants",
+    "hint_insurance": "Insurance",
+    "hint_savings": "Savings account",
+    "hint_electricity": "Electricity"
   },
   "settings": {
     "title": "Settings",
@@ -274,6 +290,7 @@
     "group_name_placeholder": "Our budget",
     "group_name_hint": "Displayed in the app if set.",
     "field_group_name": "Group name",
+    "field_currency": "Currency",
     "field_display_name": "Display name",
     "field_current_password": "Current password",
     "field_new_password": "New password",

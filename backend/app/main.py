@@ -53,6 +53,13 @@ with engine.connect() as _conn:
     except Exception:
         pass
 
+    # Colonne currency sur groups
+    try:
+        _conn.execute(text("ALTER TABLE groups ADD COLUMN currency TEXT NOT NULL DEFAULT 'EUR'"))
+        _conn.commit()
+    except Exception:
+        pass
+
     # Génération VAPID keys si absentes
     _pub = _conn.execute(text("SELECT value FROM app_config WHERE key='vapid_public'")).fetchone()
     if not _pub:
@@ -241,9 +248,12 @@ with engine.connect() as _conn:
         _code = _secrets.token_hex(4).upper()
         _u1 = _users[0][0]
         _u2 = _users[1][0] if len(_users) >= 2 else None
+        _app_lang = os.environ.get("APP_LANG", "en").lower()
+        _default_group_names = {"en": "My budget", "fr": "Notre budget"}
+        _default_group_name = _default_group_names.get(_app_lang, "My budget")
         _conn.execute(text(
             "INSERT INTO groups (name, invite_code, default_share, user1_id, user2_id) VALUES (:n, :c, :s, :u1, :u2)"
-        ), {"n": "Notre budget", "c": _code, "s": _share, "u1": _u1, "u2": _u2})
+        ), {"n": _default_group_name, "c": _code, "s": _share, "u1": _u1, "u2": _u2})
         _conn.commit()
         _gid = _conn.execute(text("SELECT id FROM groups WHERE invite_code=:c"), {"c": _code}).fetchone()[0]
         # Rattacher les données existantes au groupe
@@ -305,7 +315,8 @@ def get_config(db: Session = Depends(get_db), current_user: models.User = Depend
                 "setup_needed":        False,
                 "has_group":           True,
                 "group_id":            group.id,
-                "group_name":          group.name if group.name != "Notre budget" else None,
+                "group_name":          group.name if group.name not in {"My budget", "Notre budget"} else None,
+                "currency":            group.currency,
                 "invite_code":         group.invite_code if group.user2_id is None else None,
                 "user1_username":      group.user1.username,
                 "user2_username":      group.user2.username if group.user2 else None,

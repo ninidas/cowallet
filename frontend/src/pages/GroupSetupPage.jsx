@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
+import { getDefaultCurrency } from '../utils/currency'
 
 export default function GroupSetupPage() {
   const { refreshConfig, logout } = useAuth()
@@ -19,7 +20,7 @@ export default function GroupSetupPage() {
     setError('')
     setLoading(true)
     try {
-      const group = await api.createGroup({ name: 'Notre budget' })
+      const group = await api.createGroup({ currency: getDefaultCurrency() })
       setCreatedGroup(group)
     } catch (err) {
       setError(err.message)
