@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
@@ -14,6 +15,7 @@ function formatEur(n) {
 
 // ── Hero card ──────────────────────────────────────────────────────────────────
 function HeroCard({ month }) {
+  const { t } = useTranslation()
   const delta = month.prev_total != null ? month.total - month.prev_total : null
   const deltaPositive = delta > 0
 
@@ -21,11 +23,11 @@ function HeroCard({ month }) {
     <div className="bg-gradient-to-br from-violet-600 to-indigo-700 mx-4 rounded-3xl p-4 lg:p-6 shadow-xl shadow-violet-200 mb-4 lg:mx-0">
       <div className="flex justify-between items-start mb-3 lg:mb-5">
         <div>
-          <p className="text-violet-200 text-xs lg:text-sm font-medium">Total du mois</p>
+          <p className="text-violet-200 text-xs lg:text-sm font-medium">{t('month_detail.total_month')}</p>
           <p className="text-white/90 text-xl lg:text-2xl font-bold">{formatEur(month.total)}</p>
           {delta !== null && delta !== 0 && (
             <p className={`text-xs font-semibold mt-0.5 ${deltaPositive ? 'text-red-200' : 'text-emerald-200'}`}>
-              {deltaPositive ? '▲' : '▼'} {formatEur(Math.abs(delta))} vs mois dernier
+              {deltaPositive ? '▲' : '▼'} {formatEur(Math.abs(delta))} {t('month_detail.vs_last_month')}
             </p>
           )}
         </div>
@@ -34,7 +36,7 @@ function HeroCard({ month }) {
         </span>
       </div>
       <div className="border-t border-white/20 pt-3 lg:pt-4">
-        <p className="text-violet-200 text-xs lg:text-sm mb-0.5">Part de chacun</p>
+        <p className="text-violet-200 text-xs lg:text-sm mb-0.5">{t('month_detail.each_share')}</p>
         <span className="text-white text-3xl lg:text-4xl font-extrabold tabular-nums">
           {formatEur(month.user1_due)}
         </span>
@@ -45,6 +47,7 @@ function HeroCard({ month }) {
 
 // ── Transfer button ────────────────────────────────────────────────────────────
 function TransferButton({ name, amount, done, onToggle, loading }) {
+  const { t } = useTranslation()
   return (
     <button
       onClick={onToggle}
@@ -64,7 +67,7 @@ function TransferButton({ name, amount, done, onToggle, loading }) {
       <div className="text-left min-w-0">
         <p className="text-sm font-semibold text-slate-700 capitalize truncate">{name}</p>
         <p className={`text-xs font-medium ${done ? 'text-emerald-600' : 'text-slate-400'}`}>
-          {done ? 'Viré' : formatEur(amount) + ' à virer'}
+          {done ? t('month_detail.transferred') : t('month_detail.to_transfer', { amount: formatEur(amount) })}
         </p>
       </div>
     </button>
@@ -73,6 +76,7 @@ function TransferButton({ name, amount, done, onToggle, loading }) {
 
 // ── Charge item ────────────────────────────────────────────────────────────────
 function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualValue, onActualChange }) {
+  const { t } = useTranslation()
   const paidBy = charge.paid_by === 1 ? config?.user1_username : charge.paid_by === 2 ? config?.user2_username : null
 
   if (suiviMode) {
@@ -82,7 +86,7 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
       <div className="flex items-center gap-3 py-3 px-4">
         <div className="flex-1 min-w-0">
           <p className="font-medium text-slate-900 truncate text-sm">{charge.label}</p>
-          <p className="text-xs text-slate-400">{formatEur(charge.amount)} prévu</p>
+          <p className="text-xs text-slate-400">{formatEur(charge.amount)} {t('month_detail.forecast_tag')}</p>
         </div>
         <input
           type="number" min="0" step="0.01"
@@ -127,7 +131,7 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
                 <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{charge.payment_type}</span>
               )}
               {paidBy && (
-                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Avancé par {paidBy}</span>
+                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{t('month_detail.advanced_by', { name: paidBy })}</span>
               )}
               {charge.note && (
                 <span className="text-xs text-slate-400 italic truncate max-w-[160px]">{charge.note}</span>
@@ -181,10 +185,10 @@ function BudgetVsActualCard({ bva }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-700">Prévisionnel vs Réel</p>
+        <p className="text-sm font-semibold text-slate-700">{t('month_detail.forecast_vs_actual')}</p>
         {bva.uncategorized > 0 && (
           <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-            {formatEur(bva.uncategorized)} non catégorisé
+            {t('month_detail.uncategorized', { amount: formatEur(bva.uncategorized) })}
           </span>
         )}
       </div>
@@ -223,9 +227,9 @@ function BudgetVsActualCard({ bva }) {
       <div className="px-4 py-3 bg-slate-50 flex items-center justify-between">
         <p className="text-xs font-semibold text-slate-500">Total</p>
         <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400 tabular-nums">prévu {formatEur(bva.total_budget)}</span>
+          <span className="text-xs text-slate-400 tabular-nums">{t('month_detail.forecast_tag')} {formatEur(bva.total_budget)}</span>
           <span className={`text-sm font-bold tabular-nums ${bva.total_actual > bva.total_budget ? 'text-red-500' : 'text-emerald-600'}`}>
-            réel {formatEur(bva.total_actual)}
+            {t('month_detail.actual_estimated_short', { amount: formatEur(bva.total_actual) })}
           </span>
         </div>
       </div>
@@ -234,7 +238,7 @@ function BudgetVsActualCard({ bva }) {
 }
 
 // ── Transactions tab ───────────────────────────────────────────────────────────
-function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }) {
+function TransactionsTab({ monthId, month, categoriesMap, categories, onImport, t }) {
   const [transactions, setTx]   = useState([])
   const [bva,          setBva]  = useState(null)
   const [loading,      setLoad] = useState(true)
@@ -267,7 +271,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
   }
 
   async function handleDeleteAll() {
-    if (!window.confirm(`Supprimer les ${transactions.length} transactions importées ?`)) return
+    if (!window.confirm(t('month_detail.confirm_delete_all'))) return
     await Promise.all(transactions.map(tx => api.deleteTransaction(tx.id)))
     await load()
   }
@@ -285,7 +289,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
       {autoCount > 0 && (
         <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 text-violet-700 text-sm px-4 py-3 rounded-xl">
           <span>✨</span>
-          <span><strong>{autoCount}</strong> transaction{autoCount > 1 ? 's' : ''} catégorisée{autoCount > 1 ? 's' : ''} automatiquement</span>
+          <span>{t('month_detail.auto_categorized', { count: autoCount })}</span>
           <button onClick={() => { searchParams.delete('auto'); setSearchParams(searchParams) }} className="ml-auto text-violet-400 hover:text-violet-600">✕</button>
         </div>
       )}
@@ -293,7 +297,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
       <div>
         <div className="flex items-center justify-between mb-2 px-1">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            Transactions réelles ({transactions.length})
+            {t('month_detail.real_transactions', { count: transactions.length })}
           </p>
           <div className="flex items-center gap-2">
             {transactions.length > 0 && (
@@ -301,7 +305,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
                 onClick={handleDeleteAll}
                 className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-50 text-red-500 text-xs font-semibold active:bg-red-100 transition"
               >
-                Tout supprimer
+                {t('month_detail.delete_all')}
               </button>
             )}
             <button
@@ -311,7 +315,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>
-              Importer
+              {t('month_detail.import_bank')}
             </button>
           </div>
         </div>
@@ -319,8 +323,8 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
         {transactions.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-200">
             <div className="text-3xl mb-3">🏦</div>
-            <p className="font-semibold text-slate-700 mb-1">Aucune transaction importée</p>
-            <p className="text-slate-400 text-sm">Importez vos transactions du compte joint pour les comparer au budget prévisionnel.</p>
+            <p className="font-semibold text-slate-700 mb-1">{t('month_detail.no_transactions')}</p>
+            <p className="text-slate-400 text-sm">{t('month_detail.no_transactions_hint')}</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-50">
@@ -338,14 +342,14 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
                   <div className="flex items-center gap-1.5 mt-1.5">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: categoriesMap[tx.category]?.color ?? '#cbd5e1' }}
+                      style={{ backgroundColor: categoriesMap.get(tx.category)?.color ?? '#cbd5e1' }}
                     />
                     <select
                       value={tx.category ?? ''}
                       onChange={e => handleCategorize(tx.id, e.target.value || null)}
                       className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full"
                     >
-                      <option value="">Sans catégorie</option>
+                      <option value="">{t('month_detail.no_category')}</option>
                       {categories.map(c => (
                         <option key={c.id} value={c.name}>{c.icon} {c.name}</option>
                       ))}
@@ -374,6 +378,7 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport }
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function MonthDetailPage() {
+  const { t } = useTranslation()
   const { id }         = useParams()
   const navigate       = useNavigate()
   const [searchParams] = useSearchParams()
@@ -539,7 +544,7 @@ export default function MonthDetailPage() {
               onClick={() => prevMonth && navigate(`/months/${prevMonth.id}`)}
               disabled={!prevMonth}
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center active:bg-white/30 transition disabled:opacity-30"
-              aria-label="Mois précédent"
+              aria-label={t('month_detail.aria_prev_month')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -550,7 +555,7 @@ export default function MonthDetailPage() {
               onClick={() => nextMonth && navigate(`/months/${nextMonth.id}`)}
               disabled={!nextMonth}
               className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center active:bg-white/30 transition disabled:opacity-30"
-              aria-label="Mois suivant"
+              aria-label={t('month_detail.aria_next_month')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
@@ -566,8 +571,8 @@ export default function MonthDetailPage() {
               api.validateMonth(month.id).then(m => setMonth(m)).catch(() => setMonth(month))
             }}
             className={`w-10 h-10 rounded-full flex items-center justify-center transition shrink-0 ${month.validated_by ? 'bg-emerald-400/80 active:bg-emerald-500/80' : 'bg-white/20 active:bg-white/30'}`}
-            aria-label="Valider le mois"
-            title={month.validated_by ? 'Mois validé — cliquer pour annuler' : 'Valider le mois'}
+            aria-label={t('month_detail.aria_validate_month')}
+            title={month.validated_by ? t('month_detail.title_validated') : t('month_detail.title_validate')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -632,7 +637,7 @@ export default function MonthDetailPage() {
                   : 'text-slate-500 active:bg-white/50'
               }`}
             >
-              Prévisionnel
+              {t('month_detail.tab_forecast')}
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
@@ -642,7 +647,7 @@ export default function MonthDetailPage() {
                   : 'text-slate-500 active:bg-white/50'
               }`}
             >
-              Transactions
+              {t('month_detail.tab_transactions')}
             </button>
           </div>
 
@@ -653,23 +658,24 @@ export default function MonthDetailPage() {
               categoriesMap={categoriesMap}
               categories={categories ?? []}
               onImport={() => navigate(`/bank/import/${id}`)}
+              t={t}
             />
           )}
 
           {activeTab === 'charges' && (<>
           <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dépenses</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('month_detail.section_expenses')}</p>
             {categoryTotals.length > 0 && (
               suiviMode ? (
                 <button onClick={saveSuivi} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-600 text-white text-xs font-semibold active:bg-violet-700 transition">
-                  Terminer
+                  {t('month_detail.done')}
                 </button>
               ) : (
                 <button onClick={enterSuiviMode} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200 transition">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
                   </svg>
-                  Saisir les réels
+                  {t('month_detail.enter_actuals')}
                 </button>
               )
             )}
@@ -686,16 +692,16 @@ export default function MonthDetailPage() {
             return (
               <div className={`mb-3 p-4 rounded-2xl ${delta > 0 ? 'bg-red-50 border border-red-100' : delta < 0 ? 'bg-emerald-50 border border-emerald-100' : 'bg-slate-50 border border-slate-100'}`}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-500">Prévu</span>
+                  <span className="text-slate-500">{t('month_detail.forecast')}</span>
                   <span className="font-semibold text-slate-800">{formatEur(totalPrevu)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Réel estimé</span>
+                  <span className="text-slate-500">{t('month_detail.actual_estimated')}</span>
                   <span className={`font-bold ${delta > 0 ? 'text-red-600' : delta < 0 ? 'text-emerald-600' : 'text-slate-800'}`}>{formatEur(totalReel)}</span>
                 </div>
                 {delta !== 0 && (
                   <div className={`flex justify-between text-sm font-bold mt-2 pt-2 border-t ${delta > 0 ? 'border-red-100 text-red-600' : 'border-emerald-100 text-emerald-600'}`}>
-                    <span>{delta > 0 ? 'Dépassement' : 'Économie'}</span>
+                    <span>{delta > 0 ? t('month_detail.overspend') : t('month_detail.savings')}</span>
                     <span>{delta > 0 ? '+' : ''}{formatEur(delta)}</span>
                   </div>
                 )}
@@ -710,8 +716,8 @@ export default function MonthDetailPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75" />
                 </svg>
               </div>
-              <p className="text-slate-700 font-semibold mb-1">Aucune dépense ce mois</p>
-              <p className="text-slate-400 text-sm">Appuyez sur <span className="font-bold text-violet-500">+</span> pour ajouter la première</p>
+              <p className="text-slate-700 font-semibold mb-1">{t('month_detail.no_expenses')}</p>
+              <p className="text-slate-400 text-sm">{t('month_detail.no_expenses_hint')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -770,7 +776,7 @@ export default function MonthDetailPage() {
       <button
         onClick={() => setShowAddCharge(true)}
         className="fixed bottom-24 lg:bottom-8 right-6 lg:right-10 bg-violet-600 rounded-full w-14 h-14 shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
-        aria-label="Ajouter une dépense"
+        aria-label={t('month_detail.aria_add_expense')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-7 h-7">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -811,7 +817,7 @@ export default function MonthDetailPage() {
 
             {/* Saisie montant réel */}
             <div className="mb-4 p-3 bg-slate-50 rounded-2xl space-y-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Montant réel dépensé</p>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('month_detail.actual_amount')}</p>
               <div className="flex gap-2 items-center">
                 <input
                   type="number" min="0" step="0.01"
@@ -823,14 +829,14 @@ export default function MonthDetailPage() {
                 />
                 <button onClick={handleSaveActual} className="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold">OK</button>
                 {chargeOptions.actual_amount != null && (
-                  <button onClick={async () => { await api.updateCharge(chargeOptions.id, { actual_amount: null }); setChargeOptions(null); await load() }} className="px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-500">Effacer</button>
+                  <button onClick={async () => { await api.updateCharge(chargeOptions.id, { actual_amount: null }); setChargeOptions(null); await load() }} className="px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-500">{t('month_detail.clear')}</button>
                 )}
               </div>
               {actualInput !== '' && !isNaN(parseFloat(actualInput)) && (() => {
                 const delta = parseFloat(actualInput) - chargeOptions.amount
                 return delta !== 0 ? (
                   <p className={`text-xs font-semibold ${delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {delta > 0 ? '▲ Dépassement de ' : '▼ Économie de '}{formatEur(Math.abs(delta))}
+                    {delta > 0 ? t('month_detail.overspend_of') : t('month_detail.savings_of')} {formatEur(Math.abs(delta))}
                   </p>
                 ) : null
               })()}
@@ -841,13 +847,13 @@ export default function MonthDetailPage() {
                 onClick={() => { setEditingCharge(chargeOptions); setChargeOptions(null) }}
                 className="w-full py-4 rounded-2xl bg-slate-100 text-slate-800 font-semibold active:bg-slate-200 transition"
               >
-                Modifier
+                {t('month_detail.edit')}
               </button>
               <button
                 onClick={() => setConfirmDelete(true)}
                 className="w-full py-4 rounded-2xl bg-red-50 text-red-600 font-semibold active:bg-red-100 transition"
               >
-                Supprimer
+                {t('month_detail.delete')}
               </button>
             </div>
           </div>
@@ -859,8 +865,8 @@ export default function MonthDetailPage() {
         <div className="px-4 pb-safe">
           <div className="text-center mb-6">
             <div className="text-4xl mb-3">🗑️</div>
-            <p className="font-semibold text-slate-900">Supprimer {month?.label} ?</p>
-            <p className="text-slate-500 text-sm mt-1">Toutes les dépenses de ce mois seront supprimées. Cette action est irréversible.</p>
+            <p className="font-semibold text-slate-900">{t('month_detail.confirm_delete_month_title', { label: month?.label })}</p>
+            <p className="text-slate-500 text-sm mt-1">{t('month_detail.confirm_delete_month_body')}</p>
           </div>
           <div className="space-y-2">
             <button
@@ -868,13 +874,13 @@ export default function MonthDetailPage() {
               disabled={deletingMonth}
               className="w-full py-4 rounded-2xl bg-red-500 text-white font-semibold active:bg-red-600 transition disabled:opacity-60"
             >
-              {deletingMonth ? 'Suppression…' : 'Supprimer le mois'}
+              {deletingMonth ? t('month_detail.deleting') : t('month_detail.btn_delete_month')}
             </button>
             <button
               onClick={() => setConfirmDeleteMonth(false)}
               className="w-full py-4 rounded-2xl bg-slate-100 text-slate-700 font-semibold active:bg-slate-200 transition"
             >
-              Annuler
+              {t('month_detail.cancel')}
             </button>
           </div>
         </div>
@@ -885,21 +891,21 @@ export default function MonthDetailPage() {
         <div className="px-4 pb-safe">
           <div className="text-center mb-6">
             <div className="text-4xl mb-3">🗑️</div>
-            <p className="font-semibold text-slate-900">Supprimer cette dépense ?</p>
-            <p className="text-slate-500 text-sm mt-1">Cette action est irréversible.</p>
+            <p className="font-semibold text-slate-900">{t('month_detail.confirm_delete_charge_title')}</p>
+            <p className="text-slate-500 text-sm mt-1">{t('month_detail.confirm_delete_charge_body')}</p>
           </div>
           <div className="space-y-2">
             <button
               onClick={handleDeleteCharge}
               className="w-full py-4 rounded-2xl bg-red-500 text-white font-semibold active:bg-red-600 transition"
             >
-              Supprimer
+              {t('month_detail.delete')}
             </button>
             <button
               onClick={() => { setConfirmDelete(false); setChargeOptions(null) }}
               className="w-full py-4 rounded-2xl bg-slate-100 text-slate-700 font-semibold active:bg-slate-200 transition"
             >
-              Annuler
+              {t('month_detail.cancel')}
             </button>
           </div>
         </div>
