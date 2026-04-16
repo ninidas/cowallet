@@ -127,28 +127,13 @@ https://your-domain.com/bank/callback
 
 ### 4. Update your `docker-compose.yml`
 
-Replace `<host_folder_secrets>` with the folder containing your `enablebanking.pem` file (e.g. `/home/user/cowallet/secrets`).
+Add the following environment variables and volume to the `cowallet-backend` service. Replace `<host_folder_secrets>` with the folder containing your `enablebanking.pem` file (e.g. `/home/user/cowallet/secrets`).
 
 ```yaml
-services:
-  cowallet-frontend:
-    image: ghcr.io/ninidas/cowallet-frontend:latest
-    container_name: cowallet-frontend
-    restart: unless-stopped
-    ports:
-      - "3000:80"
-    depends_on:
-      - cowallet-backend
-
-  cowallet-backend:
-    image: ghcr.io/ninidas/cowallet-backend:latest
-    container_name: cowallet-backend
-    restart: unless-stopped
     environment:
       - ENABLEBANKING_APP_ID=your-app-id
       - ENABLEBANKING_PRIVATE_KEY_PATH=/backend/secrets/enablebanking.pem
     volumes:
-      - <host_folder_data>:/data
       - <host_folder_secrets>:/backend/secrets
 ```
 
