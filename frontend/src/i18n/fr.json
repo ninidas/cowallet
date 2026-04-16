@@ -283,6 +283,7 @@
     "notif_hint": "Sois notifié quand ton partenaire ajoute une dépense",
     "notif_blocked": "Notifications bloquées dans le navigateur",
     "notif_test": "Tester une notification",
+    "notif_test_body": "Les notifications fonctionnent !",
     "invite_hint": "Partagez ce lien pour inviter votre partenaire à rejoindre le groupe.",
     "invite_share": "Partager",
     "invite_copied": "Lien copié !",

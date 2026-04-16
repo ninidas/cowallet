@@ -283,6 +283,7 @@
     "notif_hint": "Get notified when your partner adds an expense",
     "notif_blocked": "Notifications blocked in browser",
     "notif_test": "Test a notification",
+    "notif_test_body": "Notifications are working!",
     "invite_hint": "Share this link to invite your partner to join the group.",
     "invite_share": "Share",
     "invite_copied": "Link copied!",
