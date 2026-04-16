@@ -326,7 +326,8 @@
     "bank_search_placeholder": "Search for a bank...",
     "bank_no_results": "No bank found",
     "lang_en": "English",
-    "lang_fr": "Français"
+    "lang_fr": "Français",
+    "unsaved_changes": "Unsaved changes"
   },
   "bank_callback": {
     "loading": "Finalizing connection...",
