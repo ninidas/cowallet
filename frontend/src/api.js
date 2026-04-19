@@ -75,7 +75,7 @@ export const api = {
   renameGroup:     (name)       => request('/groups/me/name',     { method: 'PATCH', body: JSON.stringify({ name }) }),
   updateCurrency:  (currency)   => request('/groups/me/currency', { method: 'PATCH', body: JSON.stringify({ currency }) }),
 
-  getStats:        ()           => cached('stats',  () => request('/stats')),
+  getStats:        (year)       => cached(`stats:${year ?? 'all'}`, () => request(`/stats${year ? `?year=${year}` : ''}`)),
   updateSettings:  (data)       => request('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
   getMonths:       ()           => cached('months', () => request('/months')),
   createMonth:     (data)       => request('/months', { method: 'POST', body: JSON.stringify(data) })
@@ -142,7 +142,7 @@ export const api = {
   getMonthTransactions: (mid)         => request(`/bank/months/${mid}/transactions`),
   categorizeTransaction:(id, cat)     => request(`/bank/transactions/${id}`, { method: 'PATCH', body: JSON.stringify({ category: cat }) }),
   deleteTransaction:    (id)          => request(`/bank/transactions/${id}`, { method: 'DELETE' }),
-  getBudgetVsActual:    (mid)         => request(`/bank/months/${mid}/budget-vs-actual`),
+  getBudgetVsActual:    (mid)         => request(`/bank/months/${mid}/budget-vs-actual?_=${Date.now()}`),
 
   getVapidPublicKey:   ()     => request('/push/vapid-public'),
   subscribePush:       (data) => request('/push/subscribe',   { method: 'POST',   body: JSON.stringify(data) }),
