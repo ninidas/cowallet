@@ -413,6 +413,12 @@ def budget_vs_actual(
         if tx.category:
             actual[tx.category] = actual.get(tx.category, 0.0) + tx.amount
 
+    # Si pas de transactions bancaires, utiliser les actual_amount saisis manuellement
+    if not txs:
+        for charge in month.charges:
+            if charge.actual_amount is not None:
+                actual[charge.category] = actual.get(charge.category, 0.0) + charge.actual_amount
+
     all_cats = sorted(set(budget.keys()) | set(actual.keys()))
     result = []
     for cat in all_cats:

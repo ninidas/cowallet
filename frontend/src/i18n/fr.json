@@ -203,6 +203,8 @@
     "section_monthly_trend": "Évolution mensuelle",
     "section_by_category": "Dépenses par catégorie",
     "section_category_breakdown": "Répartition par catégorie",
+    "tab_by_category": "Par catégorie",
+    "tab_by_label": "Par dépense",
     "section_by_month": "Évolution mois par mois",
     "section_month_detail": "Détail par mois",
     "section_recurring": "Charges fixes — top coûts",

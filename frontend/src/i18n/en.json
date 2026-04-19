@@ -203,6 +203,8 @@
     "section_monthly_trend": "Monthly trend",
     "section_by_category": "Expenses by category",
     "section_category_breakdown": "Category breakdown",
+    "tab_by_category": "By category",
+    "tab_by_label": "By expense",
     "section_by_month": "Month by month",
     "section_month_detail": "Monthly detail",
     "section_recurring": "Fixed costs — top expenses",

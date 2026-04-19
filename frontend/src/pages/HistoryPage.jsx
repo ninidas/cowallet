@@ -48,36 +48,41 @@ export default function HistoryPage() {
   const [statsData, setStatsData] = useState(null)
   const [loading, setLoading]     = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [yearFilter, setYearFilter] = useState('all')
+  const [breakdownTab, setBreakdownTab] = useState('category')
+  const [expandedLabel, setExpandedLabel] = useState(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    Promise.all([api.getMonths(), api.getStats()])
-      .then(([m, s]) => {
-        setMonths([...m].reverse())
-        setStatsData(s)
-      })
-      .finally(() => setLoading(false))
+    api.getMonths().then(m => setMonths([...m].reverse())).finally(() => setLoading(false))
   }, [])
 
-  const chartData = months.map(m => ({
+  useEffect(() => {
+    const year = yearFilter === 'all' ? null : yearFilter
+    api.getStats(year).then(s => setStatsData(s))
+  }, [yearFilter])
+
+  const years = [...new Set(months.map(m => m.year))].sort()
+  const filtered = yearFilter === 'all' ? months : months.filter(m => m.year === yearFilter)
+
+  const chartData = filtered.map(m => ({
     label: shortLabel(m.label),
     total: m.total,
   }))
 
-  const totalCumul = months.reduce((s, m) => s + m.total, 0)
-  const avgTotal   = months.length ? totalCumul / months.length : 0
-  const maxMonth   = months.length ? months.reduce((a, b) => a.total > b.total ? a : b) : null
-  const minMonth   = months.length ? months.reduce((a, b) => a.total < b.total ? a : b) : null
+  const totalCumul = filtered.reduce((s, m) => s + m.total, 0)
+  const avgTotal   = filtered.length ? totalCumul / filtered.length : 0
+  const maxMonth   = filtered.length ? filtered.reduce((a, b) => a.total > b.total ? a : b) : null
+  const minMonth   = filtered.length ? filtered.reduce((a, b) => a.total < b.total ? a : b) : null
 
   // Catégories présentes dans les données par mois (dynamique)
   const activeCategories = statsData?.by_month?.length
     ? Object.keys(statsData.by_month[0]).filter(k => k !== 'label' && statsData.by_month.some(row => row[k] > 0))
     : []
 
-  const byMonthChart = (statsData?.by_month ?? []).map(row => ({
-    ...row,
-    label: shortLabel(row.label),
-  }))
+  const byMonthChart = (statsData?.by_month ?? [])
+    .filter(row => yearFilter === 'all' || filtered.some(m => m.label === row.label))
+    .map(row => ({ ...row, label: shortLabel(row.label) }))
 
   return (
     <div className="min-h-screen bg-slate-50 pb-safe page-enter">
@@ -94,7 +99,7 @@ export default function HistoryPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-white">{t('history.title')}</h1>
-            <p className="text-violet-200 text-xs">{t('history.months_count_other', { count: months.length })}</p>
+            <p className="text-violet-200 text-xs">{t('history.months_count_other', { count: filtered.length })}</p>
           </div>
           {months.length > 0 && (
             <button
@@ -115,6 +120,27 @@ export default function HistoryPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-5 lg:-mt-8 space-y-4">
+
+        {/* Filtre par année */}
+        {years.length > 1 && (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setYearFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition ${yearFilter === 'all' ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+            >
+              Tout
+            </button>
+            {years.map(y => (
+              <button
+                key={y}
+                onClick={() => setYearFilter(y)}
+                className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition ${yearFilter === y ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -226,65 +252,90 @@ export default function HistoryPage() {
 
             </div>{/* fin grid graphes */}
 
-            <div className="lg:grid lg:grid-cols-2 lg:gap-4">
-            {/* Répartition par catégorie */}
-            {statsData?.by_category?.length > 0 && (
-              <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">{t('history.section_category_breakdown')}</p>
-                <div className="space-y-3">
-                  {statsData.by_category.map(({ category, total, pct }) => {
-                    const catData = categoriesMap.get(category)
-                    const color = catData?.color ?? '#94a3b8'
-                    return (
-                      <div key={category}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{catData?.icon ?? '•'}</span>
-                            <span className="text-sm font-medium text-slate-700">{category}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400">{pct}%</span>
-                            <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
-                          </div>
-                        </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.6s ease' }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Top charges récurrentes */}
-            {statsData?.top_recurring?.length > 0 && (
+            {/* Section fusionnée Par catégorie / Par libellé */}
+            {(statsData?.by_category?.length > 0 || statsData?.by_label?.length > 0) && (
               <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-50">
-                  <p className="text-sm font-semibold text-slate-700">{t('history.section_recurring')}</p>
+                <div className="px-4 pt-4 pb-3 border-b border-slate-50">
+                  <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl">
+                    <button
+                      onClick={() => setBreakdownTab('category')}
+                      className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition ${breakdownTab === 'category' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                    >
+                      {t('history.tab_by_category')}
+                    </button>
+                    <button
+                      onClick={() => setBreakdownTab('label')}
+                      className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition ${breakdownTab === 'label' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                    >
+                      {t('history.tab_by_label')}
+                    </button>
+                  </div>
                 </div>
-                <div className="divide-y divide-slate-50">
-                  {statsData.top_recurring.map((c, i) => {
-                    const catData = categoriesMap.get(c.category)
-                    return (
-                      <div key={i} className="flex items-center gap-3 px-4 py-3.5">
-                        <span className="text-lg w-7 text-center shrink-0">{catData?.icon ?? '•'}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{t('history.recurring_months', { count: c.count })} {fmt(c.avg)}</p>
+
+                {breakdownTab === 'category' && (
+                  <div className="p-4 space-y-3">
+                    {statsData.by_category.map(({ category, total, pct }) => {
+                      const catData = categoriesMap.get(category)
+                      const color = catData?.color ?? '#94a3b8'
+                      return (
+                        <div key={category}>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{catData?.icon ?? '•'}</span>
+                              <span className="text-sm font-medium text-slate-700">{category}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-400">{pct}%</span>
+                              <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
+                            </div>
+                          </div>
+                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.6s ease' }} />
+                          </div>
                         </div>
-                        <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {breakdownTab === 'label' && (
+                  <div className="divide-y divide-slate-50">
+                    {statsData.by_label.map((c, i) => {
+                      const catData = categoriesMap.get(c.category)
+                      const isExpanded = expandedLabel === i
+                      return (
+                        <div key={i}>
+                          <button
+                            onClick={() => setExpandedLabel(isExpanded ? null : i)}
+                            className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 transition text-left"
+                          >
+                            <span className="text-lg w-7 text-center shrink-0">{catData?.icon ?? '•'}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
+                              <p className="text-xs text-slate-400 mt-0.5">{c.count}x · moy. {fmt(c.avg)}</p>
+                            </div>
+                            <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                          </button>
+                          {isExpanded && (
+                            <div className="bg-slate-50 px-4 pb-3 space-y-1.5">
+                              {c.months.map((m, j) => (
+                                <div key={j} className="flex items-center justify-between py-1 pl-9">
+                                  <p className="text-xs text-slate-500">{m.label}</p>
+                                  <p className="text-xs font-semibold text-slate-700 tabular-nums">{fmt(m.amount)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
-
-            </div>{/* fin grid catégorie + top recurring */}
 
             {/* Table récap par mois */}
             <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
@@ -292,7 +343,7 @@ export default function HistoryPage() {
                 <p className="text-sm font-semibold text-slate-700">{t('history.section_month_detail')}</p>
               </div>
               <div className="divide-y divide-slate-50">
-                {[...months].reverse().map(m => (
+                {[...filtered].reverse().map(m => (
                   <button
                     key={m.id}
                     onClick={() => navigate(`/months/${m.id}`)}
