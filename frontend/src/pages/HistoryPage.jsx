@@ -9,6 +9,8 @@ import { api } from '../api'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
 import { useFmt } from '../hooks/useFmt'
 
+function round2(n) { return Math.round(n * 100) / 100 }
+
 function shortLabel(label) {
   // label is "Month Year" e.g. "January 2025" or "Janvier 2025"
   const parts = label.split(' ')
@@ -48,36 +50,44 @@ export default function HistoryPage() {
   const [statsData, setStatsData] = useState(null)
   const [loading, setLoading]     = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [yearFilter, setYearFilter] = useState('all')
+  const [breakdownTab, setBreakdownTab] = useState('category')
+  const [expandedLabel, setExpandedLabel] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedMonth, setSelectedMonth] = useState(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    Promise.all([api.getMonths(), api.getStats()])
-      .then(([m, s]) => {
-        setMonths([...m].reverse())
-        setStatsData(s)
-      })
-      .finally(() => setLoading(false))
+    api.getMonths().then(m => setMonths([...m].reverse())).finally(() => setLoading(false))
   }, [])
 
-  const chartData = months.map(m => ({
+  useEffect(() => {
+    const year = yearFilter === 'all' ? null : yearFilter
+    api.getStats(year).then(s => setStatsData(s))
+    setSelectedMonth(null)
+  }, [yearFilter])
+
+  const years = [...new Set(months.map(m => m.year))].sort()
+  const filtered = yearFilter === 'all' ? months : months.filter(m => m.year === yearFilter)
+
+  const chartData = filtered.map(m => ({
     label: shortLabel(m.label),
     total: m.total,
   }))
 
-  const totalCumul = months.reduce((s, m) => s + m.total, 0)
-  const avgTotal   = months.length ? totalCumul / months.length : 0
-  const maxMonth   = months.length ? months.reduce((a, b) => a.total > b.total ? a : b) : null
-  const minMonth   = months.length ? months.reduce((a, b) => a.total < b.total ? a : b) : null
+  const totalCumul = filtered.reduce((s, m) => s + m.total, 0)
+  const avgTotal   = filtered.length ? totalCumul / filtered.length : 0
+  const maxMonth   = filtered.length ? filtered.reduce((a, b) => a.total > b.total ? a : b) : null
+  const minMonth   = filtered.length ? filtered.reduce((a, b) => a.total < b.total ? a : b) : null
 
   // Catégories présentes dans les données par mois (dynamique)
   const activeCategories = statsData?.by_month?.length
     ? Object.keys(statsData.by_month[0]).filter(k => k !== 'label' && statsData.by_month.some(row => row[k] > 0))
     : []
 
-  const byMonthChart = (statsData?.by_month ?? []).map(row => ({
-    ...row,
-    label: shortLabel(row.label),
-  }))
+  const byMonthChart = (statsData?.by_month ?? [])
+    .filter(row => yearFilter === 'all' || filtered.some(m => m.label === row.label))
+    .map(row => ({ ...row, label: shortLabel(row.label) }))
 
   return (
     <div className="min-h-screen bg-slate-50 pb-safe page-enter">
@@ -94,7 +104,7 @@ export default function HistoryPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-white">{t('history.title')}</h1>
-            <p className="text-violet-200 text-xs">{t('history.months_count_other', { count: months.length })}</p>
+            <p className="text-violet-200 text-xs">{t('history.months_count_other', { count: filtered.length })}</p>
           </div>
           {months.length > 0 && (
             <button
@@ -115,6 +125,27 @@ export default function HistoryPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-5 lg:-mt-8 space-y-4">
+
+        {/* Filtre par année */}
+        {years.length > 1 && (
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setYearFilter('all')}
+              className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition ${yearFilter === 'all' ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+            >
+              Tout
+            </button>
+            {years.map(y => (
+              <button
+                key={y}
+                onClick={() => setYearFilter(y)}
+                className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition ${yearFilter === y ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+              >
+                {y}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -226,65 +257,232 @@ export default function HistoryPage() {
 
             </div>{/* fin grid graphes */}
 
-            <div className="lg:grid lg:grid-cols-2 lg:gap-4">
-            {/* Répartition par catégorie */}
-            {statsData?.by_category?.length > 0 && (
-              <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">{t('history.section_category_breakdown')}</p>
-                <div className="space-y-3">
-                  {statsData.by_category.map(({ category, total, pct }) => {
-                    const catData = categoriesMap.get(category)
-                    const color = catData?.color ?? '#94a3b8'
-                    return (
-                      <div key={category}>
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base">{catData?.icon ?? '•'}</span>
-                            <span className="text-sm font-medium text-slate-700">{category}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400">{pct}%</span>
-                            <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
-                          </div>
-                        </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.6s ease' }}
-                          />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Top charges récurrentes */}
-            {statsData?.top_recurring?.length > 0 && (
+            {/* Section fusionnée Par catégorie / Par libellé */}
+            {(statsData?.by_category?.length > 0 || statsData?.by_label?.length > 0) && (
               <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-50">
-                  <p className="text-sm font-semibold text-slate-700">{t('history.section_recurring')}</p>
+                <div className="px-4 pt-4 pb-3 border-b border-slate-50">
+                  <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl mb-2">
+                    <button
+                      onClick={() => { setBreakdownTab('category'); setExpandedLabel(null) }}
+                      className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition ${breakdownTab === 'category' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                    >
+                      {t('history.tab_by_category')}
+                    </button>
+                    <button
+                      onClick={() => { setBreakdownTab('label'); setExpandedLabel(null) }}
+                      className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition ${breakdownTab === 'label' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                    >
+                      {t('history.tab_by_label')}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 text-center">Basé sur les dépenses réelles</p>
                 </div>
-                <div className="divide-y divide-slate-50">
-                  {statsData.top_recurring.map((c, i) => {
-                    const catData = categoriesMap.get(c.category)
-                    return (
-                      <div key={i} className="flex items-center gap-3 px-4 py-3.5">
-                        <span className="text-lg w-7 text-center shrink-0">{catData?.icon ?? '•'}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
-                          <p className="text-xs text-slate-400 mt-0.5">{t('history.recurring_months', { count: c.count })} {fmt(c.avg)}</p>
-                        </div>
-                        <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
+
+                {breakdownTab === 'category' && (() => {
+                  const lastMonth = filtered[filtered.length - 1]?.label ?? null
+                  const activeMonthCat = selectedMonth === 'all'
+                    ? null
+                    : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonth)
+
+                  // Calcul budget + actual selon le mois sélectionné
+                  let catRows
+                  if (activeMonthCat) {
+                    const budgetRow = statsData.by_month?.find(r => r.label === activeMonthCat) ?? {}
+                    const actualRow = statsData.by_month_actual?.find(r => r.label === activeMonthCat) ?? {}
+                    const allCats = [...new Set([
+                      ...Object.keys(budgetRow).filter(k => k !== 'label'),
+                      ...Object.keys(actualRow).filter(k => k !== 'label'),
+                    ])]
+                    catRows = allCats
+                      .map(cat => ({
+                        category: cat,
+                        budget: round2(budgetRow[cat] ?? 0),
+                        actual: round2(actualRow[cat] ?? 0),
+                        delta:  round2((actualRow[cat] ?? 0) - (budgetRow[cat] ?? 0)),
+                      }))
+                      .sort((a, b) => b.budget - a.budget)
+                  } else {
+                    catRows = statsData.by_category
+                  }
+
+                  const periodLabel = activeMonthCat
+                    ? activeMonthCat
+                    : filtered.length >= 2
+                      ? `${shortLabel(filtered[0].label)} – ${shortLabel(filtered[filtered.length - 1].label)}`
+                      : filtered[0]?.label ?? ''
+
+                  return (
+                    <div>
+                      {/* Sélecteur mois */}
+                      <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-b border-slate-50 scrollbar-none">
+                        <button
+                          onClick={() => { setSelectedMonth('all'); setExpandedLabel(null) }}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonthCat ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                        >
+                          Tous
+                        </button>
+                        {[...filtered].reverse().map(m => (
+                          <button
+                            key={m.id}
+                            onClick={() => { setSelectedMonth(m.label); setExpandedLabel(null) }}
+                            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activeMonthCat === m.label ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                            {shortLabel(m.label)}
+                          </button>
+                        ))}
                       </div>
-                    )
-                  })}
-                </div>
+                      <p className="text-xs text-slate-400 text-center pt-3 px-4">{periodLabel}</p>
+                      <div className="p-4 space-y-5">
+                        {catRows.map(({ category, budget, actual, delta, pct }) => {
+                          const catData = categoriesMap.get(category)
+                          const color = catData?.color ?? '#94a3b8'
+                          const isOver = delta > 0
+                          const hasActual = actual > 0
+                          const barPct = budget > 0 ? Math.min(actual / budget * 100, 100) : 0
+                          return (
+                            <div key={category}>
+                              {/* Ligne 1 : nom + badge delta */}
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-base shrink-0">{catData?.icon ?? '•'}</span>
+                                <span className="text-sm font-semibold text-slate-700 flex-1">{category}</span>
+                                {hasActual && delta !== 0 && (
+                                  <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${isOver ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                                    {isOver ? '+' : ''}{fmtShort(delta)}
+                                  </span>
+                                )}
+                                {!hasActual && (
+                                  <span className="text-xs text-slate-300 italic">pas de données</span>
+                                )}
+                              </div>
+                              {/* Barre */}
+                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5 ml-7">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${barPct}%`, backgroundColor: isOver ? '#ef4444' : color }}
+                                />
+                              </div>
+                              {/* Ligne 2 : prévu → réel */}
+                              <div className="flex items-center justify-between ml-7">
+                                <span className="text-xs text-slate-400">Prévu <span className="font-medium text-slate-500 tabular-nums">{fmtShort(budget)}</span></span>
+                                <span className="text-xs text-slate-400">Réel <span className={`font-bold tabular-nums ${hasActual ? 'text-slate-700' : 'text-slate-300'}`}>{fmtShort(actual)}</span></span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {breakdownTab === 'label' && (() => {
+                  const categories = [...new Set(
+                    statsData.by_label
+                      .filter(c => c.category)
+                      .map(c => c.category)
+                  )]
+                  const activeCat = selectedCategory && categories.includes(selectedCategory)
+                    ? selectedCategory
+                    : categories[0] ?? null
+
+                  // Filtrage par mois sélectionné
+                  const lastMonthLabel = filtered[filtered.length - 1]?.label ?? null
+                  const activeMonth = selectedMonth === 'all'
+                    ? null
+                    : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonthLabel)
+
+                  const byLabelForView = statsData.by_label
+                    .filter(c => c.category === activeCat)
+                    .map(c => {
+                      if (!activeMonth) return c
+                      const monthEntries = c.months.filter(m => m.label === activeMonth)
+                      if (monthEntries.length === 0) return null
+                      const total = round2(monthEntries.reduce((s, m) => s + m.amount, 0))
+                      const count = monthEntries.reduce((s, m) => s + (m.count ?? 1), 0)
+                      return { ...c, total, count, avg: count ? round2(total / count) : total, months: monthEntries }
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => b.total - a.total)
+                    .slice(0, 10)
+
+                  return (
+                    <div>
+                      {/* Sélecteur catégorie */}
+                      <div className="px-4 py-3 flex gap-2 flex-wrap border-b border-slate-50">
+                        {categories.map(cat => {
+                          const catData = categoriesMap.get(cat)
+                          const isActive = cat === activeCat
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => { setSelectedCategory(cat); setExpandedLabel(null) }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${isActive ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                            >
+                              <span>{catData?.icon ?? '•'}</span>
+                              {cat}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {/* Sélecteur mois */}
+                      <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-b border-slate-50 scrollbar-none">
+                        <button
+                          onClick={() => { setSelectedMonth('all'); setExpandedLabel(null) }}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonth ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                        >
+                          Tous
+                        </button>
+                        {[...filtered].reverse().map(m => (
+                          <button
+                            key={m.id}
+                            onClick={() => { setSelectedMonth(m.label); setExpandedLabel(null) }}
+                            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activeMonth === m.label ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                            {shortLabel(m.label)}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Liste top 10 */}
+                      <div className="divide-y divide-slate-50">
+                        {byLabelForView.length === 0 ? (
+                          <p className="px-4 py-6 text-sm text-slate-400 text-center">Aucune dépense</p>
+                        ) : byLabelForView.map((c, i) => {
+                          const isExpanded = expandedLabel === i
+                          return (
+                            <div key={i}>
+                              <button
+                                onClick={() => setExpandedLabel(isExpanded ? null : i)}
+                                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 transition text-left"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5">{c.count}x · moy. {fmt(c.avg)}</p>
+                                </div>
+                                <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
+                                {!activeMonth && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                  </svg>
+                                )}
+                              </button>
+                              {!activeMonth && isExpanded && (
+                                <div className="bg-slate-50 px-4 pb-3 space-y-1.5">
+                                  {c.months.map((m, j) => (
+                                    <div key={j} className="flex items-center justify-between py-1 pl-4">
+                                      <p className="text-xs text-slate-500">{m.label}</p>
+                                      <p className="text-xs font-semibold text-slate-700 tabular-nums">{fmt(m.amount)}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
-
-            </div>{/* fin grid catégorie + top recurring */}
 
             {/* Table récap par mois */}
             <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
@@ -292,7 +490,7 @@ export default function HistoryPage() {
                 <p className="text-sm font-semibold text-slate-700">{t('history.section_month_detail')}</p>
               </div>
               <div className="divide-y divide-slate-50">
-                {[...months].reverse().map(m => (
+                {[...filtered].reverse().map(m => (
                   <button
                     key={m.id}
                     onClick={() => navigate(`/months/${m.id}`)}

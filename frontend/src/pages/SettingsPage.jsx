@@ -321,18 +321,6 @@ export default function SettingsPage() {
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${subscribed ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
               </div>
-              {subscribed && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const reg = await navigator.serviceWorker.ready
-                    reg.showNotification('CoWallet', { body: t('settings.notif_test_body'), icon: '/cowallet-logo-512x512.png' })
-                  }}
-                  className="text-xs text-violet-600 underline mt-1"
-                >
-                  {t('settings.notif_test')}
-                </button>
-              )}
             </Section>
           )}
 

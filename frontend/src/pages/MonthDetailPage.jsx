@@ -240,10 +240,9 @@ function BudgetVsActualCard({ bva }) {
 }
 
 // ── Transactions tab ───────────────────────────────────────────────────────────
-function TransactionsTab({ monthId, month, categoriesMap, categories, onImport, t }) {
+function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, categories, onImport, t }) {
   const fmt = useFmt()
   const [transactions, setTx]   = useState([])
-  const [bva,          setBva]  = useState(null)
   const [loading,      setLoad] = useState(true)
   const [searchParams, setSearchParams] = useSearchParams()
   const autoCount = parseInt(searchParams.get('auto') || '0')
@@ -255,11 +254,11 @@ function TransactionsTab({ monthId, month, categoriesMap, categories, onImport, 
         api.getBudgetVsActual(monthId),
       ])
       setTx(txs)
-      setBva(bvaData)
+      onBvaChange(bvaData)
     } finally {
       setLoad(false)
     }
-  }, [monthId])
+  }, [monthId, onBvaChange])
 
   useEffect(() => { load() }, [load])
 
@@ -392,15 +391,14 @@ export default function MonthDetailPage() {
   const [activeTab, setActiveTab]   = useState(searchParams.get('tab') === 'transactions' ? 'transactions' : 'charges')
   const [month, setMonth]           = useState(null)
   const [months, setMonths]         = useState([])
+  const [bva,   setBva]             = useState(null)
   const [loading, setLoading]       = useState(true)
   const [transferLoading, setTL]    = useState(false)
-  const touchStartX = useRef(null)
 
   // Forms / modals
   const [showAddCharge, setShowAddCharge]       = useState(false)
   const [editingCharge, setEditingCharge]       = useState(null)
   const [chargeOptions, setChargeOptions]       = useState(null) // charge tap menu
-  const [actualInput, setActualInput]           = useState('')
   const [suiviMode, setSuiviMode]               = useState(false)
   const [actualsMap, setActualsMap]             = useState({})
   const [confirmDelete, setConfirmDelete]       = useState(false)
@@ -410,8 +408,10 @@ export default function MonthDetailPage() {
   const load = useCallback(async () => {
     try {
       const [data, all] = await Promise.all([api.getMonth(id), api.getMonths()])
+      const bvaData = await api.getBudgetVsActual(id).catch(() => null)
       setMonth(data)
       setMonths(all) // trié desc (plus récent en premier)
+      setBva(bvaData)
     } catch {
       navigate('/months', { replace: true })
     } finally {
@@ -482,14 +482,6 @@ export default function MonthDetailPage() {
     await load()
   }
 
-  async function handleSaveActual() {
-    const val = actualInput.trim() === '' ? null : parseFloat(actualInput)
-    if (actualInput.trim() !== '' && isNaN(val)) return
-    await api.updateCharge(chargeOptions.id, { actual_amount: val })
-    setChargeOptions(null)
-    await load()
-  }
-
   // Grouper les charges par catégorie
   const grouped = month?.charges.reduce((acc, c) => {
     if (!acc[c.category]) acc[c.category] = []
@@ -509,25 +501,10 @@ export default function MonthDetailPage() {
     </div>
   )
 
-  function handleTouchStart(e) {
-    if (suiviMode) return
-    touchStartX.current = e.touches[0].clientX
-  }
-
-  function handleTouchEnd(e) {
-    if (suiviMode || touchStartX.current === null) return
-    const delta = e.changedTouches[0].clientX - touchStartX.current
-    touchStartX.current = null
-    if (Math.abs(delta) < 60) return
-    if (delta < 0 && nextMonth) navigate(`/months/${nextMonth.id}`)
-    if (delta > 0 && prevMonth) navigate(`/months/${prevMonth.id}`)
-  }
 
   return (
     <div
       className="min-h-screen bg-slate-50 pb-safe page-enter"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Header — sticky sur mobile */}
       <div className="sticky top-0 z-20 bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-3 lg:pb-4">
@@ -659,6 +636,8 @@ export default function MonthDetailPage() {
             <TransactionsTab
               monthId={id}
               month={month}
+              bva={bva}
+              onBvaChange={setBva}
               categoriesMap={categoriesMap}
               categories={categories ?? []}
               onImport={() => navigate(`/bank/import/${id}`)}
@@ -760,7 +739,7 @@ export default function MonthDetailPage() {
                           suiviMode={suiviMode}
                           actualValue={actualsMap[c.id] ?? ''}
                           onActualChange={v => setActualsMap(m => ({ ...m, [c.id]: v }))}
-                          onTap={(charge) => { setChargeOptions(charge); setActualInput(charge.actual_amount != null ? String(charge.actual_amount) : '') }}
+                          onTap={(charge) => { setChargeOptions(charge) }}
                           onSwipeDelete={(charge) => { setChargeOptions(charge); setConfirmDelete(true) }}
                         />
                       ))}
@@ -817,33 +796,6 @@ export default function MonthDetailPage() {
                 <p className="text-violet-600 font-bold text-lg">{fmt(chargeOptions.amount)}</p>
               </div>
               <CategoryBadge category={chargeOptions.category} icon={categoriesMap.get(chargeOptions.category)?.icon} color={categoriesMap.get(chargeOptions.category)?.color} />
-            </div>
-
-            {/* Saisie montant réel */}
-            <div className="mb-4 p-3 bg-slate-50 rounded-2xl space-y-2">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{t('month_detail.actual_amount')}</p>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number" min="0" step="0.01"
-                  value={actualInput}
-                  onChange={e => setActualInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSaveActual()}
-                  placeholder={String(chargeOptions.amount)}
-                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-900 text-right focus:outline-none focus:ring-2 focus:ring-violet-300"
-                />
-                <button onClick={handleSaveActual} className="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold">OK</button>
-                {chargeOptions.actual_amount != null && (
-                  <button onClick={async () => { await api.updateCharge(chargeOptions.id, { actual_amount: null }); setChargeOptions(null); await load() }} className="px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-500">{t('month_detail.clear')}</button>
-                )}
-              </div>
-              {actualInput !== '' && !isNaN(parseFloat(actualInput)) && (() => {
-                const delta = parseFloat(actualInput) - chargeOptions.amount
-                return delta !== 0 ? (
-                  <p className={`text-xs font-semibold ${delta > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {delta > 0 ? t('month_detail.overspend_of') : t('month_detail.savings_of')} {fmt(Math.abs(delta))}
-                  </p>
-                ) : null
-              })()}
             </div>
 
             <div className="space-y-2">
