@@ -374,7 +374,8 @@ export default function HistoryPage() {
                       const monthEntries = c.months.filter(m => m.label === activeMonth)
                       if (monthEntries.length === 0) return null
                       const total = round2(monthEntries.reduce((s, m) => s + m.amount, 0))
-                      return { ...c, total, count: monthEntries.length, avg: total / monthEntries.length, months: monthEntries }
+                      const count = monthEntries.reduce((s, m) => s + (m.count ?? 1), 0)
+                      return { ...c, total, count, avg: count ? round2(total / count) : total, months: monthEntries }
                     })
                     .filter(Boolean)
                     .sort((a, b) => b.total - a.total)
