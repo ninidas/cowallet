@@ -284,15 +284,23 @@ export default function HistoryPage() {
                     ? null
                     : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonth)
 
-                  // Si un mois est sélectionné, on recalcule depuis by_month
+                  // Calcul budget + actual selon le mois sélectionné
                   let catRows
                   if (activeMonthCat) {
-                    const row = statsData.by_month?.find(r => r.label === activeMonthCat) ?? {}
-                    const entries = Object.entries(row).filter(([k]) => k !== 'label')
-                    const total = entries.reduce((s, [, v]) => s + v, 0)
-                    catRows = entries
-                      .map(([cat, val]) => ({ category: cat, total: round2(val), pct: total ? round2(val / total * 100) : 0 }))
-                      .sort((a, b) => b.total - a.total)
+                    const budgetRow = statsData.by_month?.find(r => r.label === activeMonthCat) ?? {}
+                    const actualRow = statsData.by_month_actual?.find(r => r.label === activeMonthCat) ?? {}
+                    const allCats = [...new Set([
+                      ...Object.keys(budgetRow).filter(k => k !== 'label'),
+                      ...Object.keys(actualRow).filter(k => k !== 'label'),
+                    ])]
+                    catRows = allCats
+                      .map(cat => ({
+                        category: cat,
+                        budget: round2(budgetRow[cat] ?? 0),
+                        actual: round2(actualRow[cat] ?? 0),
+                        delta:  round2((actualRow[cat] ?? 0) - (budgetRow[cat] ?? 0)),
+                      }))
+                      .sort((a, b) => b.budget - a.budget)
                   } else {
                     catRows = statsData.by_category
                   }
@@ -324,24 +332,39 @@ export default function HistoryPage() {
                         ))}
                       </div>
                       <p className="text-xs text-slate-400 text-center pt-3 px-4">{periodLabel}</p>
-                      <div className="p-4 space-y-3">
-                        {catRows.map(({ category, total, pct }) => {
+                      <div className="p-4 space-y-5">
+                        {catRows.map(({ category, budget, actual, delta, pct }) => {
                           const catData = categoriesMap.get(category)
                           const color = catData?.color ?? '#94a3b8'
+                          const isOver = delta > 0
+                          const hasActual = actual > 0
+                          const barPct = budget > 0 ? Math.min(actual / budget * 100, 100) : 0
                           return (
                             <div key={category}>
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-base">{catData?.icon ?? '•'}</span>
-                                  <span className="text-sm font-medium text-slate-700">{category}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-slate-400">{pct}%</span>
-                                  <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
-                                </div>
+                              {/* Ligne 1 : nom + badge delta */}
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-base shrink-0">{catData?.icon ?? '•'}</span>
+                                <span className="text-sm font-semibold text-slate-700 flex-1">{category}</span>
+                                {hasActual && delta !== 0 && (
+                                  <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${isOver ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                                    {isOver ? '+' : ''}{fmtShort(delta)}
+                                  </span>
+                                )}
+                                {!hasActual && (
+                                  <span className="text-xs text-slate-300 italic">pas de données</span>
+                                )}
                               </div>
-                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.6s ease' }} />
+                              {/* Barre */}
+                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-1.5 ml-7">
+                                <div
+                                  className="h-full rounded-full transition-all duration-500"
+                                  style={{ width: `${barPct}%`, backgroundColor: isOver ? '#ef4444' : color }}
+                                />
+                              </div>
+                              {/* Ligne 2 : prévu → réel */}
+                              <div className="flex items-center justify-between ml-7">
+                                <span className="text-xs text-slate-400">Prévu <span className="font-medium text-slate-500 tabular-nums">{fmtShort(budget)}</span></span>
+                                <span className="text-xs text-slate-400">Réel <span className={`font-bold tabular-nums ${hasActual ? 'text-slate-700' : 'text-slate-300'}`}>{fmtShort(actual)}</span></span>
                               </div>
                             </div>
                           )
