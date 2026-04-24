@@ -9,6 +9,8 @@ import { api } from '../api'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
 import { useFmt } from '../hooks/useFmt'
 
+function round2(n) { return Math.round(n * 100) / 100 }
+
 function shortLabel(label) {
   // label is "Month Year" e.g. "January 2025" or "Janvier 2025"
   const parts = label.split(' ')
@@ -51,6 +53,8 @@ export default function HistoryPage() {
   const [yearFilter, setYearFilter] = useState('all')
   const [breakdownTab, setBreakdownTab] = useState('category')
   const [expandedLabel, setExpandedLabel] = useState(null)
+  const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedMonth, setSelectedMonth] = useState(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -60,6 +64,7 @@ export default function HistoryPage() {
   useEffect(() => {
     const year = yearFilter === 'all' ? null : yearFilter
     api.getStats(year).then(s => setStatsData(s))
+    setSelectedMonth(null)
   }, [yearFilter])
 
   const years = [...new Set(months.map(m => m.year))].sort()
@@ -256,84 +261,199 @@ export default function HistoryPage() {
             {(statsData?.by_category?.length > 0 || statsData?.by_label?.length > 0) && (
               <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
                 <div className="px-4 pt-4 pb-3 border-b border-slate-50">
-                  <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl">
+                  <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl mb-2">
                     <button
-                      onClick={() => setBreakdownTab('category')}
+                      onClick={() => { setBreakdownTab('category'); setExpandedLabel(null) }}
                       className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition ${breakdownTab === 'category' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
                     >
                       {t('history.tab_by_category')}
                     </button>
                     <button
-                      onClick={() => setBreakdownTab('label')}
+                      onClick={() => { setBreakdownTab('label'); setExpandedLabel(null) }}
                       className={`flex-1 py-1.5 rounded-xl text-sm font-semibold transition ${breakdownTab === 'label' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
                     >
                       {t('history.tab_by_label')}
                     </button>
                   </div>
+                  <p className="text-xs text-slate-400 text-center">Basé sur les dépenses réelles</p>
                 </div>
 
-                {breakdownTab === 'category' && (
-                  <div className="p-4 space-y-3">
-                    {statsData.by_category.map(({ category, total, pct }) => {
-                      const catData = categoriesMap.get(category)
-                      const color = catData?.color ?? '#94a3b8'
-                      return (
-                        <div key={category}>
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-base">{catData?.icon ?? '•'}</span>
-                              <span className="text-sm font-medium text-slate-700">{category}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-400">{pct}%</span>
-                              <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
-                            </div>
-                          </div>
-                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.6s ease' }} />
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+                {breakdownTab === 'category' && (() => {
+                  const activeMonthCat = selectedMonth && filtered.some(m => m.label === selectedMonth)
+                    ? selectedMonth : null
 
-                {breakdownTab === 'label' && (
-                  <div className="divide-y divide-slate-50">
-                    {statsData.by_label.map((c, i) => {
-                      const catData = categoriesMap.get(c.category)
-                      const isExpanded = expandedLabel === i
-                      return (
-                        <div key={i}>
+                  // Si un mois est sélectionné, on recalcule depuis by_month
+                  let catRows
+                  if (activeMonthCat) {
+                    const row = statsData.by_month?.find(r => r.label === activeMonthCat) ?? {}
+                    const entries = Object.entries(row).filter(([k]) => k !== 'label')
+                    const total = entries.reduce((s, [, v]) => s + v, 0)
+                    catRows = entries
+                      .map(([cat, val]) => ({ category: cat, total: round2(val), pct: total ? round2(val / total * 100) : 0 }))
+                      .sort((a, b) => b.total - a.total)
+                  } else {
+                    catRows = statsData.by_category
+                  }
+
+                  const periodLabel = activeMonthCat
+                    ? activeMonthCat
+                    : filtered.length >= 2
+                      ? `${shortLabel(filtered[0].label)} – ${shortLabel(filtered[filtered.length - 1].label)}`
+                      : filtered[0]?.label ?? ''
+
+                  return (
+                    <div>
+                      {/* Sélecteur mois */}
+                      <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-b border-slate-50 scrollbar-none">
+                        <button
+                          onClick={() => { setSelectedMonth(null); setExpandedLabel(null) }}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonthCat ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                        >
+                          Tous
+                        </button>
+                        {[...filtered].reverse().map(m => (
                           <button
-                            onClick={() => setExpandedLabel(isExpanded ? null : i)}
-                            className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 transition text-left"
+                            key={m.id}
+                            onClick={() => { setSelectedMonth(m.label); setExpandedLabel(null) }}
+                            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activeMonthCat === m.label ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
                           >
-                            <span className="text-lg w-7 text-center shrink-0">{catData?.icon ?? '•'}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">{c.count}x · moy. {fmt(c.avg)}</p>
-                            </div>
-                            <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                            </svg>
+                            {shortLabel(m.label)}
                           </button>
-                          {isExpanded && (
-                            <div className="bg-slate-50 px-4 pb-3 space-y-1.5">
-                              {c.months.map((m, j) => (
-                                <div key={j} className="flex items-center justify-between py-1 pl-9">
-                                  <p className="text-xs text-slate-500">{m.label}</p>
-                                  <p className="text-xs font-semibold text-slate-700 tabular-nums">{fmt(m.amount)}</p>
+                        ))}
+                      </div>
+                      <p className="text-xs text-slate-400 text-center pt-3 px-4">{periodLabel}</p>
+                      <div className="p-4 space-y-3">
+                        {catRows.map(({ category, total, pct }) => {
+                          const catData = categoriesMap.get(category)
+                          const color = catData?.color ?? '#94a3b8'
+                          return (
+                            <div key={category}>
+                              <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-base">{catData?.icon ?? '•'}</span>
+                                  <span className="text-sm font-medium text-slate-700">{category}</span>
                                 </div>
-                              ))}
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-slate-400">{pct}%</span>
+                                  <span className="text-sm font-bold text-slate-800 tabular-nums">{fmtShort(total)}</span>
+                                </div>
+                              </div>
+                              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.6s ease' }} />
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {breakdownTab === 'label' && (() => {
+                  const categories = [...new Set(
+                    statsData.by_label
+                      .filter(c => c.category)
+                      .map(c => c.category)
+                  )]
+                  const activeCat = selectedCategory && categories.includes(selectedCategory)
+                    ? selectedCategory
+                    : categories[0] ?? null
+
+                  // Filtrage par mois sélectionné
+                  const activeMonth = selectedMonth && filtered.some(m => m.label === selectedMonth)
+                    ? selectedMonth
+                    : null
+
+                  const byLabelForView = statsData.by_label
+                    .filter(c => c.category === activeCat)
+                    .map(c => {
+                      if (!activeMonth) return c
+                      const monthEntries = c.months.filter(m => m.label === activeMonth)
+                      if (monthEntries.length === 0) return null
+                      const total = round2(monthEntries.reduce((s, m) => s + m.amount, 0))
+                      return { ...c, total, count: monthEntries.length, avg: total / monthEntries.length, months: monthEntries }
+                    })
+                    .filter(Boolean)
+                    .sort((a, b) => b.total - a.total)
+                    .slice(0, 10)
+
+                  return (
+                    <div>
+                      {/* Sélecteur catégorie */}
+                      <div className="px-4 py-3 flex gap-2 flex-wrap border-b border-slate-50">
+                        {categories.map(cat => {
+                          const catData = categoriesMap.get(cat)
+                          const isActive = cat === activeCat
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => { setSelectedCategory(cat); setExpandedLabel(null) }}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${isActive ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                            >
+                              <span>{catData?.icon ?? '•'}</span>
+                              {cat}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {/* Sélecteur mois */}
+                      <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-b border-slate-50 scrollbar-none">
+                        <button
+                          onClick={() => { setSelectedMonth(null); setExpandedLabel(null) }}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonth ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                        >
+                          Tous
+                        </button>
+                        {[...filtered].reverse().map(m => (
+                          <button
+                            key={m.id}
+                            onClick={() => { setSelectedMonth(m.label); setExpandedLabel(null) }}
+                            className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${activeMonth === m.label ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
+                          >
+                            {shortLabel(m.label)}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Liste top 10 */}
+                      <div className="divide-y divide-slate-50">
+                        {byLabelForView.length === 0 ? (
+                          <p className="px-4 py-6 text-sm text-slate-400 text-center">Aucune dépense</p>
+                        ) : byLabelForView.map((c, i) => {
+                          const isExpanded = expandedLabel === i
+                          return (
+                            <div key={i}>
+                              <button
+                                onClick={() => setExpandedLabel(isExpanded ? null : i)}
+                                className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 transition text-left"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5">{c.count}x · moy. {fmt(c.avg)}</p>
+                                </div>
+                                <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
+                                {!activeMonth && (
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                  </svg>
+                                )}
+                              </button>
+                              {!activeMonth && isExpanded && (
+                                <div className="bg-slate-50 px-4 pb-3 space-y-1.5">
+                                  {c.months.map((m, j) => (
+                                    <div key={j} className="flex items-center justify-between py-1 pl-4">
+                                      <p className="text-xs text-slate-500">{m.label}</p>
+                                      <p className="text-xs font-semibold text-slate-700 tabular-nums">{fmt(m.amount)}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
             )}
 
