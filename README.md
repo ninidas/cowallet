@@ -4,7 +4,7 @@
   <img src="docs/logo.png" alt="CoWallet" width="120" />
 </p>
 
-A mobile-first PWA for couples to manage their shared budget. Track monthly expenses, split costs automatically, plan ahead with recurring charges - and keep an eye on spending trends over time.
+Most finance apps are built for one person. CoWallet is built for two. A self-hosted shared dashboard to track expenses, plan ahead, and stay aligned on your budget.
 
 ## Features
 
