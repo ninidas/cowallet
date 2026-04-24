@@ -279,8 +279,10 @@ export default function HistoryPage() {
                 </div>
 
                 {breakdownTab === 'category' && (() => {
-                  const activeMonthCat = selectedMonth && filtered.some(m => m.label === selectedMonth)
-                    ? selectedMonth : null
+                  const lastMonth = filtered[filtered.length - 1]?.label ?? null
+                  const activeMonthCat = selectedMonth === 'all'
+                    ? null
+                    : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonth)
 
                   // Si un mois est sélectionné, on recalcule depuis by_month
                   let catRows
@@ -306,7 +308,7 @@ export default function HistoryPage() {
                       {/* Sélecteur mois */}
                       <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-b border-slate-50 scrollbar-none">
                         <button
-                          onClick={() => { setSelectedMonth(null); setExpandedLabel(null) }}
+                          onClick={() => { setSelectedMonth('all'); setExpandedLabel(null) }}
                           className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonthCat ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
                         >
                           Tous
@@ -360,9 +362,10 @@ export default function HistoryPage() {
                     : categories[0] ?? null
 
                   // Filtrage par mois sélectionné
-                  const activeMonth = selectedMonth && filtered.some(m => m.label === selectedMonth)
-                    ? selectedMonth
-                    : null
+                  const lastMonthLabel = filtered[filtered.length - 1]?.label ?? null
+                  const activeMonth = selectedMonth === 'all'
+                    ? null
+                    : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonthLabel)
 
                   const byLabelForView = statsData.by_label
                     .filter(c => c.category === activeCat)
@@ -399,7 +402,7 @@ export default function HistoryPage() {
                       {/* Sélecteur mois */}
                       <div className="px-4 py-2.5 flex gap-2 overflow-x-auto border-b border-slate-50 scrollbar-none">
                         <button
-                          onClick={() => { setSelectedMonth(null); setExpandedLabel(null) }}
+                          onClick={() => { setSelectedMonth('all'); setExpandedLabel(null) }}
                           className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonth ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
                         >
                           Tous
