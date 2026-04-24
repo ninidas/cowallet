@@ -203,6 +203,8 @@
     "section_monthly_trend": "Évolution mensuelle",
     "section_by_category": "Dépenses par catégorie",
     "section_category_breakdown": "Répartition par catégorie",
+    "tab_by_category": "Par catégorie",
+    "tab_by_label": "Par dépense",
     "section_by_month": "Évolution mois par mois",
     "section_month_detail": "Détail par mois",
     "section_recurring": "Charges fixes — top coûts",
@@ -361,9 +363,10 @@
     "field_invite_code": "Code d'invitation",
     "btn_back_login": "Retour à la connexion",
     "group_created_title": "Groupe créé !",
-    "group_created_hint": "Partagez ce code avec votre partenaire pour qu'il rejoigne le groupe.",
-    "invite_code_label": "Code d'invitation",
-    "btn_continue": "Continuer"
+    "group_created_hint": "Partagez ce lien avec votre partenaire pour qu'il rejoigne le groupe.",
+    "invite_code_label": "Lien d'invitation",
+    "btn_continue": "Continuer",
+    "btn_skip": "Passer, je le ferai plus tard"
   },
   "push_banner": {
     "title": "Activer les notifications",

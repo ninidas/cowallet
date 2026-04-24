@@ -203,6 +203,8 @@
     "section_monthly_trend": "Monthly trend",
     "section_by_category": "Expenses by category",
     "section_category_breakdown": "Category breakdown",
+    "tab_by_category": "By category",
+    "tab_by_label": "By expense",
     "section_by_month": "Month by month",
     "section_month_detail": "Monthly detail",
     "section_recurring": "Fixed costs — top expenses",
@@ -361,9 +363,10 @@
     "field_invite_code": "Invite code",
     "btn_back_login": "Back to login",
     "group_created_title": "Group created!",
-    "group_created_hint": "Share this code with your partner so they can join the group.",
-    "invite_code_label": "Invite code",
-    "btn_continue": "Continue"
+    "group_created_hint": "Share this link with your partner so they can join the group.",
+    "invite_code_label": "Invite link",
+    "btn_continue": "Continue",
+    "btn_skip": "Skip, I'll do it later"
   },
   "push_banner": {
     "title": "Enable notifications",

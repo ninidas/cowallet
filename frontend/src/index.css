@@ -17,6 +17,16 @@
     @apply text-base text-slate-900; /* évite le zoom iOS sur focus */
   }
 
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
   input::placeholder, textarea::placeholder {
     @apply text-slate-500;
   }
