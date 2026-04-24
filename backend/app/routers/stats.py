@@ -30,6 +30,10 @@ def get_stats(
     for c in charges:
         key = c.category if c.category else "Autre"
         cat_totals[key] = round(cat_totals.get(key, 0) + effective_amount(c), 2)
+    for m in months_q:
+        for tx in m.bank_transactions:
+            if tx.category:
+                cat_totals[tx.category] = round(cat_totals.get(tx.category, 0) + tx.amount, 2)
 
     grand_total = sum(cat_totals.values())
     by_category = sorted(
@@ -38,37 +42,27 @@ def get_stats(
         key=lambda x: x["total"], reverse=True,
     )
 
-    by_label: dict[tuple, dict] = {}
+    # by_label : transactions bancaires uniquement (pas les charges prévisionnelles)
+    by_label: dict[str, dict] = {}
     for m in months_q:
-        for c in m.charges:
-            key = (c.label, c.category if c.category else "")
-            if key not in by_label:
-                by_label[key] = {"label": c.label, "category": key[1], "total": 0, "count": 0, "months": []}
-            amt = effective_amount(c)
-            by_label[key]["total"] = round(by_label[key]["total"] + amt, 2)
-            by_label[key]["count"] += 1
-            by_label[key]["months"].append({"label": m.label, "amount": round(amt, 2)})
-        # Regroup bank transactions by description within the month
-        tx_by_desc: dict[tuple, float] = {}
+        tx_by_desc: dict[str, dict] = {}
         for tx in m.bank_transactions:
-            key = (tx.description, tx.category if tx.category else "")
-            tx_by_desc[key] = round(tx_by_desc.get(key, 0.0) + tx.amount, 2)
-        for key, amt in tx_by_desc.items():
-            if key not in by_label:
-                by_label[key] = {"label": key[0], "category": key[1], "total": 0, "count": 0, "months": []}
-            by_label[key]["total"] = round(by_label[key]["total"] + amt, 2)
-            by_label[key]["count"] += 1
-            by_label[key]["months"].append({"label": m.label, "amount": amt})
+            if tx.description not in tx_by_desc:
+                tx_by_desc[tx.description] = {"amount": 0.0, "category": tx.category or ""}
+            tx_by_desc[tx.description]["amount"] = round(tx_by_desc[tx.description]["amount"] + tx.amount, 2)
+        for desc, info in tx_by_desc.items():
+            if desc not in by_label:
+                by_label[desc] = {"label": desc, "category": info["category"], "total": 0, "count": 0, "months": []}
+            by_label[desc]["total"] = round(by_label[desc]["total"] + info["amount"], 2)
+            by_label[desc]["count"] += 1
+            by_label[desc]["months"].append({"label": m.label, "amount": info["amount"]})
 
     top_by_label = sorted(
         [{**v, "avg": round(v["total"] / v["count"], 2)} for v in by_label.values()],
         key=lambda x: x["total"], reverse=True,
-    )[:10]
+    )
 
-    # Garder top_recurring pour rétrocompatibilité
-    top_recurring = [e for e in top_by_label if any(
-        c.label == e["label"] and c.is_recurring for c in charges
-    )][:8]
+    top_recurring = []  # rétrocompatibilité
 
     by_month = []
     for m in months_q:
@@ -76,6 +70,9 @@ def get_stats(
         for c in m.charges:
             key = c.category if c.category else "Autre"
             row[key] = round(row.get(key, 0) + effective_amount(c), 2)
+        for tx in m.bank_transactions:
+            if tx.category:
+                row[tx.category] = round(row.get(tx.category, 0) + tx.amount, 2)
         by_month.append(row)
 
     return {"by_category": by_category, "top_recurring": top_recurring, "by_label": top_by_label, "by_month": by_month}
