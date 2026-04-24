@@ -224,7 +224,10 @@ export default function MonthsPage() {
             </div>
             <h3 className="text-xl font-bold text-slate-800 mb-2 text-center">
               {config?.user2_username
-                ? t('months.empty_welcome_two', { user1: user?.username, user2: config.user2_username })
+                ? t('months.empty_welcome_two', {
+                    user1: user?.username,
+                    user2: user?.username === config.user1_username ? config.user2_username : config.user1_username
+                  })
                 : t('months.empty_welcome', { name: user?.username })}
             </h3>
             <p className="text-slate-500 text-sm text-center max-w-xs mb-7">

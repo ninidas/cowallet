@@ -63,16 +63,30 @@ export default function GroupSetupPage() {
           <h2 className="text-xl font-bold text-slate-800 mb-2">{t('group_setup.group_created_title')}</h2>
           <p className="text-slate-500 text-sm mb-6">{t('group_setup.group_created_hint')}</p>
 
-          <div className="bg-violet-50 rounded-2xl p-4 mb-6">
-            <p className="text-xs text-violet-400 font-medium mb-1">{t('group_setup.invite_code_label')}</p>
-            <p className="text-3xl font-bold tracking-widest text-violet-700">{createdGroup.invite_code}</p>
+          <div className="bg-violet-50 rounded-2xl p-4 mb-4">
+            <p className="text-xs text-violet-400 font-medium mb-2">{t('group_setup.invite_code_label')}</p>
+            <p className="text-sm font-medium text-violet-700 break-all mb-3">{`${window.location.origin}/invite/${createdGroup.invite_code}`}</p>
+            <button
+              onClick={async () => {
+                const url = `${window.location.origin}/invite/${createdGroup.invite_code}`
+                try {
+                  await navigator.share({ title: 'CoWallet', url })
+                } catch {
+                  await navigator.clipboard.writeText(url)
+                  alert(t('settings.invite_copied'))
+                }
+              }}
+              className="w-full py-3 rounded-xl bg-violet-600 text-white font-semibold text-sm active:scale-95 transition"
+            >
+              {t('settings.invite_share')}
+            </button>
           </div>
 
           <button
             onClick={handleContinue}
-            className="w-full py-4 rounded-2xl bg-violet-600 text-white font-semibold shadow-lg shadow-violet-200 active:scale-95 transition"
+            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-600 font-semibold active:scale-95 transition"
           >
-            {t('group_setup.btn_continue')}
+            {t('group_setup.btn_skip')}
           </button>
         </div>
       </div>
