@@ -48,14 +48,15 @@ def get_stats(
         tx_by_desc: dict[str, dict] = {}
         for tx in m.bank_transactions:
             if tx.description not in tx_by_desc:
-                tx_by_desc[tx.description] = {"amount": 0.0, "category": tx.category or ""}
+                tx_by_desc[tx.description] = {"amount": 0.0, "count": 0, "category": tx.category or ""}
             tx_by_desc[tx.description]["amount"] = round(tx_by_desc[tx.description]["amount"] + tx.amount, 2)
+            tx_by_desc[tx.description]["count"] += 1
         for desc, info in tx_by_desc.items():
             if desc not in by_label:
                 by_label[desc] = {"label": desc, "category": info["category"], "total": 0, "count": 0, "months": []}
             by_label[desc]["total"] = round(by_label[desc]["total"] + info["amount"], 2)
-            by_label[desc]["count"] += 1
-            by_label[desc]["months"].append({"label": m.label, "amount": info["amount"]})
+            by_label[desc]["count"] += info["count"]
+            by_label[desc]["months"].append({"label": m.label, "amount": info["amount"], "count": info["count"]})
 
     top_by_label = sorted(
         [{**v, "avg": round(v["total"] / v["count"], 2)} for v in by_label.values()],
