@@ -22,24 +22,37 @@ def get_stats(
     months_q = months_q.order_by(models.Month.year, models.Month.month).all()
 
     if not months_q:
-        return {"by_category": [], "top_recurring": [], "by_label": [], "by_month": []}
+        return {"by_category": [], "top_recurring": [], "by_label": [], "by_month": [], "by_month_actual": []}
 
     charges = [c for m in months_q for c in m.charges]
 
-    cat_totals: dict[str, float] = {}
+    # Budget (charges prévisionnelles) par catégorie
+    cat_budget: dict[str, float] = {}
     for c in charges:
         key = c.category if c.category else "Autre"
-        cat_totals[key] = round(cat_totals.get(key, 0) + effective_amount(c), 2)
+        cat_budget[key] = round(cat_budget.get(key, 0) + effective_amount(c), 2)
+
+    # Réel (transactions bancaires) par catégorie
+    cat_actual: dict[str, float] = {}
     for m in months_q:
         for tx in m.bank_transactions:
             if tx.category:
-                cat_totals[tx.category] = round(cat_totals.get(tx.category, 0) + tx.amount, 2)
+                cat_actual[tx.category] = round(cat_actual.get(tx.category, 0) + tx.amount, 2)
 
-    grand_total = sum(cat_totals.values())
+    all_cats = sorted(set(cat_budget.keys()) | set(cat_actual.keys()))
+    grand_budget = sum(cat_budget.values()) or 1
     by_category = sorted(
-        [{"category": cat, "total": total, "pct": round(total / grand_total * 100, 1) if grand_total else 0}
-         for cat, total in cat_totals.items()],
-        key=lambda x: x["total"], reverse=True,
+        [
+            {
+                "category": cat,
+                "budget":   round(cat_budget.get(cat, 0), 2),
+                "actual":   round(cat_actual.get(cat, 0), 2),
+                "delta":    round(cat_actual.get(cat, 0) - cat_budget.get(cat, 0), 2),
+                "pct":      round(cat_budget.get(cat, 0) / grand_budget * 100, 1),
+            }
+            for cat in all_cats
+        ],
+        key=lambda x: x["budget"], reverse=True,
     )
 
     # by_label : transactions bancaires uniquement (pas les charges prévisionnelles)
@@ -65,15 +78,28 @@ def get_stats(
 
     top_recurring = []  # rétrocompatibilité
 
+    # by_month : charges uniquement (pour le graphe d'évolution)
     by_month = []
     for m in months_q:
         row = {"label": m.label}
         for c in m.charges:
             key = c.category if c.category else "Autre"
             row[key] = round(row.get(key, 0) + effective_amount(c), 2)
+        by_month.append(row)
+
+    # by_month_actual : transactions bancaires uniquement (pour "Par catégorie" filtré par mois)
+    by_month_actual = []
+    for m in months_q:
+        row = {"label": m.label}
         for tx in m.bank_transactions:
             if tx.category:
                 row[tx.category] = round(row.get(tx.category, 0) + tx.amount, 2)
-        by_month.append(row)
+        by_month_actual.append(row)
 
-    return {"by_category": by_category, "top_recurring": top_recurring, "by_label": top_by_label, "by_month": by_month}
+    return {
+        "by_category":      by_category,
+        "top_recurring":    top_recurring,
+        "by_label":         top_by_label,
+        "by_month":         by_month,
+        "by_month_actual":  by_month_actual,
+    }
