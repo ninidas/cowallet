@@ -78,8 +78,7 @@
     "has_account": "Déjà un compte ?",
     "login_link": "Se connecter",
     "privacy": "Vos données sont privées et accessibles uniquement à vous et votre partenaire.",
-    "error_password_short": "Mot de passe trop court (8 caractères min.)",
-    "error_password_no_digit": "Le mot de passe doit contenir au moins un chiffre",
+    "error_password_short": "Mot de passe trop court (12 caractères min.)",
     "error_password_mismatch": "Les mots de passe ne correspondent pas"
   },
   "months": {
@@ -381,15 +380,15 @@
   "errors": {
     "invalid_credentials":        "Identifiants incorrects",
     "username_required":          "Identifiant requis",
-    "password_too_short":         "Mot de passe trop court (8 caractères min.)",
-    "password_no_digit":          "Le mot de passe doit contenir au moins un chiffre",
+    "password_too_short":         "Mot de passe trop court (12 caractères min.)",
     "username_taken":             "Cet identifiant est déjà pris",
     "invalid_password":           "Mot de passe incorrect",
     "name_empty":                 "Le prénom ne peut pas être vide",
     "name_taken":                 "Ce prénom est déjà utilisé",
     "current_password_required":  "Mot de passe actuel requis",
     "current_password_invalid":   "Mot de passe actuel incorrect",
-    "new_password_too_short":     "Le nouveau mot de passe est trop court",
+    "new_password_too_short":     "Le nouveau mot de passe est trop court (12 caractères min.)",
+    "registration_closed":        "Les inscriptions sont fermées sur cette instance.",
     "already_have_group":         "Vous avez déjà un groupe",
     "invalid_invite_code":        "Code d'invitation invalide",
     "group_full":                 "Ce groupe est déjà complet",
