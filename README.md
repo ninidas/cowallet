@@ -6,6 +6,8 @@
 
 Most finance apps are built for one person. CoWallet is built for two. A self-hosted shared dashboard to track expenses, plan ahead, and stay aligned on your budget.
 
+*An open source, Docker-deployable expense tracker for couples. Budget planning, bank sync, and real-time notifications. Installable on iOS and Android.*
+
 ## Features
 
 ### Budget & Expenses
@@ -146,6 +148,7 @@ All variables are optional. The app runs without any of them.
 | `PUID` | User ID to run the backend process as (default: 0 / root) |
 | `PGID` | Group ID to run the backend process as (default: 0 / root) |
 | `APP_LANG` | Default language for seeded data: `en` (default) or `fr`. Sets the language of default categories and payment methods on first setup. |
+| `MAX_GROUPS` | Maximum number of groups allowed to register. Defaults to `1`. Set to a higher value to allow multiple couples on the same instance. |
 | `ENABLEBANKING_APP_ID` | Enable Banking app ID - required for bank sync |
 | `ENABLEBANKING_PRIVATE_KEY_PATH` | Path to the RSA private key inside the container - required for bank sync |
 
