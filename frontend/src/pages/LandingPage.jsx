@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { api } from '../api'
 
 export default function LandingPage() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [inviteInfo, setInviteInfo] = useState(null)
+  const [registrationOpen, setRegistrationOpen] = useState(false)
 
   useEffect(() => {
     const code = sessionStorage.getItem('invite_code')
@@ -14,6 +16,10 @@ export default function LandingPage() {
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setInviteInfo(data) })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    api.registrationStatus().then(d => setRegistrationOpen(d.open)).catch(() => {})
   }, [])
 
   const FEATURES = [
@@ -108,12 +114,14 @@ export default function LandingPage() {
           )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {inviteInfo ? (
-              <button
-                onClick={() => navigate('/register')}
-                className="px-8 py-4 bg-white text-violet-700 font-bold rounded-2xl shadow-lg active:scale-95 transition text-lg"
-              >
-                {t('landing.cta_register_invite')}
-              </button>
+              registrationOpen && (
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-8 py-4 bg-white text-violet-700 font-bold rounded-2xl shadow-lg active:scale-95 transition text-lg"
+                >
+                  {t('landing.cta_register_invite')}
+                </button>
+              )
             ) : (
               <>
                 <button
@@ -122,12 +130,14 @@ export default function LandingPage() {
                 >
                   {t('landing.cta_login')}
                 </button>
-                <button
-                  onClick={() => navigate('/register')}
-                  className="px-8 py-4 bg-white/15 text-white font-bold rounded-2xl border border-white/30 active:scale-95 transition text-lg backdrop-blur-sm"
-                >
-                  {t('landing.cta_register')}
-                </button>
+                {registrationOpen && (
+                  <button
+                    onClick={() => navigate('/register')}
+                    className="px-8 py-4 bg-white/15 text-white font-bold rounded-2xl border border-white/30 active:scale-95 transition text-lg backdrop-blur-sm"
+                  >
+                    {t('landing.cta_register')}
+                  </button>
+                )}
               </>
             )}
           </div>

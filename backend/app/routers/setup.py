@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -12,6 +14,13 @@ router = APIRouter(prefix="/setup", tags=["setup"])
 def setup_status(db: Session = Depends(get_db)):
     needed = db.query(models.User).count() == 0
     return schemas.SetupStatus(needed=needed)
+
+
+@router.get("/registration-status")
+def registration_status(db: Session = Depends(get_db)):
+    max_groups = int(os.getenv("MAX_GROUPS", "1"))
+    group_count = db.query(models.Group).count()
+    return {"open": group_count < max_groups}
 
 
 @router.post("", status_code=201)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
@@ -13,6 +13,11 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [registrationOpen, setRegistrationOpen] = useState(false)
+
+  useEffect(() => {
+    api.registrationStatus().then(d => setRegistrationOpen(d.open)).catch(() => {})
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -89,10 +94,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-slate-500 mt-6">
-          {t('login.no_account')}{' '}
-          <Link to="/register" className="text-violet-600 font-medium">{t('login.btn_register')}</Link>
-        </p>
+        {registrationOpen && (
+          <p className="text-center text-sm text-slate-500 mt-6">
+            {t('login.no_account')}{' '}
+            <Link to="/register" className="text-violet-600 font-medium">{t('login.btn_register')}</Link>
+          </p>
+        )}
       </div>
     </div>
   )
