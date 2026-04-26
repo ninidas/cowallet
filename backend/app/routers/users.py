@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -17,12 +19,15 @@ class DeleteAccountRequest(BaseModel):
 def register(body: schemas.RegisterRequest, db: Session = Depends(get_db)):
     if not body.username.strip():
         raise HTTPException(status_code=400, detail="Username is required")
-    if len(body.password) < 8:
-        raise HTTPException(status_code=400, detail="Password too short (8 characters min.)")
-    if not any(c.isdigit() for c in body.password):
-        raise HTTPException(status_code=400, detail="Password must contain at least one digit")
+    if len(body.password) < 12:
+        raise HTTPException(status_code=400, detail="Password too short (12 characters min.)")
     if db.query(models.User).filter_by(username=body.username.strip()).first():
         raise HTTPException(status_code=409, detail="Username already taken")
+
+    max_groups = int(os.getenv("MAX_GROUPS", "1"))
+    group_count = db.query(models.Group).count()
+    if group_count >= max_groups:
+        raise HTTPException(status_code=403, detail="Registration is closed: maximum number of groups reached")
 
     user = models.User(username=body.username.strip(), password_hash=hash_password(body.password))
     db.add(user)

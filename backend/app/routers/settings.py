@@ -48,8 +48,8 @@ def update_settings(
             raise HTTPException(status_code=400, detail="Current password is required")
         if not verify_password(body.current_password, current_user.password_hash):
             raise HTTPException(status_code=400, detail="Invalid current password")
-        if len(body.new_password) < 8 or not any(c.isdigit() for c in body.new_password):
-            raise HTTPException(status_code=400, detail="Password must be at least 8 characters and contain a digit")
+        if len(body.new_password) < 12:
+            raise HTTPException(status_code=400, detail="Password must be at least 12 characters")
         current_user.password_hash = hash_password(body.new_password)
 
     if body.default_user1_share is not None:

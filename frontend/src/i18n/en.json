@@ -78,8 +78,7 @@
     "has_account": "Already have an account?",
     "login_link": "Sign in",
     "privacy": "Your data is private and only accessible to you and your partner.",
-    "error_password_short": "Password too short (8 characters min.)",
-    "error_password_no_digit": "Password must contain at least one number",
+    "error_password_short": "Password too short (12 characters min.)",
     "error_password_mismatch": "Passwords do not match"
   },
   "months": {
@@ -381,15 +380,15 @@
   "errors": {
     "invalid_credentials":        "Invalid credentials",
     "username_required":          "Username is required",
-    "password_too_short":         "Password too short (8 characters min.)",
-    "password_no_digit":          "Password must contain at least one digit",
+    "password_too_short":         "Password too short (12 characters min.)",
     "username_taken":             "Username already taken",
     "invalid_password":           "Invalid password",
     "name_empty":                 "Name cannot be empty",
     "name_taken":                 "Name already in use",
     "current_password_required":  "Current password is required",
     "current_password_invalid":   "Invalid current password",
-    "new_password_too_short":     "New password is too short",
+    "new_password_too_short":     "New password is too short (12 characters min.)",
+    "registration_closed":        "Registrations are closed on this instance.",
     "already_have_group":         "You already have a group",
     "invalid_invite_code":        "Invalid invite code",
     "group_full":                 "Group is already full",

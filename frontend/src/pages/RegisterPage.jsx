@@ -18,8 +18,7 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
-    if (password.length < 8) { setError(t('register.error_password_short')); return }
-    if (!/\d/.test(password)) { setError(t('register.error_password_no_digit')); return }
+    if (password.length < 12) { setError(t('register.error_password_short')); return }
     if (password !== confirm) { setError(t('register.error_password_mismatch')); return }
     setLoading(true)
     try {

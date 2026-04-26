@@ -9,5 +9,6 @@ services:
       - PUID=1000
       - PGID=1000
       - APP_LANG=en  # Default language for seeded data: en or fr
+      # - MAX_GROUPS=1  # Max number of couples allowed (default: 1, set higher to allow more)
     volumes:
       - <host_folder_data>:/data

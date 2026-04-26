@@ -1,8 +1,7 @@
 const ERROR_KEYS = {
   'Invalid credentials':               'invalid_credentials',
   'Username is required':              'username_required',
-  'Password too short (8 characters min.)': 'password_too_short',
-  'Password must contain at least one digit': 'password_no_digit',
+  'Password too short (12 characters min.)': 'password_too_short',
   'Username already taken':            'username_taken',
   'Invalid password':                  'invalid_password',
   'Name cannot be empty':              'name_empty',
@@ -10,6 +9,8 @@ const ERROR_KEYS = {
   'Current password is required':      'current_password_required',
   'Invalid current password':          'current_password_invalid',
   'New password is too short':         'new_password_too_short',
+  'Password must be at least 12 characters': 'new_password_too_short',
+  'Registration is closed: maximum number of groups reached': 'registration_closed',
   'You already have a group':          'already_have_group',
   'Invalid invite code':               'invalid_invite_code',
   'Group is already full':             'group_full',
