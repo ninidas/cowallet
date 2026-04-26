@@ -63,8 +63,9 @@ async function request(path, options = {}) {
 
 export const api = {
   getConfig:       ()           => request('/config'),
-  setupStatus:     ()           => request('/setup/status'),
-  setup:           (data)       => request('/setup', { method: 'POST', body: JSON.stringify(data) }),
+  setupStatus:          ()      => request('/setup/status'),
+  registrationStatus:   ()      => request('/setup/registration-status'),
+  setup:                (data)  => request('/setup', { method: 'POST', body: JSON.stringify(data) }),
   login:           (u, p)       => request('/auth/login', { method: 'POST', body: JSON.stringify({ username: u, password: p }) }),
   register:        (u, p)       => request('/users/register', { method: 'POST', body: JSON.stringify({ username: u, password: p }) }),
   deleteAccount:   (password)   => request('/users/me', { method: 'DELETE', body: JSON.stringify({ password }) }),
