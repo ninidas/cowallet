@@ -53,7 +53,7 @@ function Input({ ...props }) {
 export default function SettingsPage() {
   const { t, i18n } = useTranslation()
   const navigate   = useNavigate()
-  const { user, config, logout, refreshConfig } = useAuth()
+  const { user, config, logout, refreshConfig, updateUsername } = useAuth()
   const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePush()
   const [username,        setUsername]        = useState(user?.username ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -185,6 +185,7 @@ export default function SettingsPage() {
       if (Object.keys(payload).length > 0) await api.updateSettings(payload)
       if (nameChanged) await api.renameGroup(groupName.trim())
       if (currencyChanged) await api.updateCurrency(currency)
+      if (payload.username) updateUsername(payload.username)
       await refreshConfig()
       setSuccess(t('settings.success_saved'))
       setCurrentPassword('')
@@ -365,7 +366,7 @@ export default function SettingsPage() {
                   {['EUR','USD','GBP','CHF','CAD','AUD','JPY','SEK','NOK','DKK','PLN','CZK'].map(code => {
                     const symbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: code })
                       .formatToParts(0).find(p => p.type === 'currency')?.value || code
-                    return <option key={code} value={code}>{code} — {symbol}</option>
+                    return <option key={code} value={code}>{code} ({symbol})</option>
                   })}
                 </select>
               </Field>
