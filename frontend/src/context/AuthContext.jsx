@@ -58,6 +58,12 @@ export function AuthProvider({ children }) {
     return cfg
   }
 
+  function updateUsername(newUsername) {
+    const updated = { ...user, username: newUsername }
+    localStorage.setItem('user', JSON.stringify(updated))
+    setUser(updated)
+  }
+
   // Détermine si l'utilisateur connecté est user1 ou user2
   function getMyUserKey() {
     if (!user || !config) return null
@@ -69,7 +75,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, config, ready, login, logout, getMyUserKey, refreshConfig, darkMode, toggleDarkMode }}>
+    <AuthContext.Provider value={{ user, config, ready, login, logout, getMyUserKey, refreshConfig, updateUsername, darkMode, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   )
