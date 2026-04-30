@@ -17,4 +17,4 @@ def login(request: Request, body: schemas.LoginRequest, db: Session = Depends(ge
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants incorrects")
 
     token = create_access_token(user.id, user.username)
-    return schemas.TokenResponse(access_token=token, user_id=user.id, username=user.username)
+    return schemas.TokenResponse(access_token=token, user_id=user.id, username=user.username, display_name=user.get_display_name())

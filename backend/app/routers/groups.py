@@ -62,7 +62,7 @@ def get_invite_info(code: str, db: Session = Depends(get_db)):
     if not group or group.user2_id is not None:
         raise HTTPException(status_code=404, detail="Invalid or expired invitation")
     return {
-        "inviter": group.user1.username,
+        "inviter": group.user1.get_display_name(),
         "group_name": group.name if group.name not in DEFAULT_GROUP_NAMES.values() else None,
     }
 
@@ -174,7 +174,9 @@ def _to_out(group: models.Group) -> schemas.GroupOut:
         default_share=group.default_share,
         currency=group.currency,
         user1_id=group.user1_id,
-        user1_username=group.user1.username,
+        user1_username=group.user1.get_display_name(),
+        user1_login=group.user1.username,
         user2_id=group.user2_id,
-        user2_username=group.user2.username if group.user2 else None,
+        user2_username=group.user2.get_display_name() if group.user2 else None,
+        user2_login=group.user2.username if group.user2 else None,
     )

@@ -37,6 +37,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user_id: int
     username: str
+    display_name: Optional[str] = None
     group_id: Optional[int] = None
 
 
@@ -71,8 +72,10 @@ class GroupOut(BaseModel):
     currency: str = "EUR"
     user1_id: int
     user1_username: str
+    user1_login: Optional[str] = None
     user2_id: Optional[int] = None
     user2_username: Optional[str] = None
+    user2_login: Optional[str] = None
 
     class Config:
         from_attributes = True
