@@ -200,7 +200,7 @@ def update_transfer(
         if partner_id:
             send_notification(
                 db, partner_id,
-                title=NOTIF_TRANSFERRED.get(APP_LANG, NOTIF_TRANSFERRED["en"]).format(user=current_user.username, label=month.label),
+                title=NOTIF_TRANSFERRED.get(APP_LANG, NOTIF_TRANSFERRED["en"]).format(user=current_user.get_display_name(), label=month.label),
                 body="",
                 url=f"/months/{month.id}",
             )

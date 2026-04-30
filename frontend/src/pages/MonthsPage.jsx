@@ -151,7 +151,7 @@ export default function MonthsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-violet-200 text-sm">{t('months.hello')}</p>
-              <h1 className="text-2xl font-bold text-white capitalize">{user?.username}</h1>
+              <h1 className="text-2xl font-bold text-white capitalize">{user?.displayName ?? user?.username}</h1>
               {config?.group_name && (
                 <p className="text-violet-300 text-sm font-medium mt-0.5">{config.group_name}</p>
               )}
@@ -225,10 +225,10 @@ export default function MonthsPage() {
             <h3 className="text-xl font-bold text-slate-800 mb-2 text-center">
               {config?.user2_username
                 ? t('months.empty_welcome_two', {
-                    user1: user?.username,
-                    user2: user?.username === config.user1_username ? config.user2_username : config.user1_username
+                    user1: user?.displayName ?? user?.username,
+                    user2: user?.username === (config.user1_login ?? config.user1_username) ? config.user2_username : config.user1_username
                   })
-                : t('months.empty_welcome', { name: user?.username })}
+                : t('months.empty_welcome', { name: user?.displayName ?? user?.username })}
             </h3>
             <p className="text-slate-500 text-sm text-center max-w-xs mb-7">
               {t('months.empty_hint')}
