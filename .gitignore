@@ -30,16 +30,7 @@ build/
 .DS_Store
 Thumbs.db
 
-# Local scripts
-deploy.sh
-redeploy-vscode.sh
-backup.sh
-backups/
-docker-compose.dev.yml
-docker-compose.yml
 
-# Claude Code memory
-memory/
 # Images à la racine
 /*.png
 /*.jpg
