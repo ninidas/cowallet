@@ -3,9 +3,9 @@ import logging
 
 APP_LANG = os.environ.get("APP_LANG", "en").lower()
 
-NOTIF_VALIDATED = {
-    "en": "{user} validated {label}",
-    "fr": "{user} a validé {label}",
+NOTIF_TRANSFERRED = {
+    "en": "{user} made the transfer for {label}",
+    "fr": "{user} a effectué le virement pour {label}",
 }
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -176,17 +176,35 @@ def get_month(month_id: int, db: Session = Depends(get_db), group: models.Group 
 @router.patch("/{month_id}/transfer", response_model=schemas.MonthDetail)
 def update_transfer(
     month_id: int, body: schemas.TransferUpdate,
-    db: Session = Depends(get_db), group: models.Group = Depends(get_current_group),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+    group: models.Group = Depends(get_current_group),
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
     if not month:
         raise HTTPException(status_code=404, detail="Month not found")
+
+    is_user1 = group.user1_id == current_user.id
+    prev_transferred = month.user1_transferred if is_user1 else month.user2_transferred
+
     if body.user1_transferred is not None:
         month.user1_transferred = body.user1_transferred
     if body.user2_transferred is not None:
         month.user2_transferred = body.user2_transferred
     db.commit()
     db.refresh(month)
+
+    new_transferred = month.user1_transferred if is_user1 else month.user2_transferred
+    if not prev_transferred and new_transferred:
+        partner_id = group.user2_id if is_user1 else group.user1_id
+        if partner_id:
+            send_notification(
+                db, partner_id,
+                title=NOTIF_TRANSFERRED.get(APP_LANG, NOTIF_TRANSFERRED["en"]).format(user=current_user.username, label=month.label),
+                body="",
+                url=f"/months/{month.id}",
+            )
+
     return _to_detail(month, db)
 
 
@@ -219,21 +237,6 @@ def validate_month(
     month.validated_by = None if month.validated_by == current_user.id else current_user.id
     db.commit()
     db.refresh(month)
-
-    # Notifier le partenaire si validation (pas dévalidation)
-    logger.info("validate_month: validated_by=%s current_user=%s group=%s/%s", month.validated_by, current_user.id, group.user1_id, group.user2_id)
-    if month.validated_by == current_user.id:
-        partner_id = group.user2_id if group.user1_id == current_user.id else group.user1_id
-        logger.info("validate_month: sending notif to partner_id=%s", partner_id)
-        if partner_id:
-            totals = compute_totals(month)
-            send_notification(
-                db, partner_id,
-                title=NOTIF_VALIDATED.get(APP_LANG, NOTIF_VALIDATED["en"]).format(user=current_user.username, label=month.label),
-                body="",
-                url=f"/months/{month.id}",
-            )
-
     return _to_detail(month, db)
 
 
