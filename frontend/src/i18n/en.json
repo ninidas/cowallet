@@ -85,7 +85,7 @@
     "hello": "Hello,",
     "in_progress": "Active",
     "validated": "✓ Validated",
-    "closed": "✓ Closed",
+    "closed": "✓ Settled",
     "per_person": "Individual share",
     "select": "Select",
     "select_months": "Select months",
