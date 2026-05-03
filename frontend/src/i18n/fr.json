@@ -208,7 +208,14 @@
     "section_month_detail": "Détail par mois",
     "section_recurring": "Charges fixes, top coûts",
     "recurring_months": "{{count}} mois · moy.",
-    "each_person": "{{amount}} chacun"
+    "each_person": "{{amount}} chacun",
+    "based_on_actuals": "Basé sur les dépenses réelles",
+    "no_category_data": "pas de données",
+    "planned": "Prévu",
+    "actual": "Réel",
+    "no_expenses_short": "Aucune dépense",
+    "count_avg": "{{count}}x · moy. {{avg}}",
+    "all": "Tous"
   },
   "budget": {
     "type_income": "Revenus",

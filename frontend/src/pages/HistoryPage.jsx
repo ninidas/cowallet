@@ -275,7 +275,7 @@ export default function HistoryPage() {
                       {t('history.tab_by_label')}
                     </button>
                   </div>
-                  <p className="text-xs text-slate-400 text-center">Basé sur les dépenses réelles</p>
+                  <p className="text-xs text-slate-400 text-center">{t('history.based_on_actuals')}</p>
                 </div>
 
                 {breakdownTab === 'category' && (() => {
@@ -319,7 +319,7 @@ export default function HistoryPage() {
                           onClick={() => { setSelectedMonth('all'); setExpandedLabel(null) }}
                           className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonthCat ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
                         >
-                          Tous
+                          {t('history.all')}
                         </button>
                         {[...filtered].reverse().map(m => (
                           <button
@@ -351,7 +351,7 @@ export default function HistoryPage() {
                                   </span>
                                 )}
                                 {!hasActual && (
-                                  <span className="text-xs text-slate-300 italic">pas de données</span>
+                                  <span className="text-xs text-slate-300 italic">{t('history.no_category_data')}</span>
                                 )}
                               </div>
                               {/* Barre */}
@@ -363,8 +363,8 @@ export default function HistoryPage() {
                               </div>
                               {/* Ligne 2 : prévu → réel */}
                               <div className="flex items-center justify-between ml-7">
-                                <span className="text-xs text-slate-400">Prévu <span className="font-medium text-slate-500 tabular-nums">{fmtShort(budget)}</span></span>
-                                <span className="text-xs text-slate-400">Réel <span className={`font-bold tabular-nums ${hasActual ? 'text-slate-700' : 'text-slate-300'}`}>{fmtShort(actual)}</span></span>
+                                <span className="text-xs text-slate-400">{t('history.planned')} <span className="font-medium text-slate-500 tabular-nums">{fmtShort(budget)}</span></span>
+                                <span className="text-xs text-slate-400">{t('history.actual')} <span className={`font-bold tabular-nums ${hasActual ? 'text-slate-700' : 'text-slate-300'}`}>{fmtShort(actual)}</span></span>
                               </div>
                             </div>
                           )
@@ -429,7 +429,7 @@ export default function HistoryPage() {
                           onClick={() => { setSelectedMonth('all'); setExpandedLabel(null) }}
                           className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition ${!activeMonth ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-500'}`}
                         >
-                          Tous
+                          {t('history.all')}
                         </button>
                         {[...filtered].reverse().map(m => (
                           <button
@@ -444,7 +444,7 @@ export default function HistoryPage() {
                       {/* Liste top 10 */}
                       <div className="divide-y divide-slate-50">
                         {byLabelForView.length === 0 ? (
-                          <p className="px-4 py-6 text-sm text-slate-400 text-center">Aucune dépense</p>
+                          <p className="px-4 py-6 text-sm text-slate-400 text-center">{t('history.no_expenses_short')}</p>
                         ) : byLabelForView.map((c, i) => {
                           const isExpanded = expandedLabel === i
                           return (
@@ -455,7 +455,7 @@ export default function HistoryPage() {
                               >
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-slate-800 truncate">{c.label}</p>
-                                  <p className="text-xs text-slate-400 mt-0.5">{c.count}x · moy. {fmt(c.avg)}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5">{t('history.count_avg', { count: c.count, avg: fmt(c.avg) })}</p>
                                 </div>
                                 <p className="text-sm font-bold text-slate-700 tabular-nums shrink-0">{fmtShort(c.total)}</p>
                                 {!activeMonth && (
