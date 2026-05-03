@@ -208,7 +208,14 @@
     "section_month_detail": "Monthly detail",
     "section_recurring": "Fixed costs, top expenses",
     "recurring_months": "{{count}} months · avg.",
-    "each_person": "{{amount}} each"
+    "each_person": "{{amount}} each",
+    "based_on_actuals": "Based on actual spending",
+    "no_category_data": "No data",
+    "planned": "Planned",
+    "actual": "Actual",
+    "no_expenses_short": "No expenses",
+    "count_avg": "{{count}}x · avg. {{avg}}",
+    "all": "All"
   },
   "budget": {
     "type_income": "Income",
