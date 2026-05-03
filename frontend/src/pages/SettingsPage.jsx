@@ -53,9 +53,9 @@ function Input({ ...props }) {
 export default function SettingsPage() {
   const { t, i18n } = useTranslation()
   const navigate   = useNavigate()
-  const { user, config, logout, refreshConfig, updateUsername } = useAuth()
+  const { user, config, logout, refreshConfig, updateDisplayName } = useAuth()
   const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePush()
-  const [username,        setUsername]        = useState(user?.username ?? '')
+  const [username,        setUsername]        = useState(user?.displayName ?? user?.username ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword,     setNewPassword]     = useState('')
   const [share,           setShare]           = useState(config?.default_user1_share ?? 50)
@@ -66,7 +66,7 @@ export default function SettingsPage() {
   const [error,   setError]   = useState('')
 
   const hasChanges = (
-    username.trim() !== (user?.username ?? '') ||
+    username.trim() !== (user?.displayName ?? user?.username ?? '') ||
     !!newPassword ||
     share !== (config?.default_user1_share ?? 50) ||
     (groupName.trim() !== '' && groupName.trim() !== (config?.group_name ?? '')) ||
@@ -168,7 +168,7 @@ export default function SettingsPage() {
     setError('')
     setSuccess('')
     const payload = {}
-    if (username.trim() !== user?.username) payload.username = username.trim()
+    if (username.trim() !== (user?.displayName ?? user?.username ?? '')) payload.display_name = username.trim()
     if (newPassword) {
       payload.current_password = currentPassword
       payload.new_password     = newPassword
@@ -185,7 +185,7 @@ export default function SettingsPage() {
       if (Object.keys(payload).length > 0) await api.updateSettings(payload)
       if (nameChanged) await api.renameGroup(groupName.trim())
       if (currencyChanged) await api.updateCurrency(currency)
-      if (payload.username) updateUsername(payload.username)
+      if (payload.display_name) updateDisplayName(payload.display_name)
       await refreshConfig()
       setSuccess(t('settings.success_saved'))
       setCurrentPassword('')

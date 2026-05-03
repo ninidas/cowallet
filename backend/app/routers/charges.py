@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -6,6 +7,38 @@ from typing import List
 from ..database import get_db
 from .. import models, schemas
 from ..auth import get_current_user, get_current_group
+from .push import send_notification
+
+APP_LANG = os.environ.get("APP_LANG", "en").lower()
+
+NOTIF_CHARGE_ADDED = {
+    "en": "{user} added '{label}' ({amount}€) on {month}",
+    "fr": "{user} a ajouté '{label}' ({amount}€) sur {month}",
+}
+NOTIF_CHARGE_UPDATED = {
+    "en": "{user} updated '{label}' from {old}€ to {new}€. Your share: {delta:+.0f}€",
+    "fr": "{user} a modifié '{label}' de {old}€ à {new}€. Ta part : {delta:+.0f}€",
+}
+NOTIF_CHARGE_DELETED = {
+    "en": "{user} deleted '{label}' ({amount}€) on {month}",
+    "fr": "{user} a supprimé '{label}' ({amount}€) sur {month}",
+}
+
+
+def _both_transferred(month: models.Month) -> bool:
+    return bool(month.user1_transferred and month.user2_transferred)
+
+
+def _partner_id(group: models.Group, current_user_id: int):
+    return group.user2_id if group.user1_id == current_user_id else group.user1_id
+
+
+def _partner_share(group: models.Group, month: models.Month, current_user_id: int) -> float:
+    """Retourne la part (0-1) du partenaire."""
+    user1_share = month.user1_share / 100
+    if group.user1_id == current_user_id:
+        return 1 - user1_share  # partenaire = user2
+    return user1_share  # partenaire = user1
 
 router = APIRouter(tags=["charges"])
 
@@ -34,6 +67,7 @@ def add_charge(
     month_id: int,
     body: schemas.ChargeCreate,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
     group: models.Group = Depends(get_current_group),
 ):
     month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
@@ -89,13 +123,31 @@ def add_charge(
 
     db.commit()
     db.refresh(charge)
+
+    if _both_transferred(month):
+        partner_id = _partner_id(group, current_user.id)
+        if partner_id:
+            send_notification(
+                db, partner_id,
+                title=NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
+                    user=current_user.get_display_name(),
+                    label=charge.label,
+                    amount=charge.amount,
+                    month=month.label,
+                ),
+                body="",
+                url=f"/months/{month.id}",
+            )
+
     return charge
 
 
 @router.put("/charges/{charge_id}", response_model=schemas.ChargeOut)
 def update_charge(
     charge_id: int, body: schemas.ChargeUpdate,
-    db: Session = Depends(get_db), group: models.Group = Depends(get_current_group),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+    group: models.Group = Depends(get_current_group),
 ):
     group_month_ids = [m.id for m in db.query(models.Month).filter_by(group_id=group.id).all()]
     charge = db.query(models.Charge).filter(
@@ -103,10 +155,33 @@ def update_charge(
     ).first()
     if not charge:
         raise HTTPException(status_code=404, detail="Charge not found")
+
+    old_amount = charge.amount
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(charge, field, value)
     db.commit()
     db.refresh(charge)
+
+    new_amount = charge.amount
+    if _both_transferred(db.query(models.Month).filter_by(id=charge.month_id).first()):
+        month = db.query(models.Month).filter_by(id=charge.month_id).first()
+        partner_id = _partner_id(group, current_user.id)
+        if partner_id and old_amount != new_amount:
+            partner_share = _partner_share(group, month, current_user.id)
+            delta = (new_amount - old_amount) * partner_share
+            send_notification(
+                db, partner_id,
+                title=NOTIF_CHARGE_UPDATED.get(APP_LANG, NOTIF_CHARGE_UPDATED["en"]).format(
+                    user=current_user.get_display_name(),
+                    label=charge.label,
+                    old=old_amount,
+                    new=new_amount,
+                    delta=delta,
+                ),
+                body="",
+                url=f"/months/{month.id}",
+            )
+
     return charge
 
 
@@ -153,7 +228,9 @@ def fix_installments(
 @router.delete("/charges/{charge_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_charge(
     charge_id: int,
-    db: Session = Depends(get_db), group: models.Group = Depends(get_current_group),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+    group: models.Group = Depends(get_current_group),
 ):
     group_month_ids = [m.id for m in db.query(models.Month).filter_by(group_id=group.id).all()]
     charge = db.query(models.Charge).filter(
@@ -161,5 +238,25 @@ def delete_charge(
     ).first()
     if not charge:
         raise HTTPException(status_code=404, detail="Charge not found")
+
+    month = db.query(models.Month).filter_by(id=charge.month_id).first()
+    label, amount, month_label, month_id = charge.label, charge.amount, month.label, month.id
+    both_done = _both_transferred(month)
+
     db.delete(charge)
     db.commit()
+
+    if both_done:
+        partner_id = _partner_id(group, current_user.id)
+        if partner_id:
+            send_notification(
+                db, partner_id,
+                title=NOTIF_CHARGE_DELETED.get(APP_LANG, NOTIF_CHARGE_DELETED["en"]).format(
+                    user=current_user.get_display_name(),
+                    label=label,
+                    amount=amount,
+                    month=month_label,
+                ),
+                body="",
+                url=f"/months/{month_id}",
+            )

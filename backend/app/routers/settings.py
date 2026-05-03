@@ -11,7 +11,7 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class SettingsUpdate(BaseModel):
-    username:             Optional[str] = None
+    display_name:         Optional[str] = None
     current_password:     Optional[str] = None
     new_password:         Optional[str] = None
     default_user1_share:  Optional[int] = None
@@ -31,17 +31,11 @@ def update_settings(
     current_user: models.User = Depends(get_current_user),
     group: models.Group = Depends(get_current_group),
 ):
-    if body.username is not None:
-        name = body.username.strip()
+    if body.display_name is not None:
+        name = body.display_name.strip()
         if not name:
             raise HTTPException(status_code=400, detail="Name cannot be empty")
-        existing = db.query(models.User).filter(
-            models.User.username == name,
-            models.User.id != current_user.id,
-        ).first()
-        if existing:
-            raise HTTPException(status_code=400, detail="Name already in use")
-        current_user.username = name
+        current_user.display_name = name
 
     if body.new_password is not None:
         if not body.current_password:
@@ -57,4 +51,4 @@ def update_settings(
 
     db.commit()
     db.refresh(current_user)
-    return {"username": current_user.username}
+    return {"display_name": current_user.get_display_name()}

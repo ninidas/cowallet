@@ -7,9 +7,13 @@ from .database import Base
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
+    id            = Column(Integer, primary_key=True, index=True)
+    username      = Column(String, unique=True, index=True, nullable=False)
+    display_name  = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
+
+    def get_display_name(self):
+        return self.display_name if self.display_name else self.username
 
 
 class AppConfig(Base):

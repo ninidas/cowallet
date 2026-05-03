@@ -36,7 +36,7 @@ def register(body: schemas.RegisterRequest, db: Session = Depends(get_db)):
 
     from ..auth import create_access_token
     token = create_access_token(user.id, user.username)
-    return schemas.TokenResponse(access_token=token, user_id=user.id, username=user.username)
+    return schemas.TokenResponse(access_token=token, user_id=user.id, username=user.username, display_name=user.get_display_name())
 
 
 @router.delete("/me", status_code=204)

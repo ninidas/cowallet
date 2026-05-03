@@ -63,6 +63,13 @@ with engine.connect() as _conn:
     except Exception:
         pass
 
+    # Colonne display_name sur users
+    try:
+        _conn.execute(text("ALTER TABLE users ADD COLUMN display_name TEXT"))
+        _conn.commit()
+    except Exception:
+        pass
+
     # Génération VAPID keys si absentes
     _pub = _conn.execute(text("SELECT value FROM app_config WHERE key='vapid_public'")).fetchone()
     if not _pub:
@@ -325,8 +332,10 @@ def get_config(db: Session = Depends(get_db), current_user: models.User = Depend
                 "group_name":          group.name if group.name not in {"My budget", "Notre budget"} else None,
                 "currency":            group.currency,
                 "invite_code":         group.invite_code if group.user2_id is None else None,
-                "user1_username":      group.user1.username,
-                "user2_username":      group.user2.username if group.user2 else None,
+                "user1_username":      group.user1.get_display_name(),
+                "user1_login":        group.user1.username,
+                "user2_username":      group.user2.get_display_name() if group.user2 else None,
+                "user2_login":        group.user2.username if group.user2 else None,
                 "default_user1_share": group.default_share,
             }
     return {

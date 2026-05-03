@@ -36,9 +36,10 @@ export function AuthProvider({ children }) {
 
   function login(tokenData) {
     const userData = {
-      token:    tokenData.access_token,
-      userId:   tokenData.user_id,
-      username: tokenData.username,
+      token:       tokenData.access_token,
+      userId:      tokenData.user_id,
+      username:    tokenData.username,
+      displayName: tokenData.display_name ?? tokenData.username,
     }
     localStorage.setItem('token', tokenData.access_token)
     localStorage.setItem('user', JSON.stringify(userData))
@@ -58,8 +59,8 @@ export function AuthProvider({ children }) {
     return cfg
   }
 
-  function updateUsername(newUsername) {
-    const updated = { ...user, username: newUsername }
+  function updateDisplayName(newDisplayName) {
+    const updated = { ...user, displayName: newDisplayName }
     localStorage.setItem('user', JSON.stringify(updated))
     setUser(updated)
   }
@@ -67,7 +68,8 @@ export function AuthProvider({ children }) {
   // Détermine si l'utilisateur connecté est user1 ou user2
   function getMyUserKey() {
     if (!user || !config) return null
-    return user.username === config.user1_username ? 'user1' : 'user2'
+    const user1Login = config.user1_login ?? config.user1_username
+    return user.username === user1Login ? 'user1' : 'user2'
   }
 
   function toggleDarkMode() {
@@ -75,7 +77,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, config, ready, login, logout, getMyUserKey, refreshConfig, updateUsername, darkMode, toggleDarkMode }}>
+    <AuthContext.Provider value={{ user, config, ready, login, logout, getMyUserKey, refreshConfig, updateDisplayName, darkMode, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   )
