@@ -84,7 +84,7 @@ export default function Layout({ children }) {
         <div className="pt-8 pb-4 px-4 border-b border-white/10 flex flex-col items-center">
           <img src="/logo-white1.png" alt="CoWallet" className="w-24 object-contain mb-3" />
           <p className="text-white font-bold text-lg">CoWallet</p>
-          <p className="text-violet-200 text-xs capitalize">{user?.username}</p>
+          <p className="text-violet-200 text-xs capitalize">{user?.displayName ?? user?.username}</p>
         </div>
 
         {/* Nav */}
