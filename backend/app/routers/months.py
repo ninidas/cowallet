@@ -7,6 +7,10 @@ NOTIF_TRANSFERRED = {
     "en": "{user} made the transfer for {label}",
     "fr": "{user} a effectué le virement pour {label}",
 }
+NOTIF_MONTH_CREATED = {
+    "en": "{user} created the month {label}",
+    "fr": "{user} a créé le mois {label}",
+}
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -116,7 +120,7 @@ def list_months(db: Session = Depends(get_db), group: models.Group = Depends(get
 
 
 @router.post("", response_model=schemas.MonthDetail, status_code=status.HTTP_201_CREATED)
-def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), group: models.Group = Depends(get_current_group)):
+def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user), group: models.Group = Depends(get_current_group)):
     existing = db.query(models.Month).filter_by(group_id=group.id).filter(
         models.Month.year == body.year, models.Month.month == body.month
     ).first()
@@ -162,6 +166,18 @@ def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), group
 
     db.commit()
     db.refresh(month)
+
+    partner_id = group.user2_id if group.user1_id == current_user.id else group.user1_id
+    if partner_id:
+        send_notification(
+            db, partner_id,
+            title=NOTIF_MONTH_CREATED.get(APP_LANG, NOTIF_MONTH_CREATED["en"]).format(
+                user=current_user.get_display_name(), label=month.label
+            ),
+            body="",
+            url=f"/months/{month.id}",
+        )
+
     return _to_detail(month, db)
 
 
