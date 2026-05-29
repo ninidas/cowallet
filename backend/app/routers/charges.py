@@ -124,20 +124,19 @@ def add_charge(
     db.commit()
     db.refresh(charge)
 
-    if _both_transferred(month):
-        partner_id = _partner_id(group, current_user.id)
-        if partner_id:
-            send_notification(
-                db, partner_id,
-                title=NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
-                    user=current_user.get_display_name(),
-                    label=charge.label,
-                    amount=charge.amount,
-                    month=month.label,
-                ),
-                body="",
-                url=f"/months/{month.id}",
-            )
+    partner_id = _partner_id(group, current_user.id)
+    if partner_id:
+        send_notification(
+            db, partner_id,
+            title=NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
+                user=current_user.get_display_name(),
+                label=charge.label,
+                amount=charge.amount,
+                month=month.label,
+            ),
+            body="",
+            url=f"/months/{month.id}",
+        )
 
     return charge
 
