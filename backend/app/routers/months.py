@@ -99,12 +99,23 @@ def _to_detail(m: models.Month, db: Session = None) -> schemas.MonthDetail:
         if prev:
             prev_lookup = {(c.label, c.category): c.amount for c in prev.charges}
             prev_total  = round(sum(c.amount for c in prev.charges), 2)
+    user1_supplement = None
+    user2_supplement = None
+    if m.total_at_transfer is not None and (m.user1_transferred or m.user2_transferred):
+        delta = round(totals["total"] - m.total_at_transfer, 2)
+        if delta > 0:
+            user1_supplement = round(delta * (m.user1_share / 100), 2)
+            user2_supplement = round(delta * ((100 - m.user1_share) / 100), 2)
+
     return schemas.MonthDetail(
         id=m.id, label=m.label, year=m.year, month=m.month,
         user1_share=m.user1_share, user2_share=100 - m.user1_share,
         user1_transferred=m.user1_transferred,
         user2_transferred=m.user2_transferred,
         validated_by=m.validated_by,
+        total_at_transfer=m.total_at_transfer,
+        user1_supplement=user1_supplement,
+        user2_supplement=user2_supplement,
         prev_total=prev_total,
         charges=_build_charges(m, prev_lookup),
         **totals,
@@ -212,6 +223,11 @@ def update_transfer(
 
     new_transferred = month.user1_transferred if is_user1 else month.user2_transferred
     if not prev_transferred and new_transferred:
+        if month.user1_transferred and month.user2_transferred:
+            totals = compute_totals(month)
+            month.total_at_transfer = totals["total"]
+            db.commit()
+            db.refresh(month)
         partner_id = group.user2_id if is_user1 else group.user1_id
         if partner_id:
             send_notification(
