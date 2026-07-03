@@ -79,6 +79,7 @@ class Month(Base):
     user1_transferred = Column(Boolean, default=False)
     user2_transferred = Column(Boolean, default=False)
     validated_by      = Column(Integer, ForeignKey("users.id"), nullable=True)
+    total_at_transfer = Column(Float, nullable=True)
 
     group             = relationship("Group", back_populates="months")
     charges           = relationship("Charge", back_populates="month", cascade="all, delete-orphan")

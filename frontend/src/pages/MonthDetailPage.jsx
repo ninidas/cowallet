@@ -589,14 +589,14 @@ export default function MonthDetailPage() {
             <div className="flex gap-3">
               <TransferButton
                 name={config?.user1_username ?? 'User 1'}
-                amount={month.user1_to_transfer}
+                amount={month.user1_supplement ?? month.user1_to_transfer}
                 done={month.user1_transferred}
                 onToggle={() => toggleTransfer('user1')}
                 loading={transferLoading}
               />
               <TransferButton
                 name={config?.user2_username ?? 'User 2'}
-                amount={month.user2_to_transfer}
+                amount={month.user2_supplement ?? month.user2_to_transfer}
                 done={month.user2_transferred}
                 onToggle={() => toggleTransfer('user2')}
                 loading={transferLoading}

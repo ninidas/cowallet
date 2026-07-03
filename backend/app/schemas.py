@@ -241,6 +241,9 @@ class MonthDetail(BaseModel):
     user2_due: float
     user1_to_transfer: float
     user2_to_transfer: float
+    user1_supplement: Optional[float] = None
+    user2_supplement: Optional[float] = None
+    total_at_transfer: Optional[float] = None
     prev_total: Optional[float] = None
     charges: List[ChargeOut]
     validated_by: Optional[int] = None

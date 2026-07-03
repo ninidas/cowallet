@@ -70,6 +70,13 @@ with engine.connect() as _conn:
     except Exception:
         pass
 
+    # Colonne total_at_transfer sur months
+    try:
+        _conn.execute(text("ALTER TABLE months ADD COLUMN total_at_transfer REAL"))
+        _conn.commit()
+    except Exception:
+        pass
+
     # Génération VAPID keys si absentes
     _pub = _conn.execute(text("SELECT value FROM app_config WHERE key='vapid_public'")).fetchone()
     if not _pub:
