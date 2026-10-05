@@ -53,7 +53,7 @@
     "share_title": "Répartition des charges",
     "share_subtitle": "Modifiable mois par mois depuis l'app",
     "field_username": "Prénom / identifiant",
-    "field_username_placeholder": "Ex : nicolas",
+    "field_username_placeholder": "Ex : camille",
     "field_username_hint": "Sera utilisé pour se connecter",
     "field_password": "Mot de passe",
     "field_confirm": "Confirmer le mot de passe",

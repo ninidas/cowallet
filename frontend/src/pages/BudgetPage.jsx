@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useFmt } from '../hooks/useFmt'
+import { cleanAmountInput, parseAmount } from '../utils/amount'
 
 const DEMO_SHARED = 600
 
@@ -118,7 +119,7 @@ function EntryRow({ entry, onUpdate, onDelete }) {
   const [saved, setSaved]   = useState(false)
 
   async function handleBlur() {
-    const amt = parseFloat(amount)
+    const amt = parseAmount(amount)
     if (!label.trim() || isNaN(amt) || amt <= 0) return
     if (label.trim() === entry.label && amt === entry.amount) return
     await onUpdate(entry.id, { label: label.trim(), amount: amt })
@@ -135,8 +136,8 @@ function EntryRow({ entry, onUpdate, onDelete }) {
       <input value={label} onChange={e => setLabel(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown}
         className="flex-1 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none" />
       <div className="w-px h-6 bg-slate-200 shrink-0" />
-      <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown}
-        type="number" min="0" step="0.01"
+      <input value={amount} onChange={e => setAmount(cleanAmountInput(e.target.value))} onBlur={handleBlur} onKeyDown={handleKeyDown}
+        type="text" inputMode="decimal" autoComplete="off"
         className="w-24 px-3 py-2 text-sm font-semibold text-slate-900 bg-transparent border-none outline-none text-right" />
       {saved
         ? <span className="text-xs text-emerald-500 shrink-0">✓</span>
@@ -158,7 +159,7 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
   const [saved, setSaved]   = useState(false)
 
   async function trySubmit() {
-    const amt = parseFloat(amount)
+    const amt = parseAmount(amount)
     if (!label.trim() || isNaN(amt) || amt <= 0) return
     await onAdd({ type, label: label.trim(), amount: amt, category })
     setLabel(''); setAmount('')
@@ -177,8 +178,8 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
         className="flex-1 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none placeholder-slate-400"
         placeholder={t('budget.field_label_placeholder')} />
       <div className="w-px h-6 bg-slate-200 shrink-0" />
-      <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={trySubmit} onKeyDown={handleKeyDown}
-        type="number" min="0" step="0.01"
+      <input value={amount} onChange={e => setAmount(cleanAmountInput(e.target.value))} onBlur={trySubmit} onKeyDown={handleKeyDown}
+        type="text" inputMode="decimal" autoComplete="off"
         className="w-24 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none text-right placeholder-slate-400"
         placeholder="0" />
       {saved
@@ -451,7 +452,7 @@ export default function BudgetPage() {
   }
 
   async function saveSharedOverride(amount) {
-    const amt = parseFloat(amount)
+    const amt = parseAmount(amount)
     if (isNaN(amt) || amt < 0) return
     if (sharedCustom) {
       const updated = await api.updateBudgetEntry(sharedCustom.id, { amount: amt })

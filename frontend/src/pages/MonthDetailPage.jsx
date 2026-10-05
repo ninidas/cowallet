@@ -9,6 +9,7 @@ import { useFmt } from '../hooks/useFmt'
 import CategoryBadge from '../components/CategoryBadge'
 import ChargeForm from '../components/ChargeForm'
 import BottomSheet from '../components/BottomSheet'
+import { cleanAmountInput, parseAmount } from '../utils/amount'
 
 // ── Hero card ──────────────────────────────────────────────────────────────────
 function HeroCard({ month }) {
@@ -80,7 +81,7 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
   const paidBy = charge.paid_by === 1 ? config?.user1_username : charge.paid_by === 2 ? config?.user2_username : null
 
   if (suiviMode) {
-    const parsed = actualValue !== '' && !isNaN(parseFloat(actualValue)) ? parseFloat(actualValue) : null
+    const parsed = actualValue !== '' && !isNaN(parseAmount(actualValue)) ? parseAmount(actualValue) : null
     const delta = parsed !== null ? parsed - charge.amount : null
     return (
       <div className="flex items-center gap-3 py-3 px-4">
@@ -89,9 +90,9 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
           <p className="text-xs text-slate-400">{fmt(charge.amount)} {t('month_detail.forecast_tag')}</p>
         </div>
         <input
-          type="number" min="0" step="0.01"
+          type="text" inputMode="decimal" autoComplete="off"
           value={actualValue}
-          onChange={e => onActualChange(e.target.value)}
+          onChange={e => onActualChange(cleanAmountInput(e.target.value))}
           placeholder={String(charge.amount)}
           className="w-28 px-3 py-1.5 text-sm font-semibold text-right border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white"
         />
@@ -470,7 +471,7 @@ export default function MonthDetailPage() {
     const updates = month.charges
       .map(c => {
         const raw = actualsMap[c.id]?.trim()
-        const val = raw === '' ? null : parseFloat(raw)
+        const val = raw === '' ? null : parseAmount(raw)
         const cur = c.actual_amount ?? null
         const next = isNaN(val) ? null : val
         if (next === cur) return null
@@ -669,7 +670,7 @@ export default function MonthDetailPage() {
             const totalPrevu = month.charges.reduce((s, c) => s + c.amount, 0)
             const totalReel  = month.charges.reduce((s, c) => {
               const v = actualsMap[c.id]?.trim()
-              return s + (v && !isNaN(parseFloat(v)) ? parseFloat(v) : c.amount)
+              return s + (v && !isNaN(parseAmount(v)) ? parseAmount(v) : c.amount)
             }, 0)
             const delta = totalReel - totalPrevu
             return (
@@ -718,7 +719,7 @@ export default function MonthDetailPage() {
                         {suiviMode && (() => {
                           const actualTotal = charges.reduce((s, c) => {
                             const v = actualsMap[c.id]?.trim()
-                            return s + (v && !isNaN(parseFloat(v)) ? parseFloat(v) : c.amount)
+                            return s + (v && !isNaN(parseAmount(v)) ? parseAmount(v) : c.amount)
                           }, 0)
                           const d = actualTotal - total
                           return d !== 0 ? (

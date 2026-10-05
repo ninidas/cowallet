@@ -2,7 +2,7 @@ from .conftest import register, headers
 
 
 def test_create_budget_entry(client):
-    token = register(client, "nicolas")
+    token = register(client, "camille")
     r = client.post("/api/budget", json={
         "type": "income", "label": "Salaire", "amount": 2500.0, "category": "Revenus"
     }, headers=headers(token))
@@ -14,7 +14,7 @@ def test_create_budget_entry(client):
 
 
 def test_get_budget_entries(client):
-    token = register(client, "nicolas")
+    token = register(client, "camille")
     client.post("/api/budget", json={"type": "income", "label": "Salaire", "amount": 2500.0}, headers=headers(token))
     client.post("/api/budget", json={"type": "expense", "label": "Loyer", "amount": 800.0}, headers=headers(token))
     r = client.get("/api/budget", headers=headers(token))
@@ -23,9 +23,9 @@ def test_get_budget_entries(client):
 
 
 def test_budget_isolation_between_users(client):
-    """Les entrées de budget de nicolas ne sont pas visibles par melissa."""
-    token1 = register(client, "nicolas")
-    token2 = register(client, "melissa")
+    """Les entrées de budget de camille ne sont pas visibles par lou."""
+    token1 = register(client, "camille")
+    token2 = register(client, "lou")
     client.post("/api/budget", json={"type": "income", "label": "Salaire", "amount": 3000.0}, headers=headers(token1))
 
     r = client.get("/api/budget", headers=headers(token2))
@@ -34,7 +34,7 @@ def test_budget_isolation_between_users(client):
 
 
 def test_update_budget_entry(client):
-    token = register(client, "nicolas")
+    token = register(client, "camille")
     r = client.post("/api/budget", json={"type": "income", "label": "Salaire", "amount": 2500.0}, headers=headers(token))
     entry_id = r.json()["id"]
 
@@ -44,7 +44,7 @@ def test_update_budget_entry(client):
 
 
 def test_delete_budget_entry(client):
-    token = register(client, "nicolas")
+    token = register(client, "camille")
     r = client.post("/api/budget", json={"type": "income", "label": "Salaire", "amount": 2500.0}, headers=headers(token))
     entry_id = r.json()["id"]
 
@@ -56,8 +56,8 @@ def test_delete_budget_entry(client):
 
 
 def test_cannot_delete_other_users_entry(client):
-    token1 = register(client, "nicolas")
-    token2 = register(client, "melissa")
+    token1 = register(client, "camille")
+    token2 = register(client, "lou")
     r = client.post("/api/budget", json={"type": "income", "label": "Salaire", "amount": 2500.0}, headers=headers(token1))
     entry_id = r.json()["id"]
 
@@ -66,6 +66,6 @@ def test_cannot_delete_other_users_entry(client):
 
 
 def test_invalid_budget_type(client):
-    token = register(client, "nicolas")
+    token = register(client, "camille")
     r = client.post("/api/budget", json={"type": "invalid", "label": "Test", "amount": 100.0}, headers=headers(token))
     assert r.status_code == 400

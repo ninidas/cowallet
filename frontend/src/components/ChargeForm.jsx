@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useFmt } from '../hooks/useFmt'
 import { useAuth } from '../context/AuthContext'
 import BottomSheet from './BottomSheet'
+import { cleanAmountInput, parseAmount } from '../utils/amount'
 
 const EMPTY = {
   label: '',
@@ -84,7 +85,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
     setShowSugg(false)
   }
 
-  const totalAmount   = parseFloat(form.amount) || 0
+  const totalAmount   = parseAmount(form.amount) || 0
   const perMonth      = form.installments > 1 ? totalAmount / form.installments : totalAmount
 
   const editInstallTotal = isEdit ? (charge?.installments_total ?? 1) : 1
@@ -180,12 +181,11 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           </label>
           <div className="relative">
             <input
-              type="number"
+              type="text"
               inputMode="decimal"
-              step="0.01"
-              min="0"
+              autoComplete="off"
               value={form.amount}
-              onChange={e => set('amount', e.target.value)}
+              onChange={e => set('amount', cleanAmountInput(e.target.value))}
               className="w-full pl-4 pr-10 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent tabular-nums"
               placeholder="0,00"
               required
