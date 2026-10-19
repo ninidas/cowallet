@@ -327,43 +327,6 @@ const LABEL_PY   = 1.5   // 0.1em @ 11px
 const LABEL_H    = 11 + LABEL_PY * 2
 const LABEL_RX   = 4
 
-// Téléphone : le diagramme de flux est illisible sur 390 px ; une barre par poste, en part du revenu
-function FlowBars({ entries, sharedTotal, sharedLabel, savingsLabel, fmt, fmtPct }) {
-  const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0)
-  if (income <= 0) return null
-  const rows = []
-  if (sharedTotal > 0) rows.push({ name: sharedLabel, value: sharedTotal, color: SHARED_COLOR })
-  for (const [type, palette] of [['expense', EXPENSE_COLORS], ['investment', INVEST_COLORS]]) {
-    Object.entries(groupByCategory(entries.filter(e => e.type === type))).forEach(([cat, items], i) => {
-      if (cat) rows.push({ name: cat, value: items.reduce((s, e) => s + e.amount, 0), color: palette[i % palette.length] })
-      else items.forEach((e, j) => rows.push({ name: e.label, value: e.amount, color: palette[(i + j) % palette.length] }))
-    })
-  }
-  const out = rows.reduce((s, r) => s + r.value, 0)
-  if (income - out > 0) rows.push({ name: savingsLabel, value: income - out, color: '#60a5fa' })
-  return (
-    <ul className="space-y-3">
-      {rows.map(r => (
-        <li key={r.name}>
-          <div className="flex items-baseline justify-between gap-3 text-sm">
-            <span className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
-              <span className="text-slate-700 truncate">{r.name}</span>
-            </span>
-            <span className="shrink-0 tabular-nums">
-              <span className="font-semibold text-slate-800">{fmt(r.value)}</span>
-              <span className="text-slate-400 text-xs ml-1.5">{fmtPct(r.value / income * 100)}</span>
-            </span>
-          </div>
-          <div className="mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: `${Math.min(100, r.value / income * 100)}%`, backgroundColor: r.color }} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 function SvgLabel({ x, y, text, anchor = 'start' }) {
   const estW = text.length * 6.2
   const bgX  = anchor === 'end' ? x - estW - LABEL_PX * 2 : x - LABEL_PX
@@ -385,11 +348,26 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames, fmt) {
     const isDummy  = payload.name === '__shared_dummy__'
     const isLeft   = index <= centerIdx
     if (isDummy) return <g><rect x={x} y={y} width={width} height={height} rx={3} fill={color} fillOpacity={0.9} /></g>
-    // Labels Salaire et Budget rendus dans le ruban (LinkRenderer), pas ici
+    // Revenus : étiquette à gauche de la barre (dans la marge) ; Budget : au-dessus de la barre centrale.
+    // Dans le ruban qui les relie, les deux étiquettes se chevauchaient.
     const isIncome = index < centerIdx
     const isCenter = index === centerIdx
-    if (isIncome || isCenter) {
-      return <g><rect x={x} y={y} width={width} height={height} rx={3} fill={color} fillOpacity={0.9} /></g>
+    if (isIncome) {
+      return (
+        <g>
+          <rect x={x} y={y} width={width} height={height} rx={3} fill={color} fillOpacity={0.9} />
+          <SvgLabel x={x - 8} y={y + height / 2} text={`${payload.name}: ${fmt(payload.value)}`} anchor="end" />
+        </g>
+      )
+    }
+    if (isCenter) {
+      const text = `Budget: ${fmt(payload.value)}`
+      return (
+        <g>
+          <rect x={x} y={y} width={width} height={height} rx={3} fill={color} fillOpacity={0.9} />
+          <SvgLabel x={x + width / 2 - text.length * 3.1} y={y - 12} text={text} anchor="start" />
+        </g>
+      )
     }
     const label = `${payload.name}: ${fmt(payload.value)}`
     const ty    = y + Math.max(height / 2, 6)
@@ -414,20 +392,7 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames, fmt) {
       `C${targetControlX},${targetY + half} ${sourceControlX},${sourceY + half} ${sx},${sourceY + half}`,
       'Z',
     ].join(' ')
-    const isIncomeToCenter = payload?.target?.name === 'Budget'
-    if (!isIncomeToCenter) return <path d={d} fill={color} fillOpacity={0.35} stroke="none" />
-
-    const srcLabel = `${payload.source.name}: ${fmt(payload.source.value)}`
-    const tgtLabel = `Budget: ${fmt(payload.target.value)}`
-    const midY     = sourceY
-    const inset    = 20
-    return (
-      <g>
-        <path d={d} fill={color} fillOpacity={0.35} stroke="none" />
-        <SvgLabel x={sx + inset} y={midY} text={srcLabel} anchor="start" />
-        <SvgLabel x={tx - inset} y={midY} text={tgtLabel} anchor="end" />
-      </g>
-    )
+    return <path d={d} fill={color} fillOpacity={0.35} stroke="none" />
   }
 
   return { NodeRenderer, LinkRenderer }
@@ -730,12 +695,10 @@ export default function BudgetPage() {
         <div className="px-4 lg:px-6">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
             <h2 className="text-sm font-semibold text-slate-700 mb-4">{t('budget.chart_title')}</h2>
-            <div className="sm:hidden">
-              <FlowBars entries={entries} sharedTotal={sharedTotal} sharedLabel={t('budget.tab_shared')}
-                savingsLabel={t('budget.card_savings')} fmt={fmt} fmtPct={fmtPct} />
-            </div>
-            <div className="hidden sm:block overflow-x-auto">
-              <div style={{ minWidth: 700 }}>
+            <p className="sm:hidden text-xs text-slate-400 -mt-2 mb-3">{t('budget.chart_swipe_hint')}</p>
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              {/* 900 px : en dessous, les étiquettes « Salaire » et « Budget » se chevauchent */}
+              <div style={{ minWidth: 900 }}>
                 <ResponsiveContainer width="100%" height={Math.max(250, sankeyData.nodes.length * 28)}>
                   <Sankey
                     data={sankeyData}
@@ -743,7 +706,7 @@ export default function BudgetPage() {
                     link={<LinkRenderer />}
                     nodePadding={12}
                     nodeWidth={8}
-                    margin={{ top: 10, right: 160, bottom: 10, left: 160 }}
+                    margin={{ top: 30, right: 16, bottom: 10, left: 170 }}
                   >
                     <Tooltip
                       formatter={(value, name) => name === '__shared_dummy__' ? [null, null] : [fmt(value), name]}

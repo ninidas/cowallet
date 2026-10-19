@@ -278,7 +278,8 @@
     "hint_restaurants": "Restaurants",
     "hint_insurance": "Insurance",
     "hint_savings": "Savings account",
-    "hint_electricity": "Electricity"
+    "hint_electricity": "Electricity",
+    "chart_swipe_hint": "Swipe the chart to see all of it →"
   },
   "settings": {
     "title": "Settings",

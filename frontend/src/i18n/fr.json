@@ -278,7 +278,8 @@
     "hint_restaurants": "Restaurants",
     "hint_insurance": "Mutuelle",
     "hint_savings": "Livret A",
-    "hint_electricity": "Électricité"
+    "hint_electricity": "Électricité",
+    "chart_swipe_hint": "Faites glisser le graphique pour le voir en entier →"
   },
   "settings": {
     "title": "Paramètres",
