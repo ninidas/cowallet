@@ -12,10 +12,11 @@ i18n
       en: { translation: en },
       fr: { translation: fr },
     },
-    fallbackLng: 'en',
+    // Français par défaut (et non la langue de l'iPhone) ; l'anglais reste au choix dans les réglages
+    fallbackLng: 'fr',
     supportedLngs: ['en', 'fr'],
     detection: {
-      order: ['localStorage', 'navigator'],
+      order: ['localStorage'],
       caches: ['localStorage'],
       lookupLocalStorage: 'cowallet_lang',
     },

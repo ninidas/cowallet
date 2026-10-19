@@ -39,10 +39,13 @@ def update_category(cat_id: int, data: schemas.CategoryUpdate, db: Session = Dep
         ).first()
         if existing:
             raise HTTPException(status_code=400, detail="Name already in use")
-        db.query(models.Charge).join(models.Month).filter(
-            models.Charge.category == cat.name,
-            models.Month.group_id == group.id
-        ).update({"category": data.name}, synchronize_session=False)
+        # Les dépenses et les transactions bancaires importées suivent le nouveau nom
+        group_months = db.query(models.Month.id).filter(models.Month.group_id == group.id).scalar_subquery()
+        for model in (models.Charge, models.BankTransaction):
+            db.query(model).filter(
+                model.category == cat.name,
+                model.month_id.in_(group_months),
+            ).update({"category": data.name}, synchronize_session=False)
         cat.name = data.name
     if data.icon is not None:
         cat.icon = data.icon

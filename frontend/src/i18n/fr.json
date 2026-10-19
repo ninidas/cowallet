@@ -103,7 +103,8 @@
     "tip_split_title": "Répartition flexible",
     "tip_split_desc": "Définissez qui paie quelle part : 50/50, 60/40, ajustable à tout moment.",
     "tip_recurring_title": "Charges récurrentes",
-    "tip_recurring_desc": "Loyer, abonnements, crédits : ils se reportent automatiquement au mois suivant."
+    "tip_recurring_desc": "Loyer, abonnements, crédits : ils se reportent automatiquement au mois suivant.",
+    "your_share": "Votre part"
   },
   "monthform": {
     "title": "Nouveau mois",
@@ -164,7 +165,8 @@
     "forecast_tag": "prévu",
     "actual_estimated_short": "réel {{amount}}",
     "total": "Total",
-    "transfers": "Virements"
+    "transfers": "Virements",
+    "your_share": "Votre part"
   },
   "chargeform": {
     "title_add": "Nouvelle dépense",
@@ -344,7 +346,8 @@
     "bank_no_results": "Aucune banque trouvée",
     "lang_en": "English",
     "lang_fr": "Français",
-    "unsaved_changes": "Modifications non sauvegardées"
+    "unsaved_changes": "Modifications non sauvegardées",
+    "username_placeholder": "Votre prénom"
   },
   "bank_callback": {
     "loading": "Finalisation de la connexion…",

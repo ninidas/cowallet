@@ -25,6 +25,17 @@ NOTIF_CHARGE_DELETED = {
 }
 
 
+def _effective(c) -> float:
+    """Montant réel si renseigné, sinon le montant prévu (comme les totaux du mois)."""
+    return c.actual_amount if c.actual_amount is not None else c.amount
+
+
+def _eur(x: float) -> str:
+    """12.5 -> « 12,50 » en français, « 12.50 » en anglais."""
+    s = f"{x:.2f}"
+    return s.replace(".", ",") if APP_LANG == "fr" else s
+
+
 def _both_transferred(month: models.Month) -> bool:
     return bool(month.user1_transferred and month.user2_transferred)
 
@@ -131,7 +142,7 @@ def add_charge(
             title=NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
                 user=current_user.get_display_name(),
                 label=charge.label,
-                amount=charge.amount,
+                amount=_eur(charge.amount),
                 month=month.label,
             ),
             body="",
@@ -155,13 +166,13 @@ def update_charge(
     if not charge:
         raise HTTPException(status_code=404, detail="Charge not found")
 
-    old_amount = charge.amount
+    old_amount = _effective(charge)
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(charge, field, value)
     db.commit()
     db.refresh(charge)
 
-    new_amount = charge.amount
+    new_amount = _effective(charge)
     if _both_transferred(db.query(models.Month).filter_by(id=charge.month_id).first()):
         month = db.query(models.Month).filter_by(id=charge.month_id).first()
         partner_id = _partner_id(group, current_user.id)
@@ -173,8 +184,8 @@ def update_charge(
                 title=NOTIF_CHARGE_UPDATED.get(APP_LANG, NOTIF_CHARGE_UPDATED["en"]).format(
                     user=current_user.get_display_name(),
                     label=charge.label,
-                    old=old_amount,
-                    new=new_amount,
+                    old=_eur(old_amount),
+                    new=_eur(new_amount),
                     delta=delta,
                 ),
                 body="",
@@ -239,7 +250,7 @@ def delete_charge(
         raise HTTPException(status_code=404, detail="Charge not found")
 
     month = db.query(models.Month).filter_by(id=charge.month_id).first()
-    label, amount, month_label, month_id = charge.label, charge.amount, month.label, month.id
+    label, amount, month_label, month_id = charge.label, _effective(charge), month.label, month.id
     both_done = _both_transferred(month)
 
     db.delete(charge)
@@ -253,7 +264,7 @@ def delete_charge(
                 title=NOTIF_CHARGE_DELETED.get(APP_LANG, NOTIF_CHARGE_DELETED["en"]).format(
                     user=current_user.get_display_name(),
                     label=label,
-                    amount=amount,
+                    amount=_eur(amount),
                     month=month_label,
                 ),
                 body="",

@@ -41,20 +41,18 @@ def effective_amount(c) -> float:
 
 
 def compute_totals(month: models.Month) -> dict:
-    total = sum(effective_amount(c) for c in month.charges)
-    user1_ratio = month.user1_share / 100
-    user2_ratio = 1 - user1_ratio
-
-    user1_due = total * user1_ratio
-    user2_due = total * user2_ratio
+    total = round(sum(effective_amount(c) for c in month.charges), 2)
+    # Les deux parts font toujours exactement le total : la seconde prend le centime d'arrondi
+    user1_due = round(total * month.user1_share / 100, 2)
+    user2_due = round(total - user1_due, 2)
 
     user1_advanced = sum(effective_amount(c) for c in month.charges if c.paid_by == 1)
     user2_advanced = sum(effective_amount(c) for c in month.charges if c.paid_by == 2)
 
     return {
-        "total": round(total, 2),
-        "user1_due": round(user1_due, 2),
-        "user2_due": round(user2_due, 2),
+        "total": total,
+        "user1_due": user1_due,
+        "user2_due": user2_due,
         "user1_to_transfer": round(max(0, user1_due - user1_advanced), 2),
         "user2_to_transfer": round(max(0, user2_due - user2_advanced), 2),
     }
@@ -273,8 +271,9 @@ def bulk_delete_months(
     ]
     if not valid_ids:
         return
-    # Explicitly delete charges first (synchronize_session=False bypasses ORM cascade)
+    # Explicitly delete charges and imported bank transactions first (synchronize_session=False bypasses ORM cascade)
     db.query(models.Charge).filter(models.Charge.month_id.in_(valid_ids)).delete(synchronize_session=False)
+    db.query(models.BankTransaction).filter(models.BankTransaction.month_id.in_(valid_ids)).delete(synchronize_session=False)
     db.query(models.Month).filter(models.Month.id.in_(valid_ids)).delete(synchronize_session=False)
     db.commit()
 

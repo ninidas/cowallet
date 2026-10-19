@@ -111,6 +111,7 @@ def send_notification(db: Session, user_id: int, title: str, body: str, url: str
                 vapid_private_key=vapid,
                 vapid_claims={"sub": "mailto:noreply@example.com"},
                 ttl=86400,
+                timeout=10,
             )
             logger.info("Push sent to sub %s — status=%s body=%s", sub.id, resp.status_code if resp else 'N/A', resp.text[:200] if resp else '')
         except WebPushException as e:
@@ -118,3 +119,7 @@ def send_notification(db: Session, user_id: int, title: str, body: str, url: str
             if e.response and e.response.status_code in (404, 410):
                 db.delete(sub)
                 db.commit()
+        except Exception as e:
+            # Réseau, délai dépassé… : la notification est perdue, mais l'action de l'utilisateur
+            # (déjà enregistrée) ne doit pas échouer pour autant, sinon il la refait en double.
+            logger.warning("Push failed for sub %s: %s", sub.id, e)

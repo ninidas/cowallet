@@ -4,6 +4,12 @@ function getToken() {
   return localStorage.getItem('token')
 }
 
+// Déconnexion : on oublie la session mais pas les préférences de l'appareil (langue, mode sombre)
+const KEEP_ON_LOGOUT = ['cowallet_lang', 'darkMode']
+export function clearSession() {
+  Object.keys(localStorage).filter(k => !KEEP_ON_LOGOUT.includes(k)).forEach(k => localStorage.removeItem(k))
+}
+
 // Simple in-memory cache with TTL
 const _cache = {}
 const TTL = 45_000 // 45 seconds
@@ -44,7 +50,7 @@ async function request(path, options = {}) {
 
   if (res.status === 401) {
     if (token) {
-      localStorage.clear()
+      clearSession()
       window.location.href = '/login'
       return
     }

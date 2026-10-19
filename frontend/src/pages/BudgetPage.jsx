@@ -529,7 +529,7 @@ export default function BudgetPage() {
     <div className="pb-24 lg:pb-10 space-y-6">
 
       {/* Header gradient */}
-      <div className="bg-gradient-to-br from-violet-600 to-indigo-700 px-4 pt-6 pb-6 sm:px-6 lg:px-10 sm:pt-8 sm:pb-8">
+      <div className="bg-gradient-to-br from-violet-600 to-indigo-700 px-4 safe-top pb-6 sm:px-6 lg:px-10 lg:pt-8 sm:pb-8">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="text-white flex-1 min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold">{t('budget.title')}</h1>
@@ -614,8 +614,8 @@ export default function BudgetPage() {
                   </div>
                   {editingShared && sharedMode === 'custom' ? (
                     <div className="flex gap-2 items-center">
-                      <input value={sharedInput} onChange={e => setSharedInput(e.target.value)}
-                        type="number" min="0" step="1"
+                      <input value={sharedInput} onChange={e => setSharedInput(cleanAmountInput(e.target.value))}
+                        type="text" inputMode="decimal" autoComplete="off"
                         className="flex-1 px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-400 text-right"
                         autoFocus onKeyDown={e => e.key === 'Enter' && saveSharedOverride(sharedInput)} />
                       <button onClick={() => saveSharedOverride(sharedInput)} className="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm font-semibold">OK</button>

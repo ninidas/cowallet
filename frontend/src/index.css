@@ -39,6 +39,27 @@
   .safe-top {
     padding-top: max(2.5rem, env(safe-area-inset-top));
   }
+  /* Barre d'onglets du bas : au-dessus de la barre d'accueil de l'iPhone */
+  .nav-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Boutons flottants et bandeaux posés au-dessus de cette barre */
+  .above-nav {
+    bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+  .above-nav-tight {
+    bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 1024px) {
+    .above-nav { bottom: 2rem; }
+  }
+}
+
+/* iPhone : un champ en moins de 16 px fait zoomer toute la page quand on le touche */
+@supports (-webkit-touch-callout: none) {
+  input.text-sm, input.text-xs, select.text-sm, select.text-xs, textarea.text-sm, textarea.text-xs {
+    font-size: 16px;
+  }
 }
 
 @keyframes pageEnter {

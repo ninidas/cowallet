@@ -131,7 +131,7 @@ export default function Layout({ children }) {
 
       {/* ── Push notification banner ──────────────────────── */}
       {showBanner && (
-        <div className="lg:hidden fixed bottom-16 inset-x-0 z-40 px-4 pb-2">
+        <div className="lg:hidden fixed above-nav-tight inset-x-0 z-40 px-4 pb-2">
           <div className="bg-violet-700 text-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold">{t('push_banner.title')}</p>
@@ -157,7 +157,7 @@ export default function Layout({ children }) {
       )}
 
       {/* ── Bottom nav mobile ─────────────────────────────── */}
-      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex z-50">
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 flex z-50 nav-safe">
         {NAV.map(({ to, label, icon }) => {
           const active = to === '/months'
             ? location.pathname === '/months' || location.pathname.startsWith('/months/')

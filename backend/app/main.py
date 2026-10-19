@@ -272,6 +272,28 @@ with engine.connect() as _conn:
         _conn.execute(text("UPDATE payment_methods SET group_id=:g WHERE group_id IS NULL"), {"g": _gid})
         _conn.commit()
 
+# Moyens de paiement : les anciennes dépenses récurrentes gardaient « carte » ou « prelevement »
+# alors que la liste du groupe dit « Carte » et « Prélèvement » ; on les aligne sur la liste
+# (sans tenir compte des majuscules ni des accents). Sans effet une fois fait.
+def _fold(s):
+    import unicodedata
+    return "".join(ch for ch in unicodedata.normalize("NFD", s) if unicodedata.category(ch) != "Mn").casefold().strip()
+
+with engine.connect() as _conn:
+    _fixed = 0
+    for (_gid,) in _conn.execute(text("SELECT id FROM groups")).fetchall():
+        _names = {_fold(n): n for (n,) in _conn.execute(text("SELECT name FROM payment_methods WHERE group_id=:g"), {"g": _gid})}
+        for _cid, _pt in _conn.execute(text(
+            "SELECT c.id, c.payment_type FROM charges c JOIN months m ON m.id = c.month_id "
+            "WHERE m.group_id=:g AND c.payment_type IS NOT NULL"), {"g": _gid}).fetchall():
+            _good = _names.get(_fold(_pt))
+            if _good and _good != _pt:
+                _conn.execute(text("UPDATE charges SET payment_type=:p WHERE id=:i"), {"p": _good, "i": _cid})
+                _fixed += 1
+    # Transactions bancaires dont le mois n'existe plus (ancienne suppression groupée de mois)
+    _conn.execute(text("DELETE FROM bank_transactions WHERE month_id NOT IN (SELECT id FROM months)"))
+    _conn.commit()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = create_scheduler()
@@ -354,8 +376,9 @@ if (_FRONTEND_DIST / "assets").exists():
 @app.get("/{full_path:path}")
 async def spa_handler(full_path: str):
     if _FRONTEND_DIST.exists():
-        candidate = _FRONTEND_DIST / full_path
-        if full_path and candidate.is_file():
+        candidate = (_FRONTEND_DIST / full_path).resolve()
+        # Jamais de fichier hors du dossier du front (chemins avec « .. »)
+        if full_path and candidate.is_relative_to(_FRONTEND_DIST.resolve()) and candidate.is_file():
             headers = {}
             if full_path in ("sw.js",) or full_path.endswith(".webmanifest"):
                 headers["Cache-Control"] = "no-cache, no-store, must-revalidate"

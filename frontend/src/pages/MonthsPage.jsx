@@ -19,7 +19,7 @@ function TransferPill({ done, name }) {
 
 const NOW = new Date()
 
-function MonthCard({ month, config, onClick, isCurrent, selectMode, selected, t }) {
+function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selected, t }) {
   const fmt = useFmt()
   const bothDone = month.user1_transferred && month.user2_transferred
   const borderColor = selected ? '#7c3aed' : bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
@@ -65,8 +65,8 @@ function MonthCard({ month, config, onClick, isCurrent, selectMode, selected, t 
         </div>
         {!selectMode && (
           <div className="text-right">
-            <p className="text-xs text-slate-400 mb-0.5">{t('months.per_person')}</p>
-            <p className="text-xl font-bold text-violet-600">{fmt(month.user1_due)}</p>
+            <p className="text-xs text-slate-400 mb-0.5">{t(month.user1_share === 50 ? 'months.per_person' : 'months.your_share')}</p>
+            <p className="text-xl font-bold text-violet-600">{fmt(myKey === 'user2' ? month.user2_due : month.user1_due)}</p>
           </div>
         )}
       </div>
@@ -88,7 +88,8 @@ function MonthCard({ month, config, onClick, isCurrent, selectMode, selected, t 
 
 export default function MonthsPage() {
   const { t } = useTranslation()
-  const { user, config } = useAuth()
+  const { user, config, getMyUserKey } = useAuth()
+  const myKey = getMyUserKey()
   const navigate = useNavigate()
   const [months, setMonths]         = useState([])
   const [loading, setLoading]       = useState(true)
@@ -259,6 +260,7 @@ export default function MonthsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {months.map(m => (
               <MonthCard
+                myKey={myKey}
                 key={m.id}
                 month={m}
                 config={config}
@@ -275,7 +277,7 @@ export default function MonthsPage() {
 
       {/* Barre de suppression (mode sélection) */}
       {selectMode && (
-        <div className="fixed bottom-24 lg:bottom-8 left-4 right-4 max-w-sm mx-auto z-10">
+        <div className="fixed above-nav left-4 right-4 max-w-sm mx-auto z-10">
           <button
             onClick={handleBulkDelete}
             disabled={selected.size === 0 || deleting}
@@ -290,7 +292,7 @@ export default function MonthsPage() {
       {!selectMode && (
         <button
           onClick={() => setShowForm(true)}
-          className="fixed bottom-24 lg:bottom-8 right-5 w-14 h-14 bg-violet-600 rounded-full shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
+          className="fixed above-nav right-5 w-14 h-14 bg-violet-600 rounded-full shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
           aria-label="Nouveau mois"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-7 h-7">

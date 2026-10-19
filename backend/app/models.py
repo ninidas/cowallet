@@ -142,7 +142,7 @@ class BankTransaction(Base):
     saltedge_id  = Column(String, nullable=False, unique=True)
     date         = Column(String, nullable=False)   # YYYY-MM-DD
     description  = Column(String, nullable=False)
-    amount       = Column(Float, nullable=False)    # Toujours positif (débit)
+    amount       = Column(Float, nullable=False)    # Positif = dépense, négatif = remboursement reçu
     category     = Column(String, nullable=True)    # Null = non catégorisée
     account_name = Column(String, nullable=True)
     is_card      = Column(Boolean, nullable=False, default=False)

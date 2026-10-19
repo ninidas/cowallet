@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { api, clearCache } from '../api'
+import { api, clearCache, clearSession } from '../api'
 
 const AuthContext = createContext(null)
 
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
 
   function logout() {
     clearCache()
-    localStorage.clear()
+    clearSession()
     setUser(null)
     setConfig(null)
   }

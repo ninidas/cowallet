@@ -80,6 +80,7 @@ export default function BankImportPage() {
           amount:       tx.amount,
           account_name: tx.account_name,
           is_card:      tx.is_card ?? false,
+          is_debit:     tx.is_debit ?? true,
         })),
       })
       const msg = result.auto_categorized

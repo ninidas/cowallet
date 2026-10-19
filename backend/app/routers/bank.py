@@ -51,6 +51,7 @@ class TransactionImportItem(BaseModel):
     amount:       float
     account_name: str
     is_card:      bool = False
+    is_debit:     bool = True
 
 class ImportTransactionsRequest(BaseModel):
     month_id:     int
@@ -347,7 +348,8 @@ def import_transactions(
             saltedge_id=tx.saltedge_id,
             date=tx.date,
             description=tx.description,
-            amount=tx.amount,
+            # Dépense en positif ; un remboursement reçu en négatif, pour qu'il diminue le réel
+            amount=abs(tx.amount) if tx.is_debit else -abs(tx.amount),
             account_name=tx.account_name,
             is_card=tx.is_card,
             category=auto_cat,

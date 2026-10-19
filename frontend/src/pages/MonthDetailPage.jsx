@@ -15,6 +15,10 @@ import { cleanAmountInput, parseAmount } from '../utils/amount'
 function HeroCard({ month }) {
   const { t } = useTranslation()
   const fmt = useFmt()
+  const { getMyUserKey } = useAuth()
+  const equal = month.user1_share === month.user2_share
+  // Hors 50/50, chacun voit sa propre part
+  const myDue = getMyUserKey() === 'user2' ? month.user2_due : month.user1_due
   const delta = month.prev_total != null ? month.total - month.prev_total : null
   const deltaPositive = delta > 0
 
@@ -35,9 +39,9 @@ function HeroCard({ month }) {
         </span>
       </div>
       <div className="border-t border-white/20 pt-3 lg:pt-4">
-        <p className="text-violet-200 text-xs lg:text-sm mb-0.5">{t('month_detail.each_share')}</p>
+        <p className="text-violet-200 text-xs lg:text-sm mb-0.5">{t(equal ? 'month_detail.each_share' : 'month_detail.your_share')}</p>
         <span className="text-white text-3xl lg:text-4xl font-extrabold tabular-nums">
-          {fmt(month.user1_due)}
+          {fmt(myDue)}
         </span>
       </div>
     </div>
@@ -360,7 +364,7 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, cate
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-sm font-bold tabular-nums text-slate-800">{fmt(tx.amount)}</span>
+                  <span className={`text-sm font-bold tabular-nums ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-800'}`}>{tx.amount < 0 ? `+${fmt(-tx.amount)}` : fmt(tx.amount)}</span>
                   <button
                     onClick={() => handleDelete(tx.id)}
                     className="w-7 h-7 rounded-lg bg-red-50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 hover:bg-red-100 transition-all"
@@ -759,7 +763,7 @@ export default function MonthDetailPage() {
       {activeTab === 'charges' && !showAddCharge && !editingCharge && !suiviMode && (
       <button
         onClick={() => setShowAddCharge(true)}
-        className="fixed bottom-24 lg:bottom-8 right-6 lg:right-10 bg-violet-600 rounded-full w-14 h-14 shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
+        className="fixed above-nav right-6 lg:right-10 bg-violet-600 rounded-full w-14 h-14 shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
         aria-label={t('month_detail.aria_add_expense')}
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-7 h-7">

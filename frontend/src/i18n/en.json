@@ -103,7 +103,8 @@
     "tip_split_title": "Flexible split",
     "tip_split_desc": "Set who pays what share: 50/50, 60/40, adjustable at any time.",
     "tip_recurring_title": "Recurring charges",
-    "tip_recurring_desc": "Rent, subscriptions, loans: automatically carried over each month."
+    "tip_recurring_desc": "Rent, subscriptions, loans: automatically carried over each month.",
+    "your_share": "Your share"
   },
   "monthform": {
     "title": "New month",
@@ -164,7 +165,8 @@
     "forecast_tag": "forecast",
     "actual_estimated_short": "actual {{amount}}",
     "total": "Total",
-    "transfers": "Transfers"
+    "transfers": "Transfers",
+    "your_share": "Your share"
   },
   "chargeform": {
     "title_add": "New expense",
@@ -344,7 +346,8 @@
     "bank_no_results": "No bank found",
     "lang_en": "English",
     "lang_fr": "Français",
-    "unsaved_changes": "Unsaved changes"
+    "unsaved_changes": "Unsaved changes",
+    "username_placeholder": "Your first name"
   },
   "bank_callback": {
     "loading": "Finalizing connection...",
