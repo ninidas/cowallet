@@ -104,7 +104,10 @@
     "tip_split_desc": "Définissez qui paie quelle part : 50/50, 60/40, ajustable à tout moment.",
     "tip_recurring_title": "Charges récurrentes",
     "tip_recurring_desc": "Loyer, abonnements, crédits : ils se reportent automatiquement au mois suivant.",
-    "your_share": "Votre part"
+    "your_share": "Votre part",
+    "load_error_title": "Impossible de charger vos mois",
+    "load_error_hint": "Le serveur ne répond pas. Vérifiez votre connexion, puis réessayez.",
+    "btn_retry": "Réessayer"
   },
   "monthform": {
     "title": "Nouveau mois",
@@ -421,5 +424,18 @@
     "own_group":                  "Vous ne pouvez pas rejoindre votre propre groupe",
     "unsupported_currency":       "Devise non supportée",
     "generic":                    "Une erreur est survenue"
+  },
+  "search": {
+    "title": "Rechercher",
+    "back": "Retour",
+    "placeholder": "Une dépense, un commerçant, une catégorie…",
+    "hint": "Cherchez dans toutes vos dépenses et transactions, tous mois confondus.",
+    "loading": "Recherche…",
+    "error": "La recherche n'a pas abouti. Vérifiez votre connexion et réessayez.",
+    "no_results": "Aucun résultat pour « {{q}} ».",
+    "section_charges": "Dépenses ({{count}})",
+    "section_transactions": "Transactions bancaires ({{count}})",
+    "uncategorized": "sans catégorie",
+    "more": "{{count}} résultats au total : précisez la recherche pour voir les autres."
   }
 }

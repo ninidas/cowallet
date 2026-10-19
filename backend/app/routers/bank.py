@@ -1,13 +1,14 @@
 import datetime
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from .. import models, enablebanking
+from .. import models, enablebanking, bank_sync
 from ..auth import get_current_user, get_current_group
+from ..limiter import client_ip
 
 router = APIRouter(prefix="/bank", tags=["bank"])
 
@@ -195,8 +196,18 @@ def finish_connect(
     return {"status": "connected", "provider_name": conn.provider_name}
 
 
+def _psu_headers(request: Request) -> dict:
+    """L'utilisateur est devant l'écran : la banque ne compte pas cette lecture dans sa limite
+    d'environ 4 par jour (réservée aux lectures en son absence)."""
+    headers = {"Psu-Ip-Address": client_ip(request)}
+    if request.headers.get("user-agent"):
+        headers["Psu-User-Agent"] = request.headers["user-agent"]
+    return headers
+
+
 @router.get("/transactions")
 def get_transactions(
+    request:   Request,
     from_date: Optional[str] = None,
     to_date:   Optional[str] = None,
     db:   Session      = Depends(get_db),
@@ -213,64 +224,8 @@ def get_transactions(
         today     = datetime.date.today()
         from_date = today.replace(day=1).isoformat()
 
-    accounts = db.query(models.BankAccount).filter_by(connection_id=conn.id, enabled=True).all()
-
-    result = []
     try:
-        for account in accounts:
-            txs = enablebanking.get_transactions(account.saltedge_account_id, from_date, to_date)
-            for tx in txs:
-                # Montant : Enable Banking utilise souvent {amount, currency} ou {transaction_amount}
-                raw_amount = (
-                    tx.get("transaction_amount", {}).get("amount")
-                    or tx.get("amount")
-                    or 0
-                )
-                amount = float(raw_amount)
-
-                # Enable Banking: credit_debit_indicator = DBIT ou CRDT
-                indicator = tx.get("credit_debit_indicator", "")
-                is_debit  = indicator == "DBIT" if indicator else amount < 0
-
-                # remittance_information est une liste
-                # On filtre les références carte (ex: "210326 CB****1111")
-                # et les lignes de montant (ex: "5,40EUR 1 EURO = 1,000000")
-                remittance = tx.get("remittance_information") or []
-                if isinstance(remittance, list):
-                    import re
-                    is_card = any(re.match(r'^\d{6}\s+CB\*', r) for r in remittance if r)
-                    cleaned = [
-                        r for r in remittance
-                        if r
-                        and not re.match(r'^\d{6}\s+CB\*', r)
-                        and "EUR" not in r
-                    ]
-                    description = cleaned[0] if cleaned else " / ".join(r for r in remittance if r)
-                else:
-                    is_card = False
-                    description = str(remittance)
-
-                # transaction_id peut être null, fallback sur entry_reference
-                tx_id = (
-                    tx.get("transaction_id")
-                    or tx.get("entry_reference")
-                    or tx.get("id", "")
-                )
-
-                result.append({
-                    "id":           str(tx_id),
-                    "date":         tx.get("booking_date") or tx.get("value_date") or tx.get("date", ""),
-                    "description":  description,
-                    "amount":       abs(amount),
-                    "is_debit":     is_debit,
-                    "is_card":      is_card,
-                    "currency":     (
-                        tx.get("transaction_amount", {}).get("currency")
-                        or tx.get("currency", "EUR")
-                    ),
-                    "account_name": account.name,
-                    "account_id":   str(account.id),
-                })
+        result = bank_sync.fetch_transactions(db, conn, from_date, to_date, _psu_headers(request))
     except Exception as exc:
         # Accès coupé par la banque (fin de validité) : le dire clairement, l'écran propose de reconnecter
         info = enablebanking.consent_info(conn.saltedge_connection_id, max_age=0)
@@ -278,7 +233,6 @@ def get_transactions(
             raise HTTPException(status_code=409, detail="Bank access expired")
         raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
-    result.sort(key=lambda x: x["date"], reverse=True)
     return result
 
 
@@ -324,42 +278,7 @@ def import_transactions(
     if not month:
         raise HTTPException(status_code=404, detail="Month not found")
 
-    # Index des catégories connues : description -> catégorie la plus récente
-    known = {}
-    past_txs = (
-        db.query(models.BankTransaction)
-        .join(models.Month)
-        .filter(models.Month.group_id == group.id, models.BankTransaction.category.isnot(None))
-        .order_by(models.BankTransaction.date.desc())
-        .all()
-    )
-    for past in past_txs:
-        if past.description not in known:
-            known[past.description] = past.category
-
-    imported = skipped = auto_categorized = 0
-    for tx in body.transactions:
-        if db.query(models.BankTransaction).filter_by(saltedge_id=tx.saltedge_id).first():
-            skipped += 1
-            continue
-        auto_cat = known.get(tx.description)
-        db.add(models.BankTransaction(
-            month_id=month.id,
-            saltedge_id=tx.saltedge_id,
-            date=tx.date,
-            description=tx.description,
-            # Dépense en positif ; un remboursement reçu en négatif, pour qu'il diminue le réel
-            amount=abs(tx.amount) if tx.is_debit else -abs(tx.amount),
-            account_name=tx.account_name,
-            is_card=tx.is_card,
-            category=auto_cat,
-        ))
-        imported += 1
-        if auto_cat:
-            auto_categorized += 1
-
-    db.commit()
-    return {"imported": imported, "skipped": skipped, "auto_categorized": auto_categorized}
+    return bank_sync.add_transactions(db, group, month, [tx.model_dump() for tx in body.transactions])
 
 
 @router.get("/months/{month_id}/transactions")
@@ -406,8 +325,20 @@ def categorize_transaction(
     if not tx:
         raise HTTPException(status_code=404, detail="Transaction not found")
     tx.category = body.category
+    # Les autres transactions du même commerçant encore sans catégorie suivent (« EPICERIE CENTRE » une fois pour toutes)
+    also = 0
+    key = bank_sync.merchant_key(tx.description)
+    if body.category and key:
+        for other in db.query(models.BankTransaction).filter(
+            models.BankTransaction.month_id.in_(group_month_ids),
+            models.BankTransaction.category.is_(None),
+            models.BankTransaction.id != tx.id,
+        ).all():
+            if bank_sync.merchant_key(other.description) == key:
+                other.category = body.category
+                also += 1
     db.commit()
-    return {"id": tx.id, "category": tx.category}
+    return {"id": tx.id, "category": tx.category, "also_categorized": also}
 
 
 @router.delete("/transactions/{tx_id}", status_code=204)

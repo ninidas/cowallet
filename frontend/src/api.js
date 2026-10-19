@@ -85,6 +85,7 @@ export const api = {
   getStats:        (year)       => cached(`stats:${year ?? 'all'}`, () => request(`/stats${year ? `?year=${year}` : ''}`)),
   updateSettings:  (data)       => request('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
   getMonths:       ()           => cached('months', () => request('/months')),
+  search:          (q)          => request(`/search?q=${encodeURIComponent(q)}`),
   createMonth:     (data)       => request('/months', { method: 'POST', body: JSON.stringify(data) })
                                      .then(r => { invalidate('months', 'stats') ; return r }),
   getMonth:        (id)         => cached(`month:${id}`, () => request(`/months/${id}`)),

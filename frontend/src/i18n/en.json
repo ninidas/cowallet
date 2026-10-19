@@ -104,7 +104,10 @@
     "tip_split_desc": "Set who pays what share: 50/50, 60/40, adjustable at any time.",
     "tip_recurring_title": "Recurring charges",
     "tip_recurring_desc": "Rent, subscriptions, loans: automatically carried over each month.",
-    "your_share": "Your share"
+    "your_share": "Your share",
+    "load_error_title": "Your months could not be loaded",
+    "load_error_hint": "The server is not responding. Check your connection and try again.",
+    "btn_retry": "Try again"
   },
   "monthform": {
     "title": "New month",
@@ -421,5 +424,18 @@
     "own_group":                  "You cannot join your own group",
     "unsupported_currency":       "Unsupported currency",
     "generic":                    "An error occurred"
+  },
+  "search": {
+    "title": "Search",
+    "back": "Back",
+    "placeholder": "An expense, a shop, a category…",
+    "hint": "Search all your expenses and transactions, across every month.",
+    "loading": "Searching…",
+    "error": "The search failed. Check your connection and try again.",
+    "no_results": "No results for “{{q}}”.",
+    "section_charges": "Expenses ({{count}})",
+    "section_transactions": "Bank transactions ({{count}})",
+    "uncategorized": "uncategorised",
+    "more": "{{count}} results in total: refine your search to see the others."
   }
 }

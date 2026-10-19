@@ -94,6 +94,7 @@ export default function MonthsPage() {
   const navigate = useNavigate()
   const [months, setMonths]         = useState([])
   const [loading, setLoading]       = useState(true)
+  const [loadError, setLoadError]   = useState(false)
   const [showForm, setShowForm]     = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected]     = useState(new Set())
@@ -103,6 +104,9 @@ export default function MonthsPage() {
     try {
       const data = await api.getMonths()
       setMonths(data)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -200,6 +204,15 @@ export default function MonthsPage() {
                   </button>
                 )}
                 <Link
+                  to="/search"
+                  aria-label={t('search.title')}
+                  className="w-9 h-9 -my-1 rounded-full flex items-center justify-center text-violet-600 active:bg-violet-50 transition"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </Link>
+                <Link
                   to="/history"
                   className="lg:hidden flex items-center gap-1.5 text-sm font-medium text-violet-600 active:text-violet-800 transition"
                 >
@@ -216,6 +229,15 @@ export default function MonthsPage() {
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+          </div>
+        ) : loadError ? (
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center space-y-3">
+            <p className="font-semibold text-slate-800">{t('months.load_error_title')}</p>
+            <p className="text-sm text-slate-500">{t('months.load_error_hint')}</p>
+            <button onClick={() => { setLoading(true); load() }}
+              className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:bg-violet-700 transition">
+              {t('months.btn_retry')}
+            </button>
           </div>
         ) : months.length === 0 ? (
           <div className="flex flex-col items-center py-10 px-4">

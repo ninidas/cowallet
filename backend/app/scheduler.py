@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .database import SessionLocal
-from . import models, enablebanking
+from . import models, enablebanking, bank_sync
 from .routers.push import send_notification
 
 logger = logging.getLogger(__name__)
@@ -93,9 +93,26 @@ def send_bank_expiry_reminders():
         db.close()
 
 
+def import_bank_transactions():
+    """Chaque matin : les nouveaux débits de la banque arrivent seuls dans le mois en cours.
+    AUTO_IMPORT=0 le coupe (instance de dev : elle partage la connexion bancaire de la prod et
+    doublerait les lectures, limitées à environ 4 par jour par la banque)."""
+    if not enablebanking.is_configured() or os.environ.get("AUTO_IMPORT", "1") == "0":
+        return
+    db = SessionLocal()
+    try:
+        bank_sync.auto_import(db)
+    except Exception:
+        logger.exception("Automatic bank import failed")
+    finally:
+        db.close()
+
+
 def create_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     # Tous les jours à 9h
     scheduler.add_job(send_monthly_reminders, CronTrigger(hour=9, minute=0))
     scheduler.add_job(send_bank_expiry_reminders, CronTrigger(hour=9, minute=5))
+    # 7 h à Paris (le conteneur est à l'heure UTC)
+    scheduler.add_job(import_bank_transactions, CronTrigger(hour=7, minute=0, timezone="Europe/Paris"))
     return scheduler

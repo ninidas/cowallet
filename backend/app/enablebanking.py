@@ -149,18 +149,29 @@ def get_accounts(session_id: str) -> list:
     return data if isinstance(data, list) else data.get("accounts", data.get("data", []))
 
 
-def get_transactions(account_id: str, date_from: str, date_to: str = None) -> list:
-    """Récupère les transactions d'un compte entre deux dates."""
+# Une banque ne sert qu'environ 4 lectures par compte et par jour quand l'utilisateur n'est pas là
+# (DSP2) ; chaque page compte. Les en-têtes PSU (adresse IP, navigateur de l'utilisateur) signalent
+# une lecture qu'il a lui-même demandée : elle n'est pas comptée.
+MAX_PAGES = 10
+
+
+def get_transactions(account_id: str, date_from: str, date_to: str = None, psu_headers: dict = None) -> list:
+    """Transactions d'un compte entre deux dates, toutes pages lues (continuation_key)."""
     params = {"date_from": date_from}
     if date_to:
         params["date_to"] = date_to
-    resp = httpx.get(
-        f"{BASE_URL}/accounts/{account_id}/transactions",
-        headers=_headers(),
-        params=params,
-        timeout=30,
-    )
-    if not resp.is_success:
-        raise Exception(f"HTTP {resp.status_code} — {resp.text}")
-    data = resp.json()
-    return data if isinstance(data, list) else data.get("transactions", data.get("data", []))
+    headers = {**_headers(), **(psu_headers or {})}
+    result = []
+    for _ in range(MAX_PAGES):
+        resp = httpx.get(f"{BASE_URL}/accounts/{account_id}/transactions", headers=headers, params=params, timeout=30)
+        if not resp.is_success:
+            raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+        data = resp.json()
+        if isinstance(data, list):
+            return result + data
+        result += data.get("transactions", data.get("data", []))
+        key = data.get("continuation_key")
+        if not key:
+            break
+        params = {**params, "continuation_key": key}
+    return result

@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from .database import engine, get_db
 from . import models
 from .auth import get_current_user_optional
-from .routers import auth, months, charges, setup, export, stats, settings, categories, payment_methods, users, groups, budget, push, bank
+from .routers import auth, months, charges, setup, export, stats, settings, categories, payment_methods, users, groups, budget, push, bank, search
 from .scheduler import create_scheduler
 
 models.Base.metadata.create_all(bind=engine)
@@ -329,6 +329,7 @@ api_router.include_router(payment_methods.router)
 api_router.include_router(budget.router)
 api_router.include_router(push.router)
 api_router.include_router(bank.router)
+api_router.include_router(search.router)
 
 app.include_router(api_router)
 
