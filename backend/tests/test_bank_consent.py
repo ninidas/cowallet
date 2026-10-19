@@ -1,4 +1,4 @@
-"""Accès bancaire Enable Banking : 90 jours demandés, connexion sans compte refusée, échéance affichée, accès expiré signalé, rappel avant la fin."""
+"""Accès bancaire Enable Banking : durée maximale demandée, connexion sans compte refusée, échéance affichée, accès expiré signalé, rappel avant la fin."""
 import datetime
 
 import pytest
@@ -43,15 +43,20 @@ def _session(monkeypatch, status, valid_until):
                         lambda sid: {"status": status, "access": {"valid_until": f"{valid_until.isoformat()}T00:00:00Z"}})
 
 
-def test_start_auth_asks_90_days(monkeypatch):
+def test_start_auth_asks_the_bank_maximum(monkeypatch):
     sent = {}
     class R:
         is_success = True
         def json(self): return {"url": "https://bank", "auth_code": "x"}
     monkeypatch.setattr(enablebanking, "_headers", lambda: {})
     monkeypatch.setattr(enablebanking.httpx, "post", lambda url, headers, json, timeout: sent.update(json) or R())
+    monkeypatch.setattr(enablebanking, "get_aspsps", lambda c: [{"name": "Banque Demo", "maximum_consent_validity": 15552000}])
     enablebanking.start_auth("Banque Demo", "FR", "https://cowallet/bank/callback")
-    assert sent["access"]["valid_until"] == f"{(TODAY + datetime.timedelta(days=90)).isoformat()}T00:00:00Z"
+    assert sent["access"]["valid_until"] == f"{(TODAY + datetime.timedelta(days=179)).isoformat()}T00:00:00Z"
+    # Banque inconnue ou liste indisponible : 90 jours comme avant
+    monkeypatch.setattr(enablebanking, "get_aspsps", lambda c: [])
+    enablebanking.start_auth("Autre banque", "FR", "https://cowallet/bank/callback")
+    assert sent["access"]["valid_until"] == f"{(TODAY + datetime.timedelta(days=89)).isoformat()}T00:00:00Z"
 
 
 def test_status_expired(bclient, db, monkeypatch):

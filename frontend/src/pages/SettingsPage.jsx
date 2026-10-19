@@ -632,7 +632,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {(bankStatus.no_accounts || bankStatus.expired || bankStatus.expires_soon) && (
+                  {(bankStatus.no_accounts || bankStatus.expired || bankStatus.expires_soon) ? (
                     <div>
                       <p className="text-sm text-slate-500 mb-3">
                         {t(bankStatus.no_accounts ? 'settings.bank_no_accounts_hint' : bankStatus.expired ? 'settings.bank_expired_hint' : 'settings.bank_expires_hint')}
@@ -645,6 +645,14 @@ export default function SettingsPage() {
                         {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
                       </button>
                     </div>
+                  ) : (
+                    <button
+                      onClick={openBankPicker}
+                      disabled={bankConnecting}
+                      className="w-full py-3 rounded-2xl border border-violet-200 text-violet-600 font-semibold active:bg-violet-50 transition disabled:opacity-60"
+                    >
+                      {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
+                    </button>
                   )}
 
                   {bankStatus.accounts?.length > 0 && (
