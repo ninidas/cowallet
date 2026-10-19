@@ -326,6 +326,13 @@
     "btn_connect_bank": "Connect my bank",
     "btn_connecting": "Redirecting...",
     "bank_connected_label": "Connected",
+    "bank_connected_until": "Connected until {{date}}",
+    "bank_expires_on": "Access ends on {{date}}",
+    "bank_expired_on": "Access expired on {{date}}",
+    "bank_expired": "Access expired",
+    "bank_expired_hint": "Your bank cuts access to your accounts after a few months. Reconnect it to import your transactions again: those already imported are kept.",
+    "bank_expires_hint": "Your bank will soon cut access to your accounts. Reconnect it now to keep importing your transactions.",
+    "btn_reconnect_bank": "Reconnect my bank",
     "bank_accounts": "Accounts",
     "btn_disconnect_bank": "Disconnect bank",
     "btn_disconnecting": "Disconnecting...",
@@ -355,7 +362,9 @@
     "already_imported_other": "{{count}} transactions already imported, hidden",
     "btn_import_one": "Import {{count}} transaction",
     "btn_import_other": "Import {{count}} transactions",
-    "btn_importing": "Importing..."
+    "btn_importing": "Importing...",
+    "expired": "Your bank access has expired. Reconnect it in Settings to import your transactions.",
+    "btn_reconnect": "Reconnect my bank"
   },
   "group_setup": {
     "title": "Your budget space",

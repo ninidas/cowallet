@@ -114,6 +114,9 @@ export default function SettingsPage() {
     api.getBankStatus().then(setBankStatus).catch(() => {})
   }, [])
 
+  // Échéance de l'accès bancaire (« 2027-04-16 » → « 16 avril 2027 »)
+  const fmtBankDate = iso => new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' })
+
   async function openBankPicker() {
     setShowBankPicker(true)
     setAspspsLoading(true)
@@ -613,9 +616,34 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{bankStatus.provider_name}</p>
-                      <p className="text-xs text-emerald-600 font-medium">{t('settings.bank_connected_label')}</p>
+                      {bankStatus.expired ? (
+                        <p className="text-xs text-red-500 font-medium">
+                          {bankStatus.valid_until ? t('settings.bank_expired_on', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_expired')}
+                        </p>
+                      ) : bankStatus.expires_soon ? (
+                        <p className="text-xs text-amber-600 font-medium">{t('settings.bank_expires_on', { date: fmtBankDate(bankStatus.valid_until) })}</p>
+                      ) : (
+                        <p className="text-xs text-emerald-600 font-medium">
+                          {bankStatus.valid_until ? t('settings.bank_connected_until', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_connected_label')}
+                        </p>
+                      )}
                     </div>
                   </div>
+
+                  {(bankStatus.expired || bankStatus.expires_soon) && (
+                    <div>
+                      <p className="text-sm text-slate-500 mb-3">
+                        {t(bankStatus.expired ? 'settings.bank_expired_hint' : 'settings.bank_expires_hint')}
+                      </p>
+                      <button
+                        onClick={openBankPicker}
+                        disabled={bankConnecting}
+                        className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
+                      >
+                        {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
+                      </button>
+                    </div>
+                  )}
 
                   {bankStatus.accounts?.length > 0 && (
                     <div className="space-y-2">

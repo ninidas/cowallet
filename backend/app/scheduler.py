@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from .database import SessionLocal
-from . import models
+from . import models, enablebanking
 from .routers.push import send_notification
 
 logger = logging.getLogger(__name__)
@@ -59,8 +59,43 @@ def send_monthly_reminders():
         db.close()
 
 
+NOTIF_BANK = {
+    "en": {"soon": ("Your bank access ends in {n} days", "Reconnect your bank in Settings to keep importing transactions."),
+           "last": ("Your bank access ends tomorrow", "Reconnect your bank in Settings to keep importing transactions."),
+           "expired": ("Your bank access has expired", "Reconnect your bank in Settings to import your transactions again.")},
+    "fr": {"soon": ("L'accès à votre banque expire dans {n} jours", "Reconnectez-la dans Réglages pour continuer à importer vos transactions."),
+           "last": ("L'accès à votre banque expire demain", "Reconnectez-la dans Réglages pour continuer à importer vos transactions."),
+           "expired": ("L'accès à votre banque a expiré", "Reconnectez-la dans Réglages pour importer de nouveau vos transactions.")},
+}
+
+
+def send_bank_expiry_reminders():
+    """Chaque jour : prévient 7 jours et 1 jour avant la fin de l'accès bancaire, puis le jour où il expire."""
+    if not enablebanking.is_configured():
+        return
+    lang = APP_LANG if APP_LANG in NOTIF_BANK else "en"
+    db = SessionLocal()
+    try:
+        for conn in db.query(models.BankConnection).filter_by(status="active").all():
+            info = enablebanking.consent_info(conn.saltedge_connection_id, max_age=0)
+            if not info or not info["valid_until"]:
+                continue
+            days = (info["valid_until"] - date.today()).days
+            kind = "soon" if days == 7 else "last" if days == 1 else "expired" if days == 0 else None
+            if not kind:
+                continue
+            title, body = NOTIF_BANK[lang][kind]
+            send_notification(db, conn.user_id, title=title.format(n=days), body=body, url="/settings")
+            logger.info("Bank expiry reminder (%s) sent to user_id=%s", kind, conn.user_id)
+    except Exception:
+        logger.exception("Bank expiry reminders failed")
+    finally:
+        db.close()
+
+
 def create_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     # Tous les jours à 9h
     scheduler.add_job(send_monthly_reminders, CronTrigger(hour=9, minute=0))
+    scheduler.add_job(send_bank_expiry_reminders, CronTrigger(hour=9, minute=5))
     return scheduler

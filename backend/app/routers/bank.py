@@ -17,6 +17,23 @@ def _require_enablebanking():
         raise HTTPException(status_code=503, detail="Enable Banking not configured on this server")
 
 
+EXPIRES_SOON_DAYS = 14
+
+
+def _consent(conn) -> dict:
+    """Échéance de l'accès bancaire (la banque le coupe au bout de 90 à 180 jours)."""
+    info = enablebanking.consent_info(conn.saltedge_connection_id)
+    if not info:
+        return {}
+    vu = info["valid_until"]
+    days = (vu - datetime.date.today()).days if vu else None
+    return {
+        "expired":       info["expired"],
+        "valid_until":   vu.isoformat() if vu else None,
+        "expires_soon":  (not info["expired"]) and days is not None and days <= EXPIRES_SOON_DAYS,
+    }
+
+
 # ── Schemas ────────────────────────────────────────────────────────────────────
 
 class ConnectRequest(BaseModel):
@@ -76,6 +93,7 @@ def get_status(
     return {
         "configured":    True,
         "connected":     True,
+        **_consent(conn),
         "provider_name": conn.provider_name,
         "accounts": [
             {"id": a.id, "name": a.name, "nature": a.nature, "currency": a.currency, "enabled": a.enabled}
@@ -156,6 +174,13 @@ def finish_connect(
             nature=acc.get("cash_account_type") or acc.get("nature"),
             currency=acc.get("currency") or acc.get("currency_code", "EUR"),
         ))
+
+    # Reconnexion : la nouvelle connexion remplace l'ancienne (accès expiré ou bientôt expiré)
+    for old in db.query(models.BankConnection).filter(
+        models.BankConnection.user_id == user.id,
+        models.BankConnection.id != conn.id,
+    ).all():
+        db.delete(old)
 
     db.commit()
     return {"status": "connected", "provider_name": conn.provider_name}
@@ -238,6 +263,10 @@ def get_transactions(
                     "account_id":   str(account.id),
                 })
     except Exception as exc:
+        # Accès coupé par la banque (fin de validité) : le dire clairement, l'écran propose de reconnecter
+        info = enablebanking.consent_info(conn.saltedge_connection_id, max_age=0)
+        if info and info["expired"]:
+            raise HTTPException(status_code=409, detail="Bank access expired")
         raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
     result.sort(key=lambda x: x["date"], reverse=True)
