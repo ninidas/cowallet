@@ -2,7 +2,7 @@ from .conftest import register, headers
 
 
 def test_register(client):
-    r = client.post("/api/users/register", json={"username": "camille", "password": "password123"})
+    r = client.post("/api/users/register", json={"username": "camille", "password": "password1234"})
     assert r.status_code == 201
     data = r.json()
     assert data["username"] == "camille"
@@ -10,8 +10,8 @@ def test_register(client):
 
 
 def test_register_duplicate(client):
-    client.post("/api/users/register", json={"username": "camille", "password": "password123"})
-    r = client.post("/api/users/register", json={"username": "camille", "password": "autrepass1"})
+    client.post("/api/users/register", json={"username": "camille", "password": "password1234"})
+    r = client.post("/api/users/register", json={"username": "camille", "password": "autrepass1234"})
     assert r.status_code == 409
 
 
@@ -22,7 +22,7 @@ def test_register_password_too_short(client):
 
 def test_login(client):
     register(client, "camille")
-    r = client.post("/api/auth/login", json={"username": "camille", "password": "password123"})
+    r = client.post("/api/auth/login", json={"username": "camille", "password": "password1234"})
     assert r.status_code == 200
     assert "access_token" in r.json()
 

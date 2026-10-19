@@ -1,5 +1,6 @@
 import os
 os.environ["SECRET_KEY"] = "test-secret-key-for-pytest"
+os.environ.setdefault("MAX_GROUPS", "100")   # certains tests créent deux groupes
 
 import pytest
 from fastapi import FastAPI
@@ -66,7 +67,7 @@ def client(db):
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def register(client, username, password="password123"):
+def register(client, username, password="password1234"):
     r = client.post("/api/users/register", json={"username": username, "password": password})
     assert r.status_code == 201, r.text
     return r.json()["access_token"]
