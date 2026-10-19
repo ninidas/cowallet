@@ -15,17 +15,13 @@ NOTIF_CHARGE_ADDED = {
     "en": "{user} added '{label}' ({amount}€) on {month}",
     "fr": "{user} a ajouté '{label}' ({amount}€) sur {month}",
 }
-NOTIF_CHARGE_ADDED_SUPPLEMENT = {
-    "en": "{user} added '{label}' ({amount}€) on {month}. Supplement to transfer: {supplement}€",
-    "fr": "{user} a ajouté '{label}' ({amount}€) sur {month}. Supplément à virer : {supplement}€",
-}
 NOTIF_CHARGE_UPDATED = {
-    "en": "{user} updated '{label}' from {old}€ to {new}€. Supplement to transfer: {supplement}€",
-    "fr": "{user} a modifié '{label}' de {old}€ à {new}€. Supplément à virer : {supplement}€",
+    "en": "{user} updated '{label}' from {old}€ to {new}€. Your share: {delta:+.0f}€",
+    "fr": "{user} a modifié '{label}' de {old}€ à {new}€. Ta part : {delta:+.0f}€",
 }
 NOTIF_CHARGE_DELETED = {
-    "en": "{user} deleted '{label}' ({amount}€) on {month}. Supplement to transfer: {supplement}€",
-    "fr": "{user} a supprimé '{label}' ({amount}€) sur {month}. Supplément à virer : {supplement}€",
+    "en": "{user} deleted '{label}' ({amount}€) on {month}",
+    "fr": "{user} a supprimé '{label}' ({amount}€) sur {month}",
 }
 
 
@@ -43,22 +39,6 @@ def _partner_share(group: models.Group, month: models.Month, current_user_id: in
     if group.user1_id == current_user_id:
         return 1 - user1_share  # partenaire = user2
     return user1_share  # partenaire = user1
-
-
-def _reset_transfer_and_get_supplement(db, month: models.Month, group: models.Group, current_user_id: int) -> float | None:
-    """Reset les flags de transfert et retourne le supplément à virer pour le partenaire."""
-    from .months import compute_totals
-    partner_share = _partner_share(group, month, current_user_id)
-    current_total = compute_totals(month)["total"]
-    supplement = None
-    if month.total_at_transfer is not None:
-        delta = current_total - month.total_at_transfer
-        if delta > 0:
-            supplement = round(delta * partner_share, 2)
-    month.user1_transferred = False
-    month.user2_transferred = False
-    db.commit()
-    return supplement
 
 router = APIRouter(tags=["charges"])
 
@@ -146,20 +126,17 @@ def add_charge(
 
     partner_id = _partner_id(group, current_user.id)
     if partner_id:
-        supplement = None
-        if _both_transferred(month):
-            supplement = _reset_transfer_and_get_supplement(db, month, group, current_user.id)
-        if supplement is not None:
-            title = NOTIF_CHARGE_ADDED_SUPPLEMENT.get(APP_LANG, NOTIF_CHARGE_ADDED_SUPPLEMENT["en"]).format(
-                user=current_user.get_display_name(), label=charge.label,
-                amount=charge.amount, month=month.label, supplement=supplement,
-            )
-        else:
-            title = NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
-                user=current_user.get_display_name(), label=charge.label,
-                amount=charge.amount, month=month.label,
-            )
-        send_notification(db, partner_id, title=title, body="", url=f"/months/{month.id}")
+        send_notification(
+            db, partner_id,
+            title=NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
+                user=current_user.get_display_name(),
+                label=charge.label,
+                amount=charge.amount,
+                month=month.label,
+            ),
+            body="",
+            url=f"/months/{month.id}",
+        )
 
     return charge
 
@@ -185,11 +162,12 @@ def update_charge(
     db.refresh(charge)
 
     new_amount = charge.amount
-    month = db.query(models.Month).filter_by(id=charge.month_id).first()
-    if _both_transferred(month):
+    if _both_transferred(db.query(models.Month).filter_by(id=charge.month_id).first()):
+        month = db.query(models.Month).filter_by(id=charge.month_id).first()
         partner_id = _partner_id(group, current_user.id)
         if partner_id and old_amount != new_amount:
-            supplement = _reset_transfer_and_get_supplement(db, month, group, current_user.id)
+            partner_share = _partner_share(group, month, current_user.id)
+            delta = (new_amount - old_amount) * partner_share
             send_notification(
                 db, partner_id,
                 title=NOTIF_CHARGE_UPDATED.get(APP_LANG, NOTIF_CHARGE_UPDATED["en"]).format(
@@ -197,7 +175,7 @@ def update_charge(
                     label=charge.label,
                     old=old_amount,
                     new=new_amount,
-                    supplement=supplement if supplement is not None else 0,
+                    delta=delta,
                 ),
                 body="",
                 url=f"/months/{month.id}",
@@ -268,7 +246,6 @@ def delete_charge(
     db.commit()
 
     if both_done:
-        supplement = _reset_transfer_and_get_supplement(db, month, group, current_user.id)
         partner_id = _partner_id(group, current_user.id)
         if partner_id:
             send_notification(
@@ -278,7 +255,6 @@ def delete_charge(
                     label=label,
                     amount=amount,
                     month=month_label,
-                    supplement=supplement if supplement is not None else 0,
                 ),
                 body="",
                 url=f"/months/{month_id}",
