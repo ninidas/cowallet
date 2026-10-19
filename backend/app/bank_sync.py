@@ -64,7 +64,16 @@ def fetch_transactions(db: Session, conn: models.BankConnection, from_date: str,
     return result
 
 
-def merchant_key(description: str) -> str:
+# Intermédiaires de paiement qui regroupent des achats sans rapport entre eux (un prélèvement PayPal
+# peut couvrir des achats sans rapport) : jamais de catégorie devinée pour eux (2026-10-20)
+GENERIC_MERCHANTS = ("PAYPAL",)
+
+
+def is_generic(description: str) -> bool:
+    return any(g in merchant_key(description, raw=True) for g in GENERIC_MERCHANTS)
+
+
+def merchant_key(description: str, raw: bool = False) -> str:
     """Le commerçant derrière un libellé, pour reconnaître un même achat d'un mois à l'autre.
 
     Paiement par carte : 15 caractères de commerçant, puis le pays ou le département, puis la ville
@@ -72,6 +81,10 @@ def merchant_key(description: str) -> str:
     Prélèvement : « PRLV SEPA Energie clients » -> « ENERGIE CLIENTS ». Sinon le libellé entier."""
     s = unicodedata.normalize("NFD", description or "")
     s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn").upper()
+    if raw:
+        return s
+    if any(g in s for g in GENERIC_MERCHANTS):
+        return ""
     if s.startswith("PRLV SEPA "):
         s = s[len("PRLV SEPA "):]
     elif len(s) > 17 and re.match(r"[A-Z]{2}|\d{2}", s[15:17]):
@@ -99,6 +112,8 @@ def category_index(db: Session, group: models.Group) -> tuple:
 
 
 def guess_category(index: tuple, description: str):
+    if is_generic(description):
+        return None
     exact, by_merchant = index
     return exact.get(description) or by_merchant.get(merchant_key(description))
 

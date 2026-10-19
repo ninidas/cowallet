@@ -168,3 +168,15 @@ def test_search_stays_in_own_group(client, db):
     om = models.Month(group_id=other.id, label="Octobre 2026", year=2026, month=10); db.add(om); db.commit()
     db.add(models.Charge(month_id=om.id, label="Loyer secret", amount=900.0, category="Maison")); db.commit()
     assert client.get("/api/search", params={"q": "loyer"}, headers=headers(token)).json()["charges"] == []
+
+
+def test_paypal_never_gets_a_guessed_category(client, db, monkeypatch):
+    token, g, (oct_,) = _setup(client, db)
+    a = _tx(db, oct_, "pp1", "PRLV SEPA PayPal (Europe", category="Autre")
+    b = _tx(db, oct_, "pp2", "PRLV SEPA PayPal (Europe")
+    monkeypatch.setattr(enablebanking, "get_transactions", lambda acc, f, t=None, h=None: [_eb("pp3", "PRLV SEPA PayPal (Europe", 50)])
+    bank_sync.auto_import(db, today=datetime.date(2026, 10, 20))
+    c = _tx(db, oct_, "epicerie", "EPICERIE CENTREFR DEMOVILLE")
+    client.patch(f"/api/bank/transactions/{a.id}", json={"category": "Maison"}, headers=headers(token))
+    got = {t.saltedge_id: t.category for t in db.query(models.BankTransaction)}
+    assert got["pp2"] is None and got["pp3"] is None and got["epicerie"] is None
