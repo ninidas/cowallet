@@ -37,3 +37,7 @@ Thumbs.db
 /*.jpeg
 /*.gif
 /*.webp
+
+# Instance de dev
+.env.dev
+data-dev/
