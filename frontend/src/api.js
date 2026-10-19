@@ -4,8 +4,8 @@ function getToken() {
   return localStorage.getItem('token')
 }
 
-// Déconnexion : on oublie la session mais pas les préférences de l'appareil (langue, mode sombre)
-const KEEP_ON_LOGOUT = ['cowallet_lang', 'darkMode']
+// Déconnexion : on oublie la session mais pas la langue choisie sur l'appareil
+const KEEP_ON_LOGOUT = ['cowallet_lang']
 export function clearSession() {
   Object.keys(localStorage).filter(k => !KEEP_ON_LOGOUT.includes(k)).forEach(k => localStorage.removeItem(k))
 }

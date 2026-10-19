@@ -10,21 +10,13 @@ export function AuthProvider({ children }) {
   })
   const [config, setConfig] = useState(null)
   const [ready, setReady]   = useState(false)
-  const [darkMode, setDarkMode] = useState(() => {
-    const stored = localStorage.getItem('darkMode')
-    if (stored !== null) return stored === 'true'
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-  })
-
-  // Applique la classe dark sur <html>
+  // Mode sombre retiré (2026-10-19) : seule la couleur du fond changeait, pas les écrans ;
+  // un iPhone réglé en sombre pouvait afficher du texte clair sur des cartes blanches.
+  const [darkMode, setDarkMode] = useState(false)
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    localStorage.setItem('darkMode', String(darkMode))
-  }, [darkMode])
+    document.documentElement.classList.remove('dark')
+    localStorage.removeItem('darkMode')
+  }, [])
 
   useEffect(() => {
     if (!user) { setReady(true); return }

@@ -166,7 +166,10 @@
     "actual_estimated_short": "actual {{amount}}",
     "total": "Total",
     "transfers": "Transfers",
-    "your_share": "Your share"
+    "your_share": "Your share",
+    "aria_delete_month": "Delete this month",
+    "confirm_delete_short": "Delete?",
+    "aria_delete_tx": "Delete transaction"
   },
   "chargeform": {
     "title_add": "New expense",

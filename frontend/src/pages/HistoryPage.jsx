@@ -56,6 +56,16 @@ export default function HistoryPage() {
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedMonth, setSelectedMonth] = useState(null)
 
+  // Mois ouvert par défaut dans la répartition : le dernier qui a des montants réels,
+  // pas le mois à venir où tout est encore à 0 €
+  const lastActualLabel = (rows) => {
+    const withActual = rows.filter(m => {
+      const r = statsData?.by_month_actual?.find(x => x.label === m.label)
+      return r && Object.keys(r).some(k => k !== 'label' && r[k] > 0)
+    })
+    return (withActual[withActual.length - 1] ?? rows[rows.length - 1])?.label ?? null
+  }
+
   useEffect(() => {
     window.scrollTo(0, 0)
     api.getMonths().then(m => setMonths([...m].reverse())).finally(() => setLoading(false))
@@ -279,7 +289,7 @@ export default function HistoryPage() {
                 </div>
 
                 {breakdownTab === 'category' && (() => {
-                  const lastMonth = filtered[filtered.length - 1]?.label ?? null
+                  const lastMonth = lastActualLabel(filtered)
                   const activeMonthCat = selectedMonth === 'all'
                     ? null
                     : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonth)
@@ -385,7 +395,7 @@ export default function HistoryPage() {
                     : categories[0] ?? null
 
                   // Filtrage par mois sélectionné
-                  const lastMonthLabel = filtered[filtered.length - 1]?.label ?? null
+                  const lastMonthLabel = lastActualLabel(filtered)
                   const activeMonth = selectedMonth === 'all'
                     ? null
                     : (selectedMonth && filtered.some(m => m.label === selectedMonth) ? selectedMonth : lastMonthLabel)

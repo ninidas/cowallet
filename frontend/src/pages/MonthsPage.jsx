@@ -35,7 +35,8 @@ function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selec
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          {/* Badges sous le nom quand la place manque, plutôt que de couper « Octobre 2026 » en deux */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             {selectMode && (
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                 selected ? 'border-violet-600 bg-violet-600' : 'border-slate-300'
@@ -47,14 +48,14 @@ function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selec
                 )}
               </div>
             )}
-            <h3 className="text-lg font-bold text-slate-900">{month.label}</h3>
+            <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap">{month.label}</h3>
             {isCurrent && (
-              <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full whitespace-nowrap">
                 {t('months.in_progress')}
               </span>
             )}
             {month.validated_by && (
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full whitespace-nowrap">
                 {t('months.validated')}
               </span>
             )}

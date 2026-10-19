@@ -134,7 +134,7 @@ function EntryRow({ entry, onUpdate, onDelete }) {
   return (
     <div className="flex items-center rounded-xl bg-white border border-slate-100 overflow-hidden group">
       <input value={label} onChange={e => setLabel(e.target.value)} onBlur={handleBlur} onKeyDown={handleKeyDown}
-        className="flex-1 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none" />
+        className="flex-1 min-w-0 px-3 py-2 text-sm text-slate-900 bg-transparent border-none outline-none" />
       <div className="w-px h-6 bg-slate-200 shrink-0" />
       <input value={amount} onChange={e => setAmount(cleanAmountInput(e.target.value))} onBlur={handleBlur} onKeyDown={handleKeyDown}
         type="text" inputMode="decimal" autoComplete="off"
@@ -142,7 +142,7 @@ function EntryRow({ entry, onUpdate, onDelete }) {
       {saved
         ? <span className="text-xs text-emerald-500 shrink-0">✓</span>
         : <button onClick={() => onDelete(entry.id)}
-            className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-300 hover:text-red-500 transition shrink-0">
+            className="lg:opacity-0 lg:group-hover:opacity-100 p-2 rounded-lg text-slate-400 hover:text-red-500 transition shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -327,6 +327,43 @@ const LABEL_PY   = 1.5   // 0.1em @ 11px
 const LABEL_H    = 11 + LABEL_PY * 2
 const LABEL_RX   = 4
 
+// Téléphone : le diagramme de flux est illisible sur 390 px ; une barre par poste, en part du revenu
+function FlowBars({ entries, sharedTotal, sharedLabel, savingsLabel, fmt, fmtPct }) {
+  const income = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0)
+  if (income <= 0) return null
+  const rows = []
+  if (sharedTotal > 0) rows.push({ name: sharedLabel, value: sharedTotal, color: SHARED_COLOR })
+  for (const [type, palette] of [['expense', EXPENSE_COLORS], ['investment', INVEST_COLORS]]) {
+    Object.entries(groupByCategory(entries.filter(e => e.type === type))).forEach(([cat, items], i) => {
+      if (cat) rows.push({ name: cat, value: items.reduce((s, e) => s + e.amount, 0), color: palette[i % palette.length] })
+      else items.forEach((e, j) => rows.push({ name: e.label, value: e.amount, color: palette[(i + j) % palette.length] }))
+    })
+  }
+  const out = rows.reduce((s, r) => s + r.value, 0)
+  if (income - out > 0) rows.push({ name: savingsLabel, value: income - out, color: '#60a5fa' })
+  return (
+    <ul className="space-y-3">
+      {rows.map(r => (
+        <li key={r.name}>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: r.color }} />
+              <span className="text-slate-700 truncate">{r.name}</span>
+            </span>
+            <span className="shrink-0 tabular-nums">
+              <span className="font-semibold text-slate-800">{fmt(r.value)}</span>
+              <span className="text-slate-400 text-xs ml-1.5">{fmtPct(r.value / income * 100)}</span>
+            </span>
+          </div>
+          <div className="mt-1.5 h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${Math.min(100, r.value / income * 100)}%`, backgroundColor: r.color }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function SvgLabel({ x, y, text, anchor = 'start' }) {
   const estW = text.length * 6.2
   const bgX  = anchor === 'end' ? x - estW - LABEL_PX * 2 : x - LABEL_PX
@@ -397,7 +434,7 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames, fmt) {
 }
 
 export default function BudgetPage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const fmt = useFmt({ maximumFractionDigits: 0 })
   const { config, getMyUserKey } = useAuth()
   const [entries, setEntries]         = useState([])
@@ -513,7 +550,9 @@ export default function BudgetPage() {
   const totalIncome     = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0)
   const totalExpense    = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0)
   const totalInvestment = entries.filter(e => e.type === 'investment').reduce((s, e) => s + e.amount, 0)
-  const remaining       = Math.max(0, totalIncome - totalExpense - totalInvestment - sharedTotal)
+  const balance         = totalIncome - totalExpense - totalInvestment - sharedTotal
+  const remaining       = Math.max(0, balance)
+  const fmtPct = v => `${new Intl.NumberFormat(i18n.language?.startsWith('en') ? 'en-GB' : 'fr-FR', { maximumFractionDigits: 1 }).format(v)}${i18n.language?.startsWith('en') ? '%' : '\u202f%'}`
 
   if (loading) return <div className="flex items-center justify-center min-h-screen text-slate-400">{t('budget.loading')}</div>
 
@@ -546,7 +585,7 @@ export default function BudgetPage() {
                 <circle cx={55} cy={55} r={gaugeR} fill="none" stroke={gaugeColor} strokeWidth={10}
                   strokeDasharray={`${gaugeDash} ${gaugeCirc}`}
                   strokeLinecap="round" transform="rotate(-90 55 55)" />
-                <text x={55} y={50} textAnchor="middle" fontSize={20} fontWeight="bold" fill="white">{savingsRate}%</text>
+                <text x={55} y={50} textAnchor="middle" fontSize={20} fontWeight="bold" fill="white">{fmtPct(parseFloat(savingsRate) || 0)}</text>
                 <text x={55} y={66} textAnchor="middle" fontSize={9} fill="rgba(255,255,255,0.7)">{t('budget.savings_rate')}</text>
               </svg>
             </div>
@@ -651,16 +690,16 @@ export default function BudgetPage() {
         <div className="px-4 lg:px-6">
           <div className="max-w-3xl mx-auto">
             <div className="bg-violet-50 border border-violet-100 rounded-2xl px-5 py-4 text-sm text-slate-700 leading-relaxed">
-              {remaining >= 0
-                ? <>{t('budget.summary_rate_prefix')} <strong className="text-violet-700">{savingsRate} %</strong>. </>
-                : <>{t('budget.summary_deficit_prefix')} <strong className="text-red-600">{fmt(Math.abs(remaining))}</strong>. </>
+              {balance >= 0
+                ? <>{t('budget.summary_rate_prefix')} <strong className="text-violet-700">{fmtPct(parseFloat(savingsRate) || 0)}</strong>. </>
+                : <>{t('budget.summary_deficit_prefix')} <strong className="text-red-600">{fmt(Math.abs(balance))}</strong>. </>
               }
               {t('budget.summary_income_prefix')} <strong>{fmt(totalIncome)}</strong>
               {(totalExpense + sharedTotal) > 0 && <>{t('budget.summary_expenses_prefix')} <strong>{fmt(totalExpense + sharedTotal)}</strong></>}
               {totalInvestment > 0 && <>{t('budget.summary_investments_pre')} <strong>{fmt(totalInvestment)}</strong>{t('budget.summary_investments_suf')}</>}
               {remaining > 0 && <>{t('budget.summary_remaining_pre')} <strong className="text-emerald-600">{fmt(remaining)}</strong>{t('budget.summary_remaining_suf')}</>}
-              {remaining === 0 && <>{t('budget.summary_balanced')}</>}
-              {remaining < 0 && <>.</>}
+              {balance === 0 && <>{t('budget.summary_balanced')}</>}
+              {balance < 0 && <>.</>}
             </div>
           </div>
         </div>
@@ -691,7 +730,11 @@ export default function BudgetPage() {
         <div className="px-4 lg:px-6">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
             <h2 className="text-sm font-semibold text-slate-700 mb-4">{t('budget.chart_title')}</h2>
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="sm:hidden">
+              <FlowBars entries={entries} sharedTotal={sharedTotal} sharedLabel={t('budget.tab_shared')}
+                savingsLabel={t('budget.card_savings')} fmt={fmt} fmtPct={fmtPct} />
+            </div>
+            <div className="hidden sm:block overflow-x-auto">
               <div style={{ minWidth: 700 }}>
                 <ResponsiveContainer width="100%" height={Math.max(250, sankeyData.nodes.length * 28)}>
                   <Sankey

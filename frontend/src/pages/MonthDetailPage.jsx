@@ -70,7 +70,7 @@ function TransferButton({ name, amount, done, onToggle, loading }) {
       </div>
       <div className="text-left min-w-0">
         <p className="text-sm font-semibold text-slate-700 capitalize truncate">{name}</p>
-        <p className={`text-xs font-medium ${done ? 'text-emerald-600' : 'text-slate-400'}`}>
+        <p className={`text-xs font-medium ${done ? 'text-emerald-600' : 'text-slate-500'}`}>
           {done ? t('month_detail.transferred') : t('month_detail.to_transfer', { amount: fmt(amount) })}
         </p>
       </div>
@@ -249,6 +249,8 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, cate
   const fmt = useFmt()
   const [transactions, setTx]   = useState([])
   const [loading,      setLoad] = useState(true)
+  // Suppression en deux touches : la première arme le bouton, la seconde supprime
+  const [armedTx,      setArmedTx] = useState(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const autoCount = parseInt(searchParams.get('auto') || '0')
 
@@ -273,6 +275,12 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, cate
   }
 
   async function handleDelete(txId) {
+    if (armedTx !== txId) {
+      setArmedTx(txId)
+      setTimeout(() => setArmedTx(a => (a === txId ? null : a)), 3000)
+      return
+    }
+    setArmedTx(null)
     await api.deleteTransaction(txId)
     await load()
   }
@@ -367,11 +375,16 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, cate
                   <span className={`text-sm font-bold tabular-nums ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-800'}`}>{tx.amount < 0 ? `+${fmt(-tx.amount)}` : fmt(tx.amount)}</span>
                   <button
                     onClick={() => handleDelete(tx.id)}
-                    className="w-7 h-7 rounded-lg bg-red-50 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 hover:bg-red-100 transition-all"
+                    aria-label={t('month_detail.aria_delete_tx')}
+                    className={armedTx === tx.id
+                      ? 'h-9 px-2.5 rounded-lg bg-red-500 text-white text-xs font-semibold transition-all'
+                      : 'w-9 h-9 rounded-lg bg-red-50 text-red-400 flex items-center justify-center lg:opacity-0 lg:group-hover:opacity-100 hover:bg-red-100 transition-all'}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    {armedTx === tx.id ? t('month_detail.confirm_delete_short') : (
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
@@ -513,7 +526,7 @@ export default function MonthDetailPage() {
     >
       {/* Header — sticky sur mobile */}
       <div className="sticky top-0 z-20 bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-3 lg:pb-4">
-        <div className="max-w-6xl mx-auto lg:px-6 flex items-center gap-3 lg:gap-4">
+        <div className="max-w-6xl mx-auto lg:px-6 flex items-center gap-2 sm:gap-3 lg:gap-4">
           {/* Retour */}
           <button
             onClick={() => navigate('/months')}
@@ -525,7 +538,7 @@ export default function MonthDetailPage() {
           </button>
 
           {/* Navigation mois */}
-          <div className="flex-1 flex items-center justify-center lg:justify-start gap-2">
+          <div className="flex-1 min-w-0 flex items-center justify-center lg:justify-start gap-1.5 sm:gap-2">
             <button
               onClick={() => prevMonth && navigate(`/months/${prevMonth.id}`)}
               disabled={!prevMonth}
@@ -536,7 +549,7 @@ export default function MonthDetailPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
               </svg>
             </button>
-            <h1 className="text-xl font-bold text-white min-w-0 text-center">{month.label}</h1>
+            <h1 className="text-base sm:text-xl font-bold text-white text-center whitespace-nowrap">{month.label}</h1>
             <button
               onClick={() => nextMonth && navigate(`/months/${nextMonth.id}`)}
               disabled={!nextMonth}
@@ -569,7 +582,7 @@ export default function MonthDetailPage() {
           <button
             onClick={() => setConfirmDeleteMonth(true)}
             className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center active:bg-white/30 transition shrink-0"
-            aria-label="Supprimer ce mois"
+            aria-label={t('month_detail.aria_delete_month')}
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="white" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />

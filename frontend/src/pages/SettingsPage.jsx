@@ -409,45 +409,6 @@ export default function SettingsPage() {
             {error   && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
             {success && <div className="bg-emerald-50 text-emerald-700 text-sm px-4 py-3 rounded-xl">{success}</div>}
 
-            <button type="submit" disabled={saving}
-              className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60">
-              {saving ? t('settings.btn_saving') : t('settings.btn_save')}
-            </button>
-
-            <button type="button" onClick={logout}
-              className="w-full py-4 rounded-2xl bg-white text-red-500 font-semibold border border-red-100 active:bg-red-50 transition">
-              {t('settings.btn_logout')}
-            </button>
-
-            {!showDeleteConfirm ? (
-              <button type="button" onClick={() => setShowDeleteConfirm(true)}
-                className="w-full py-3 text-sm text-slate-400 hover:text-red-400 transition">
-                {t('settings.btn_delete_account')}
-              </button>
-            ) : (
-              <div className="bg-red-50 rounded-2xl p-4 space-y-3">
-                <p className="text-sm font-semibold text-red-600">{t('settings.delete_confirm_title')}</p>
-                <p className="text-xs text-red-400">{t('settings.delete_confirm_hint')}</p>
-                <input
-                  type="password"
-                  value={deletePassword}
-                  onChange={e => setDeletePassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-red-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm"
-                  placeholder={t('settings.delete_password_placeholder')}
-                />
-                {deleteError && <p className="text-xs text-red-600">{tError(t, deleteError)}</p>}
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError('') }}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white active:bg-slate-50 transition">
-                    {t('settings.btn_cancel')}
-                  </button>
-                  <button type="button" onClick={handleDeleteAccount} disabled={deleting || !deletePassword}
-                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold active:scale-95 transition disabled:opacity-60">
-                    {deleting ? t('settings.btn_deleting') : t('settings.btn_confirm_delete')}
-                  </button>
-                </div>
-              </div>
-            )}
           </form>
         </div>
 
@@ -479,7 +440,7 @@ export default function SettingsPage() {
                     >{cat.name}</span>
                   )}
                   <button onClick={() => handleDeleteCategory(cat.id)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
+                    className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -553,7 +514,7 @@ export default function SettingsPage() {
                     >{pm.name}</span>
                   )}
                   <button onClick={() => handleDeletePaymentMethod(pm.id)}
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
+                    className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -566,7 +527,7 @@ export default function SettingsPage() {
 
             <form onSubmit={handleAddPaymentMethod} className="flex gap-2 pt-2 border-t border-slate-100">
               <input value={newPmName} onChange={e => setNewPmName(e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+                className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
                 placeholder={t('settings.payment_method_placeholder')} required />
               <button type="submit"
                 className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition">
@@ -699,6 +660,44 @@ export default function SettingsPage() {
             </div>
           </Section>
 
+        </div>
+
+        {/* Compte : en dernier, sous les deux colonnes */}
+        <div className="lg:col-span-2 lg:max-w-md lg:mx-auto lg:w-full space-y-2 pt-2">
+          <button type="button" onClick={logout}
+            className="w-full py-4 rounded-2xl bg-white text-red-500 font-semibold border border-red-100 active:bg-red-50 transition">
+            {t('settings.btn_logout')}
+          </button>
+
+          {!showDeleteConfirm ? (
+            <button type="button" onClick={() => setShowDeleteConfirm(true)}
+              className="w-full py-3 text-sm text-slate-400 hover:text-red-400 transition">
+              {t('settings.btn_delete_account')}
+            </button>
+          ) : (
+            <div className="bg-red-50 rounded-2xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-red-600">{t('settings.delete_confirm_title')}</p>
+              <p className="text-xs text-red-400">{t('settings.delete_confirm_hint')}</p>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-red-200 bg-white text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-400 text-sm"
+                placeholder={t('settings.delete_password_placeholder')}
+              />
+              {deleteError && <p className="text-xs text-red-600">{tError(t, deleteError)}</p>}
+              <div className="flex gap-2">
+                <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setDeleteError('') }}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 bg-white active:bg-slate-50 transition">
+                  {t('settings.btn_cancel')}
+                </button>
+                <button type="button" onClick={handleDeleteAccount} disabled={deleting || !deletePassword}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold active:scale-95 transition disabled:opacity-60">
+                  {deleting ? t('settings.btn_deleting') : t('settings.btn_confirm_delete')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
