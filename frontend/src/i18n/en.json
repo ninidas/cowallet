@@ -333,6 +333,8 @@
     "bank_expired_hint": "Your bank cuts access to your accounts after a few months. Reconnect it to import your transactions again: those already imported are kept.",
     "bank_expires_hint": "Your bank will soon cut access to your accounts. Reconnect it now to keep importing your transactions.",
     "btn_reconnect_bank": "Reconnect my bank",
+    "bank_no_accounts": "No account shared by the bank",
+    "bank_no_accounts_hint": "The bank authorised access without sharing any account, so there is nothing to import. Reconnect it; if it shows a list of accounts, tick your joint account.",
     "bank_accounts": "Accounts",
     "btn_disconnect_bank": "Disconnect bank",
     "btn_disconnecting": "Disconnecting...",
@@ -348,7 +350,8 @@
     "loading": "Finalizing connection...",
     "error_title": "Connection failed",
     "error_missing_param": "Missing parameter in Enable Banking redirect.",
-    "btn_back": "Back to settings"
+    "btn_back": "Back to settings",
+    "error_no_accounts": "The bank authorised access without sharing any account, so nothing could be imported. Try again; if it shows a list of accounts, tick your joint account. Your previous connection is kept."
   },
   "bank_import": {
     "title": "Import transactions",

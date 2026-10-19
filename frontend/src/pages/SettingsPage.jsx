@@ -616,7 +616,9 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{bankStatus.provider_name}</p>
-                      {bankStatus.expired ? (
+                      {bankStatus.no_accounts ? (
+                        <p className="text-xs text-red-500 font-medium">{t('settings.bank_no_accounts')}</p>
+                      ) : bankStatus.expired ? (
                         <p className="text-xs text-red-500 font-medium">
                           {bankStatus.valid_until ? t('settings.bank_expired_on', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_expired')}
                         </p>
@@ -630,10 +632,10 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {(bankStatus.expired || bankStatus.expires_soon) && (
+                  {(bankStatus.no_accounts || bankStatus.expired || bankStatus.expires_soon) && (
                     <div>
                       <p className="text-sm text-slate-500 mb-3">
-                        {t(bankStatus.expired ? 'settings.bank_expired_hint' : 'settings.bank_expires_hint')}
+                        {t(bankStatus.no_accounts ? 'settings.bank_no_accounts_hint' : bankStatus.expired ? 'settings.bank_expired_hint' : 'settings.bank_expires_hint')}
                       </p>
                       <button
                         onClick={openBankPicker}

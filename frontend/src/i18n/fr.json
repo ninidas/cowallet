@@ -333,6 +333,8 @@
     "bank_expired_hint": "Votre banque coupe l'accès à vos comptes au bout de quelques mois. Reconnectez-la pour importer de nouveau vos transactions : celles déjà importées sont conservées.",
     "bank_expires_hint": "Votre banque va bientôt couper l'accès à vos comptes. Reconnectez-la dès maintenant pour continuer à importer vos transactions.",
     "btn_reconnect_bank": "Reconnecter ma banque",
+    "bank_no_accounts": "Aucun compte partagé par la banque",
+    "bank_no_accounts_hint": "La banque a autorisé l'accès sans partager de compte : il n'y a rien à importer. Reconnectez-la ; si elle vous propose une liste de comptes, cochez votre compte joint.",
     "bank_accounts": "Comptes",
     "btn_disconnect_bank": "Déconnecter la banque",
     "btn_disconnecting": "Déconnexion…",
@@ -348,7 +350,8 @@
     "loading": "Finalisation de la connexion…",
     "error_title": "Connexion échouée",
     "error_missing_param": "Paramètre manquant dans la redirection Enable Banking.",
-    "btn_back": "Retour aux paramètres"
+    "btn_back": "Retour aux paramètres",
+    "error_no_accounts": "La banque a autorisé l'accès sans partager aucun compte, rien ne pourrait être importé. Réessayez ; si elle vous propose une liste de comptes, cochez votre compte joint. Votre connexion précédente est conservée."
   },
   "bank_import": {
     "title": "Importer des transactions",

@@ -17,7 +17,7 @@ export default function BankCallbackPage() {
     }
     api.finishBankConnect(code)
       .then(() => navigate('/settings?bank=connected', { replace: true }))
-      .catch(err => setError(err.message))
+      .catch(err => setError(err.message === 'No account shared by the bank' ? t('bank_callback.error_no_accounts') : err.message))
   }, [])
 
   if (error) return (

@@ -48,27 +48,14 @@ def get_aspsps(country: str = "FR") -> list:
     return data if isinstance(data, list) else data.get("aspsps", data.get("data", []))
 
 
-DEFAULT_CONSENT_DAYS = 90
-
-
-def _max_consent_seconds(aspsp_name: str, aspsp_country: str) -> int:
-    """Durée d'accès maximale acceptée par la banque (180 jours pour la plupart), 90 jours à défaut."""
-    try:
-        for a in get_aspsps(aspsp_country):
-            if a.get("name") == aspsp_name and a.get("maximum_consent_validity"):
-                return int(a["maximum_consent_validity"])
-    except Exception:
-        pass
-    return DEFAULT_CONSENT_DAYS * 86400
+# 90 jours, comme avant : en demandant les 180 jours annoncés, la Banque Populaire autorisait
+# l'accès sans partager aucun compte (constaté le 2026-10-19).
+CONSENT_DAYS = 90
 
 
 def start_auth(aspsp_name: str, aspsp_country: str, redirect_url: str) -> dict:
-    """Démarre le flux d'authentification. Retourne {url, auth_code}.
-    L'accès est demandé pour la durée maximale permise par la banque (une heure de marge),
-    au lieu de 90 jours fixes : moins de reconnexions."""
-    seconds = _max_consent_seconds(aspsp_name, aspsp_country)
-    until = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=seconds) - datetime.timedelta(hours=1)
-    valid_until = until.strftime("%Y-%m-%dT%H:%M:%SZ")
+    """Démarre le flux d'authentification. Retourne {url, auth_code}."""
+    valid_until = (datetime.date.today() + datetime.timedelta(days=CONSENT_DAYS)).isoformat() + "T00:00:00Z"
     body = {
         "access": {
             "valid_until": valid_until,

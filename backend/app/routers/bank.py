@@ -94,6 +94,7 @@ def get_status(
         "configured":    True,
         "connected":     True,
         **_consent(conn),
+        "no_accounts":   not accounts,
         "provider_name": conn.provider_name,
         "accounts": [
             {"id": a.id, "name": a.name, "nature": a.nature, "currency": a.currency, "enabled": a.enabled}
@@ -156,6 +157,14 @@ def finish_connect(
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
+    accounts = session.get("accounts", [])
+    if not accounts:
+        # La banque a autorisé l'accès sans partager de compte : rien à importer.
+        # On garde l'ancienne connexion telle quelle.
+        db.delete(conn)
+        db.commit()
+        raise HTTPException(status_code=422, detail="No account shared by the bank")
+
     session_id = session.get("session_id") or session.get("id", "")
     conn.saltedge_connection_id = session_id
     conn.saltedge_customer_id   = session_id
@@ -163,7 +172,6 @@ def finish_connect(
 
     # Les comptes sont retournés directement dans la réponse de session
     db.query(models.BankAccount).filter_by(connection_id=conn.id).delete()
-    accounts = session.get("accounts", [])
 
     for acc in accounts:
         uid = acc.get("uid") or acc.get("id") or acc.get("account_id", "")
