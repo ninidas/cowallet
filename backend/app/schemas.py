@@ -157,6 +157,8 @@ class ChargeUpdate(BaseModel):
     note: Optional[str] = None
     installments_total: Optional[int] = None
     installments_left: Optional[int] = None
+    # Dépense récurrente ou en plusieurs fois : "this" (ce mois), "following" (et les suivants), "all" (tous les mois)
+    scope: str = "this"
 
 
 class FixInstallmentsBody(BaseModel):
@@ -176,6 +178,7 @@ class ChargeOut(BaseModel):
     installments_left: int = 1
     note: Optional[str] = None
     delta: Optional[float] = None
+    also_updated: int = 0    # autres mois modifiés en même temps (scope)
 
     class Config:
         from_attributes = True

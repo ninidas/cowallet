@@ -185,6 +185,13 @@
     "aria_delete_tx": "Delete transaction"
   },
   "chargeform": {
+    "scope_label": "Apply the change to",
+    "scope_this": "This month",
+    "scope_following": "And following",
+    "scope_all": "All months",
+    "scope_this_hint": "This month only.",
+    "scope_following_hint": "Price change: this month and the following months already created.",
+    "scope_all_hint": "Typo: every month of this expense, past ones included.",
     "title_add": "New expense",
     "title_edit": "Edit expense",
     "field_label": "Label",

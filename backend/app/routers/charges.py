@@ -19,6 +19,10 @@ NOTIF_CHARGE_UPDATED = {
     "en": "{user} updated '{label}' from {old}€ to {new}€. Your share: {delta:+.0f}€",
     "fr": "{user} a modifié '{label}' de {old}€ à {new}€. Ta part : {delta:+.0f}€",
 }
+NOTIF_CHARGE_UPDATED_SERIES = {
+    "en": "{user} updated '{label}' from {old}€ to {new}€ on {n} months. Your share on settled months: {delta:+.0f}€",
+    "fr": "{user} a modifié '{label}' de {old}€ à {new}€ sur {n} mois. Ta part sur les mois réglés : {delta:+.0f}€",
+}
 NOTIF_CHARGE_DELETED = {
     "en": "{user} deleted '{label}' ({amount}€) on {month}",
     "fr": "{user} a supprimé '{label}' ({amount}€) sur {month}",
@@ -179,13 +183,47 @@ def update_charge(
         raise HTTPException(status_code=404, detail="Charge not found")
 
     old_amount = _effective(charge)
-    for field, value in body.model_dump(exclude_unset=True).items():
+    old_values = {f: getattr(charge, f) for f in SERIES_FIELDS}
+    siblings = _series_siblings(db, group, charge, body.scope)
+    for field, value in body.model_dump(exclude_unset=True, exclude={"scope"}).items():
         setattr(charge, field, value)
+    # Même correction sur les autres mois de la dépense : seulement ce qui a changé ici
+    changed = {f: getattr(charge, f) for f in SERIES_FIELDS if getattr(charge, f) != old_values[f]}
+    if not changed:
+        siblings = []
+    series_delta, series_months, any_settled = 0.0, 1, False
+    for sib in siblings:
+        before = _effective(sib)
+        for f, v in changed.items():
+            setattr(sib, f, v)
+        if _both_transferred(sib.month):
+            any_settled = True
+            series_delta += (_effective(sib) - before) * _partner_share(group, sib.month, current_user.id)
+        series_months += 1
     db.commit()
     db.refresh(charge)
+    charge.also_updated = len(siblings)
 
     new_amount = _effective(charge)
-    if _both_transferred(db.query(models.Month).filter_by(id=charge.month_id).first()):
+    if siblings and "amount" in changed:
+        # Une seule notification qui résume tous les mois touchés, pas une par mois
+        partner_id = _partner_id(group, current_user.id)
+        month = charge.month
+        if _both_transferred(month):
+            any_settled = True
+            series_delta += (new_amount - old_amount) * _partner_share(group, month, current_user.id)
+        # Comme pour un seul mois : on ne prévient que si un mois déjà réglé change
+        if partner_id and any_settled:
+            send_notification(
+                db, partner_id,
+                title=NOTIF_CHARGE_UPDATED_SERIES.get(APP_LANG, NOTIF_CHARGE_UPDATED_SERIES["en"]).format(
+                    user=current_user.get_display_name(), label=charge.label,
+                    old=_eur(old_amount), new=_eur(new_amount), n=series_months, delta=series_delta,
+                ),
+                body="",
+                url=f"/months/{month.id}",
+            )
+    elif _both_transferred(db.query(models.Month).filter_by(id=charge.month_id).first()):
         month = db.query(models.Month).filter_by(id=charge.month_id).first()
         partner_id = _partner_id(group, current_user.id)
         if partner_id and old_amount != new_amount:
@@ -205,6 +243,34 @@ def update_charge(
             )
 
     return charge
+
+
+# Ce qu'une correction recopie sur les autres mois ; le montant réel, le payeur et la note restent propres à chaque mois
+SERIES_FIELDS = ("label", "amount", "category", "payment_type")
+
+
+def _series_siblings(db: Session, group: models.Group, charge: models.Charge, scope: str) -> list:
+    """La même dépense dans les autres mois du groupe.
+    Récurrente : même libellé, marquée récurrente. En plusieurs fois : même libellé, même nombre d'échéances
+    et l'échéance attendue pour ce mois-là (deux achats du même nom ne se mélangent pas)."""
+    if scope not in ("following", "all") or not (charge.is_recurring or charge.installments_total > 1):
+        return []
+    here = charge.month.year * 12 + charge.month.month
+    result = []
+    others = (db.query(models.Charge).join(models.Month)
+              .filter(models.Month.group_id == group.id, models.Charge.id != charge.id,
+                      models.Charge.label == charge.label).all())
+    for c in others:
+        at = c.month.year * 12 + c.month.month
+        if at == here or (scope == "following" and at < here):
+            continue
+        if charge.installments_total > 1:
+            if c.installments_total != charge.installments_total or c.installments_left != charge.installments_left - (at - here):
+                continue
+        elif not c.is_recurring:
+            continue
+        result.append(c)
+    return result
 
 
 @router.post("/charges/{charge_id}/fix-installments", response_model=schemas.ChargeOut)

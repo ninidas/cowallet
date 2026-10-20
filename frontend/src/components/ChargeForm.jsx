@@ -35,6 +35,8 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
   const [paymentMethods, setPaymentMethods] = useState([])
   const [installmentCurrent, setInstallmentCurrent] = useState(1)
   const [cascadeInstallments, setCascadeInstallments] = useState(true)
+  // Dépense récurrente ou en plusieurs fois : où appliquer la modification
+  const [scope, setScope] = useState('this')
   const labelRef = useRef(null)
 
   useEffect(() => {
@@ -62,6 +64,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
         setCascadeInstallments(true)
       }
       setError('')
+      setScope('this')
       setTimeout(() => labelRef.current?.focus(), 150)
     }
   }, [open, charge])
@@ -93,6 +96,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
 
   const editInstallTotal = isEdit ? (charge?.installments_total ?? 1) : 1
   const isInstallmentCharge = editInstallTotal > 1
+  const isSeries = isEdit && (charge?.is_recurring || isInstallmentCharge)
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -115,6 +119,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
       installments_left:  newInstallmentsLeft,
       note:               form.note.trim() || null,
       ...(!isEdit && form.installments > 1 ? { total_amount: totalAmount } : {}),
+      ...(isSeries ? { scope } : {}),
     }
 
     try {
@@ -372,6 +377,21 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
             placeholder={t('chargeform.field_note_placeholder')}
           />
         </div>
+
+        {isSeries && (
+          <fieldset>
+            <legend className="block text-sm font-medium text-slate-600 mb-2">{t('chargeform.scope_label')}</legend>
+            <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-2xl">
+              {['this', 'following', 'all'].map(s => (
+                <button key={s} type="button" onClick={() => setScope(s)} aria-pressed={scope === s}
+                  className={`py-2.5 px-1 rounded-xl text-sm font-semibold transition ${scope === s ? 'bg-white text-violet-700 shadow-sm' : 'text-slate-500'}`}>
+                  {t(`chargeform.scope_${s}`)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-1.5 ml-1">{t(`chargeform.scope_${scope}_hint`)}</p>
+          </fieldset>
+        )}
 
         {error && (
           <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
