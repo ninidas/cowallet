@@ -59,6 +59,10 @@ def fetch_transactions(db: Session, conn: models.BankConnection, from_date: str,
     result = []
     for account in accounts:
         for tx in enablebanking.get_transactions(account.saltedge_account_id, from_date, to_date, psu_headers):
+            # Seulement les opérations passées : une opération en attente (PDNG) change de numéro une fois
+            # passée, elle serait importée deux fois (un péage vu en double, puis en triple)
+            if tx.get("status", "BOOK") != "BOOK":
+                continue
             result.append(parse_transaction(tx, account))
     result.sort(key=lambda x: x["date"], reverse=True)
     return result

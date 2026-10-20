@@ -12,7 +12,7 @@ import BottomSheet from '../components/BottomSheet'
 import { cleanAmountInput, parseAmount } from '../utils/amount'
 
 // ── Hero card ──────────────────────────────────────────────────────────────────
-function HeroCard({ month }) {
+function HeroCard({ month, bva }) {
   const { t } = useTranslation()
   const fmt = useFmt()
   const { getMyUserKey } = useAuth()
@@ -38,12 +38,44 @@ function HeroCard({ month }) {
           {month.user1_share}/{month.user2_share}
         </span>
       </div>
+      {bva?.has_transactions && <SpentStrip bva={bva} />}
       <div className="border-t border-white/20 pt-3 lg:pt-4">
         <p className="text-violet-200 text-xs lg:text-sm mb-0.5">{t(equal ? 'month_detail.each_share' : 'month_detail.your_share')}</p>
         <span className="text-white text-3xl lg:text-4xl font-extrabold tabular-nums">
           {fmt(myDue)}
         </span>
       </div>
+    </div>
+  )
+}
+
+// Dépensé (transactions importées) face au prévu, d'un coup d'œil
+function SpentStrip({ bva }) {
+  const { t } = useTranslation()
+  const fmt = useFmt()
+  const gap = Math.round((bva.total_actual - bva.total_budget) * 100) / 100
+  const over = gap > 0
+  const pct = bva.total_budget > 0 ? Math.min(100, (bva.total_actual / bva.total_budget) * 100) : 100
+  return (
+    <div className="bg-white/10 rounded-2xl px-3.5 py-3 mb-3 lg:mb-4 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-violet-100 text-xs">{t('month_detail.spent_to_date')}</span>
+        {gap !== 0 && (
+          <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${over ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
+            {over ? '+' : '−'}{t(over ? 'month_detail.over_budget' : 'month_detail.under_budget', { amount: fmt(Math.abs(gap)) })}
+          </span>
+        )}
+      </div>
+      <p className="text-white text-lg font-bold tabular-nums leading-tight">
+        {fmt(bva.total_actual)} <span className="text-sm font-medium text-violet-200">{t('month_detail.of_planned', { amount: fmt(bva.total_budget) })}</span>
+      </p>
+      <div className="h-2 rounded-full bg-white/25 overflow-hidden relative">
+        <div className={`h-full rounded-full ${over ? 'bg-red-300' : 'bg-emerald-300'}`} style={{ width: `${pct}%` }} />
+        {over && <div className="absolute top-0 bottom-0 w-0.5 bg-white" style={{ left: `${(bva.total_budget / bva.total_actual) * 100}%` }} />}
+      </div>
+      {bva.uncategorized > 0 && (
+        <p className="text-violet-100 text-xs">{t('month_detail.incl_uncategorized', { amount: fmt(bva.uncategorized) })}</p>
+      )}
     </div>
   )
 }
@@ -188,16 +220,13 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
 function BudgetVsActualCard({ bva }) {
   const { t } = useTranslation()
   const fmt = useFmt()
-  if (!bva || bva.rows.length === 0) return null
+  if (!bva || (bva.rows.length === 0 && !bva.uncategorized)) return null
+  const gap = Math.round((bva.total_actual - bva.total_budget) * 100) / 100
+  const over = gap > 0
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-50 flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-700">{t('month_detail.forecast_vs_actual')}</p>
-        {bva.uncategorized > 0 && (
-          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-            {t('month_detail.uncategorized', { amount: fmt(bva.uncategorized) })}
-          </span>
-        )}
       </div>
       <div className="divide-y divide-slate-50">
         {bva.rows.map(row => (
@@ -230,14 +259,29 @@ function BudgetVsActualCard({ bva }) {
             )}
           </div>
         ))}
+        {/* Pas encore catégorisé : compté dans le réel, pour que le total dise vrai */}
+        {bva.uncategorized > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-amber-50">
+            <span className="w-7 flex justify-center shrink-0"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /></span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-700 truncate">{t('month_detail.uncategorized_row')}</p>
+              <p className="text-xs text-amber-800">{t('month_detail.to_classify', { count: bva.uncategorized_count })}</p>
+            </div>
+            <p className="text-sm font-bold tabular-nums text-amber-800 shrink-0">{fmt(bva.uncategorized)}</p>
+            <span className="text-xs font-bold tabular-nums w-12 text-right shrink-0 text-amber-800">+{fmt(bva.uncategorized)}</span>
+          </div>
+        )}
       </div>
-      <div className="px-4 py-3 bg-slate-50 flex items-center justify-between">
-        <p className="text-xs font-semibold text-slate-500">{t('month_detail.total')}</p>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400 tabular-nums">{t('month_detail.forecast_tag')} {fmt(bva.total_budget)}</span>
-          <span className={`text-sm font-bold tabular-nums ${bva.total_actual > bva.total_budget ? 'text-red-500' : 'text-emerald-600'}`}>
-            {t('month_detail.actual_estimated_short', { amount: fmt(bva.total_actual) })}
+      <div className={`px-4 py-3 ${over ? 'bg-red-50' : 'bg-emerald-50'}`}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold text-slate-600">{t('month_detail.total')}</p>
+          <span className={`text-base font-bold tabular-nums ${over ? 'text-red-600' : 'text-emerald-700'}`}>
+            {gap > 0 ? '+' : ''}{fmt(gap)}
           </span>
+        </div>
+        <div className="flex items-center justify-between text-xs text-slate-600 tabular-nums mt-0.5">
+          <span>{t('month_detail.actual_estimated_short', { amount: fmt(bva.total_actual) })}</span>
+          <span>{t('month_detail.forecast_tag')} {fmt(bva.total_budget)}</span>
         </div>
       </div>
     </div>
@@ -603,7 +647,7 @@ export default function MonthDetailPage() {
         <div className="lg:col-span-1 lg:sticky lg:top-6 space-y-4">
           {/* Hero */}
           <div className="mt-4 mx-4 lg:mx-0 lg:mt-0 lg:-mt-10">
-            <HeroCard month={month} />
+            <HeroCard month={month} bva={bva} />
           </div>
 
           {/* Virements */}

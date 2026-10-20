@@ -71,6 +71,8 @@ def _to_summary(m: models.Month) -> schemas.MonthSummary:
         user2_transferred=m.user2_transferred,
         validated_by=m.validated_by,
         uncategorized=_uncategorized(m),
+        planned=round(sum(c.amount for c in m.charges), 2),
+        spent=round(sum(t.amount for t in m.bank_transactions), 2) if m.bank_transactions else None,
         total=totals["total"],
         user1_due=totals["user1_due"],
         user2_due=totals["user2_due"],

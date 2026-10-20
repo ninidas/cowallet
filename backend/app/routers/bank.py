@@ -404,9 +404,13 @@ def budget_vs_actual(
             "delta":    round(a - b, 2),
         })
 
+    uncategorized = round(sum(tx.amount for tx in txs if not tx.category), 2)
     return {
         "rows":          result,
         "total_budget":  round(sum(r["budget"] for r in result), 2),
-        "total_actual":  round(sum(r["actual"] for r in result), 2),
-        "uncategorized": round(sum(tx.amount for tx in txs if not tx.category), 2),
+        # Le réel compte aussi ce qui n'est pas encore catégorisé : sinon le total paraît sous le budget
+        "total_actual":  round(sum(r["actual"] for r in result) + uncategorized, 2),
+        "uncategorized": uncategorized,
+        "uncategorized_count": sum(1 for tx in txs if not tx.category),
+        "has_transactions": bool(txs),
     }

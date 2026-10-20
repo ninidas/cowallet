@@ -62,3 +62,27 @@ def test_months_report_uncategorized(client, db):
     api = APIRouter(prefix="/api"); api.include_router(months.router); client.app.include_router(api)
     assert client.get("/api/months", headers=headers(token)).json()[0]["uncategorized"] == 2
     assert client.get(f"/api/months/{oct_.id}", headers=headers(token)).json()["uncategorized"] == 2
+
+
+def test_pending_transactions_are_not_imported(client, db, monkeypatch):
+    _setup(client, db)
+    pending = {**_eb("00000AA0A-000XXXX", "PRLV SEPA PEAGE DEMO", 15.6, date=None), "status": "PDNG",
+               "value_date": "2026-10-20"}
+    booked = {**_eb("202601000000AA00-XX0X0X0", "EPICERIE CENTREFR DEMOVILLE", 140.05), "status": "BOOK"}
+    monkeypatch.setattr(enablebanking, "get_transactions", lambda *a: [pending, booked])
+    bank_sync.auto_import(db, today=datetime.date(2026, 10, 20))
+    assert [t.saltedge_id for t in db.query(models.BankTransaction)] == ["202601000000AA00-XX0X0X0"]
+
+
+def test_actual_total_counts_uncategorized(client, db):
+    token, g, (oct_,) = _setup(client, db)
+    db.add(models.Charge(month_id=oct_.id, label="Courses", amount=600.0, category="Alimentation")); db.commit()
+    _tx(db, oct_, "a", "CRF", amount=701.07, category="Alimentation")
+    _tx(db, oct_, "b", "PRLV SEPA SYNDIC DEMO", amount=183.2)
+    from fastapi import APIRouter
+    from app.routers import months
+    api = APIRouter(prefix="/api"); api.include_router(months.router); client.app.include_router(api)
+    bva = client.get(f"/api/bank/months/{oct_.id}/budget-vs-actual", headers=headers(token)).json()
+    assert (bva["total_budget"], bva["total_actual"], bva["uncategorized"], bva["uncategorized_count"]) == (600.0, 884.27, 183.2, 1)
+    m = client.get("/api/months", headers=headers(token)).json()[0]
+    assert (m["planned"], m["spent"]) == (600.0, 884.27)

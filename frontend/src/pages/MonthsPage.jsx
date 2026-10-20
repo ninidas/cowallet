@@ -19,8 +19,31 @@ function TransferPill({ done, name }) {
 
 const NOW = new Date()
 
+// Dépensé (transactions importées) face au prévu, sous le nom du mois
+function SpentBar({ spent, planned, fmt0, t }) {
+  const gap = Math.round(spent - planned)
+  const over = gap > 0
+  return (
+    <div className={`rounded-xl px-3 py-2.5 mb-3 space-y-1.5 ${over ? 'bg-red-50' : 'bg-emerald-50'}`}>
+      <div className="flex items-baseline justify-between gap-2 text-sm">
+        <span className="text-slate-700 min-w-0">{t('months.spent_vs_planned', { spent: fmt0(spent), planned: fmt0(planned) })}</span>
+        {gap !== 0 && (
+          <span className={`font-bold tabular-nums shrink-0 ${over ? 'text-red-600' : 'text-emerald-700'}`}>
+            {over ? '+' : '−'}{fmt0(Math.abs(gap))}
+          </span>
+        )}
+      </div>
+      <div className={`h-2 rounded-full overflow-hidden relative ${over ? 'bg-red-200' : 'bg-emerald-100'}`}>
+        <div className={`h-full rounded-full ${over ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, (spent / planned) * 100)}%` }} />
+        {over && <div className="absolute top-0 bottom-0 w-0.5 bg-white" style={{ left: `${(planned / spent) * 100}%` }} />}
+      </div>
+    </div>
+  )
+}
+
 function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selected, t }) {
   const fmt = useFmt()
+  const fmt0 = useFmt({ maximumFractionDigits: 0 })
   const bothDone = month.user1_transferred && month.user2_transferred
   const borderColor = selected ? '#7c3aed' : bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
 
@@ -76,6 +99,8 @@ function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selec
           </div>
         )}
       </div>
+
+      {month.spent != null && month.planned > 0 && <SpentBar spent={month.spent} planned={month.planned} fmt0={fmt0} t={t} />}
 
       <div className="flex items-center justify-between">
         <div className="flex gap-2">

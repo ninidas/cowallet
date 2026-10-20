@@ -224,6 +224,8 @@ class MonthSummary(BaseModel):
     user2_due: float
     validated_by: Optional[int] = None
     uncategorized: int = 0   # transactions bancaires sans catégorie
+    planned: float = 0       # somme des dépenses prévues
+    spent: Optional[float] = None   # somme des transactions importées, None s'il n'y en a pas
 
     class Config:
         from_attributes = True

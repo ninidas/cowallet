@@ -82,6 +82,7 @@
     "error_password_mismatch": "Les mots de passe ne correspondent pas"
   },
   "months": {
+    "spent_vs_planned": "Dépensé {{spent}} sur {{planned}} prévus",
     "to_categorize": "{{count}} à catégoriser",
     "hello": "Bonjour,",
     "in_progress": "En cours",
@@ -120,6 +121,14 @@
     "btn_loading": "Création…"
   },
   "month_detail": {
+    "spent_to_date": "Dépensé à ce jour",
+    "over_budget": "{{amount}} au-dessus",
+    "under_budget": "{{amount}} sous le prévu",
+    "of_planned": "/ {{amount}} prévus",
+    "incl_uncategorized": "dont {{amount}} encore sans catégorie",
+    "uncategorized_row": "Sans catégorie",
+    "to_classify_one": "{{count}} transaction à classer",
+    "to_classify_other": "{{count}} transactions à classer",
     "tab_forecast": "Prévisionnel",
     "tab_transactions": "Transactions",
     "import_bank": "Importer depuis la banque",
