@@ -35,6 +35,8 @@ def remittance_detail(lines: list, account_name: str = "") -> str | None:
     holder = {w for w in re.split(r"\W+", (account_name or "").upper()) if len(w) >= 4}
     for line in lines:
         words = line.split()
+        if re.search(r"\b(RUM|ICS)\s*:", line, re.I):
+            continue                                  # « RUM:XX123456789SEPA/ICS:FR00ZZZ0 » : références du mandat SEPA
         if not words or (all(w.isalpha() for w in words) and any(w.upper() in holder for w in words)):
             continue                                  # « DUPONT               JEAN » : le titulaire
         kept = [w for w in words if not re.fullmatch(r"[A-Z0-9]*\d[A-Z0-9]{5,}", w, re.I)]  # numéros de référence

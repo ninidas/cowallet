@@ -19,6 +19,8 @@ def test_detail_keeps_what_speaks_and_drops_references():
     assert p("PRLV SEPA Box Internet", "Box Fibre 1234567890", "12345678") == "Box Fibre"
     assert p("PRLV SEPA PayPal (Europe", "1234567890123 PAYPAL", "5EE2225BC234W") is None
     assert p("PRLV SEPA Energie clients", "DUPONT               JEAN", "AB1234567890123456") is None
+    assert p("PRLV SEPA SERVICE DES EAUX", "RUM:XX123456789SEPA/ICS:FR00ZZZ0") is None
+    assert p("PRLV SEPA ASSUR DEMO", "Assurance de pret (Contrat n ABC") == "Assurance de pret (Contrat n ABC"
 
 
 def test_loan_instalment_is_spelled_out():
