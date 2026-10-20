@@ -137,6 +137,7 @@
     "btn_loading": "Création…"
   },
   "month_detail": {
+    "tx_card_of": "Carte de {{name}}",
     "one_off": "Ce mois seulement",
     "tx_card": "Carte",
     "tx_debit": "Prélèvement",
@@ -352,6 +353,8 @@
     "chart_swipe_hint": "Faites glisser le graphique pour le voir en entier →"
   },
   "settings": {
+    "field_cards": "Ma carte bancaire (4 derniers chiffres)",
+    "cards_hint": "Les achats par carte afficheront « Carte de votre prénom ». Plusieurs cartes : séparez-les par une virgule.",
     "nav_label": "Rubriques des réglages",
     "nav_bank": "Banque",
     "nav_spending": "Dépenses",

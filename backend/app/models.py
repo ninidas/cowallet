@@ -11,6 +11,8 @@ class User(Base):
     username      = Column(String, unique=True, index=True, nullable=False)
     display_name  = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
+    # 4 derniers chiffres de sa ou ses cartes (« 4242 » ou « 4242,1234 ») : « Carte de Camille » sur les transactions
+    card_digits   = Column(String, nullable=True)
 
     def get_display_name(self):
         return self.display_name if self.display_name else self.username
@@ -149,6 +151,11 @@ class BankTransaction(Base):
     category     = Column(String, nullable=True)    # Null = non catégorisée
     account_name = Column(String, nullable=True)
     is_card      = Column(Boolean, nullable=False, default=False)
+    # Lignes suivantes du libellé de la banque, quand elles disent quelque chose (motif, détail d'une échéance)
+    detail        = Column(String, nullable=True)
+    # Paiement par carte : 4 derniers chiffres et vraie date d'achat (la banque enregistre 1 à 3 jours plus tard)
+    card_last4    = Column(String, nullable=True)
+    purchase_date = Column(String, nullable=True)
 
     month = relationship("Month", back_populates="bank_transactions")
 

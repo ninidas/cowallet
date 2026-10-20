@@ -17,6 +17,18 @@ class SettingsUpdate(BaseModel):
     current_password:     Optional[Password] = None
     new_password:         Optional[Password] = None
     default_user1_share:  Optional[int] = None
+    # 4 derniers chiffres de ses cartes, séparés par des virgules (« 4242 » ; vide pour effacer)
+    card_digits:          Optional[str] = None
+
+    @field_validator("card_digits")
+    @classmethod
+    def validate_cards(cls, v):
+        if v is None:
+            return v
+        parts = [p.strip() for p in v.replace(" ", ",").split(",") if p.strip()]
+        if len(parts) > 4 or any(not (p.isdigit() and len(p) == 4) for p in parts):
+            raise ValueError("Card digits: 4 digits per card")
+        return ",".join(parts)
 
     @field_validator("default_user1_share")
     @classmethod
@@ -47,6 +59,9 @@ def update_settings(
         if len(body.new_password) < 12:
             raise HTTPException(status_code=400, detail="Password must be at least 12 characters")
         current_user.password_hash = hash_password(body.new_password)
+
+    if body.card_digits is not None:
+        current_user.card_digits = body.card_digits or None
 
     if body.default_user1_share is not None:
         group.default_share = body.default_user1_share

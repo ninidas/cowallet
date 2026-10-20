@@ -301,6 +301,14 @@ function BudgetVsActualCard({ bva }) {
 // Libellé de la banque tel quel (on le retrouve sur le relevé), sans le « PRLV SEPA » déjà dit par « Prélèvement »
 const txLabel = d => d.replace(/^PRLV SEPA\s+/i, '').replace(/\s{2,}/g, ' ')
 const txKind  = tx => tx.is_card ? 'card' : /^PRLV SEPA/i.test(tx.description) ? 'debit' : null
+// « Carte de Mélissa » quand la carte est reconnue (Réglages › Compte), sinon « Carte » / « Prélèvement »
+const txKindLabel = (tx, t) => {
+  const kind = txKind(tx)
+  if (kind === 'card' && tx.card_owner) return t('month_detail.tx_card_of', { name: tx.card_owner })
+  return kind ? t(`month_detail.tx_${kind}`) : null
+}
+// Paiement par carte : la vraie date d'achat, la banque l'enregistre 1 à 3 jours plus tard
+const txDay = tx => tx.purchase_date || tx.date
 
 // Une transaction touchée : sa catégorie en gros boutons, et sa suppression rangée ici plutôt que sur chaque ligne
 function TransactionSheet({ tx, categories, onPick, onDelete, onClose, t }) {
@@ -308,15 +316,16 @@ function TransactionSheet({ tx, categories, onPick, onDelete, onClose, t }) {
   const { i18n } = useTranslation()
   const [armed, confirm] = useArm()
   if (!tx) return <BottomSheet open={false} onClose={onClose} />
-  const date = new Date(`${tx.date}T00:00:00`).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
-  const kind = txKind(tx)
+  const date = new Date(`${txDay(tx)}T00:00:00`).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
+  const kind = txKindLabel(tx, t)
   return (
     <BottomSheet open onClose={onClose}>
       <div className="px-4 pb-safe space-y-4">
         <div className="flex justify-between gap-3 items-start">
           <div className="min-w-0">
             <p className="font-bold text-slate-900 leading-snug break-words">{txLabel(tx.description)}</p>
-            <p className="text-sm text-slate-500 mt-0.5 first-letter:uppercase">{date}{kind && ` · ${t(`month_detail.tx_${kind}`)}`}</p>
+            {tx.detail && <p className="text-sm text-slate-600 mt-0.5 break-words">{tx.detail}</p>}
+            <p className="text-sm text-slate-500 mt-0.5 first-letter:uppercase">{date}{kind && ` · ${kind}`}</p>
           </div>
           <p className={`text-lg font-extrabold tabular-nums whitespace-nowrap ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
             {tx.amount < 0 ? `+${fmt(-tx.amount)}` : fmt(tx.amount)}
@@ -405,10 +414,10 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, onUncategorizedChan
   const shown = filter === 'todo' ? transactions.filter(tx => !tx.category) : transactions
   // Regroupées par jour, le plus récent en premier (la liste arrive déjà triée)
   const days = []
-  for (const tx of shown) {
+  for (const tx of [...shown].sort((a, b) => txDay(b).localeCompare(txDay(a)))) {
     const last = days[days.length - 1]
-    if (last && last.date === tx.date) last.txs.push(tx)
-    else days.push({ date: tx.date, txs: [tx] })
+    if (last && last.date === txDay(tx)) last.txs.push(tx)
+    else days.push({ date: txDay(tx), txs: [tx] })
   }
   const dayLabel = iso => new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
   const gap = bva ? Math.round((bva.total_actual - bva.total_budget) * 100) / 100 : 0
@@ -481,19 +490,20 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, onUncategorizedChan
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
               {day.txs.map(tx => {
                 const cat = tx.category ? categoriesMap.get(tx.category) : null
-                const kind = txKind(tx)
+                const kind = txKindLabel(tx, t)
                 return (
                   <button key={tx.id} onClick={() => setOpenTx(tx)}
                     className={`w-full px-4 py-3 flex items-start gap-3 text-left transition active:bg-violet-50 ${tx.category ? '' : 'bg-amber-50/40'}`}>
                     <span className="flex-1 min-w-0 space-y-1.5">
                       <span className="block text-sm font-semibold text-slate-800 leading-snug break-words">{txLabel(tx.description)}</span>
+                      {tx.detail && <span className="block text-xs text-slate-500 -mt-1 break-words">{tx.detail}</span>}
                       <span className="flex items-center gap-2 flex-wrap">
                         <span className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-semibold border ${tx.category ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-amber-50 border-amber-300 text-amber-800'}`}>
                           <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tx.category ? (cat?.color ?? '#94a3b8') : '#f59e0b' }} />
                           {tx.category ?? t('month_detail.to_categorize_chip')}
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.6} stroke="currentColor" className="w-3 h-3" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg>
                         </span>
-                        {kind && <span className="text-xs text-slate-500">{t(`month_detail.tx_${kind}`)}</span>}
+                        {kind && <span className="text-xs text-slate-500">{kind}</span>}
                       </span>
                     </span>
                     <span className={`text-[15px] font-bold tabular-nums whitespace-nowrap ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-900'}`}>

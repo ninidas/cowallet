@@ -53,6 +53,9 @@ class TransactionImportItem(BaseModel):
     account_name: str
     is_card:      bool = False
     is_debit:     bool = True
+    detail:        Optional[Annotated[str, Field(max_length=200)]] = None
+    card_last4:    Optional[Annotated[str, Field(max_length=4)]] = None
+    purchase_date: Optional[Annotated[str, Field(max_length=10)]] = None
 
 class ImportTransactionsRequest(BaseModel):
     month_id:     int
@@ -294,6 +297,12 @@ def get_month_transactions(
     txs = db.query(models.BankTransaction).filter_by(month_id=month_id).order_by(
         models.BankTransaction.date.desc()
     ).all()
+    # « 4242 » -> « Camille » : qui a payé, d'après les cartes renseignées dans Réglages › Compte
+    owners = {}
+    for u in (group.user1, group.user2):
+        for digits in ((u.card_digits or "").split(",") if u else []):
+            if digits.strip():
+                owners[digits.strip()] = u.get_display_name()
 
     return [
         {
@@ -305,6 +314,10 @@ def get_month_transactions(
             "category":     tx.category,
             "account_name": tx.account_name,
             "is_card":      tx.is_card,
+            "detail":        tx.detail,
+            "card_last4":    tx.card_last4,
+            "card_owner":    owners.get(tx.card_last4 or ""),
+            "purchase_date": tx.purchase_date,
         }
         for tx in txs
     ]

@@ -88,6 +88,7 @@ export default function SettingsPage() {
   const [share,           setShare]           = useState(config?.default_user1_share ?? 50)
   const [groupName,       setGroupName]       = useState(config?.group_name ?? '')
   const [currency,        setCurrency]        = useState(config?.currency ?? 'EUR')
+  const [cards,           setCards]           = useState(config?.my_cards ?? '')
   const [saving,  setSaving]  = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [success, setSuccess] = useState('')
@@ -100,7 +101,8 @@ export default function SettingsPage() {
     !!newPassword ||
     share !== (config?.default_user1_share ?? 50) ||
     (groupName.trim() !== '' && groupName.trim() !== (config?.group_name ?? '')) ||
-    currency !== (config?.currency ?? 'EUR')
+    currency !== (config?.currency ?? 'EUR') ||
+    cards.trim() !== (config?.my_cards ?? '')
   )
 
   // Suppression de compte
@@ -234,6 +236,7 @@ export default function SettingsPage() {
       payload.new_password     = newPassword
     }
     if (share !== config?.default_user1_share) payload.default_user1_share = share
+    if (cards.trim() !== (config?.my_cards ?? '')) payload.card_digits = cards.trim()
     const nameChanged     = groupName.trim() && groupName.trim() !== (config?.group_name ?? '')
     const currencyChanged = currency !== (config?.currency ?? 'EUR')
     if (Object.keys(payload).length === 0 && !nameChanged && !currencyChanged) {
@@ -754,6 +757,10 @@ export default function SettingsPage() {
               <Field label={t('settings.field_display_name')}>
                 <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('settings.username_placeholder')} required />
               </Field>
+              <Field label={t('settings.field_cards')}>
+                <Input type="text" inputMode="numeric" value={cards} onChange={e => setCards(e.target.value.replace(/[^\d, ]/g, ''))} placeholder="1234" maxLength={24} autoComplete="off" />
+              </Field>
+              <p className="text-xs text-slate-500 -mt-2">{t('settings.cards_hint')}</p>
             </Section>
 
           </form>

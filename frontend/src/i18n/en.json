@@ -137,6 +137,7 @@
     "btn_loading": "Creating..."
   },
   "month_detail": {
+    "tx_card_of": "{{name}}'s card",
     "one_off": "This month only",
     "tx_card": "Card",
     "tx_debit": "Direct debit",
@@ -352,6 +353,8 @@
     "chart_swipe_hint": "Swipe the chart to see all of it →"
   },
   "settings": {
+    "field_cards": "My bank card (last 4 digits)",
+    "cards_hint": "Card purchases will show “your name's card”. Several cards: separate them with a comma.",
     "nav_label": "Settings sections",
     "nav_bank": "Bank",
     "nav_spending": "Spending",

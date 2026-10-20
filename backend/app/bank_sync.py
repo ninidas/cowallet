@@ -17,6 +17,35 @@ logger = logging.getLogger(__name__)
 PREVIOUS_MONTH_DAYS = 5
 
 
+def _eur_fr(s: str) -> str:
+    return s.strip().rstrip("E").strip() + " €"
+
+
+def remittance_detail(lines: list, account_name: str = "") -> str | None:
+    """Les lignes après le libellé, quand elles disent quelque chose :
+    « Provision charges 01/10/2026 », « Box Fibre », et pour une échéance de prêt
+    « DONT CAP 321,09 ASS. 45,67E » + « INT. 123,45 COM. 0,00E » -> « Capital 321,09 € · assurance 45,67 € · intérêts 123,45 € ».
+    Écarte les simples références (« 1234567890123 PAYPAL », « A1234B000001234C000000123 ») et le nom du titulaire."""
+    joined = " ".join(lines)
+    loan = re.findall(r'(CAP|ASS|INT|COM)\.?\s+(\d[\d\s]*,\d{2})E?', joined)
+    if loan:
+        names = {"CAP": "Capital", "ASS": "assurance", "INT": "intérêts", "COM": "commission"}
+        parts = [f"{names[k]} {_eur_fr(v)}" for k, v in loan if v.replace(" ", "") != "0,00"]
+        return " · ".join(parts).capitalize() if parts else None
+    holder = {w for w in re.split(r"\W+", (account_name or "").upper()) if len(w) >= 4}
+    for line in lines:
+        words = line.split()
+        if not words or (all(w.isalpha() for w in words) and any(w.upper() in holder for w in words)):
+            continue                                  # « DUPONT               JEAN » : le titulaire
+        kept = [w for w in words if not re.fullmatch(r"[A-Z0-9]*\d[A-Z0-9]{5,}", w, re.I)]  # numéros de référence
+        if kept and kept[-1].upper() in {"PAYPAL"} and len(kept) == 1:
+            continue
+        text = " ".join(kept)
+        if sum(ch.isalpha() for ch in text) >= 3:
+            return text[:120]
+    return None
+
+
 def parse_transaction(tx: dict, account: models.BankAccount) -> dict:
     """Transaction au format Enable Banking -> format de l'écran d'import."""
     raw_amount = tx.get("transaction_amount", {}).get("amount") or tx.get("amount") or 0
@@ -28,10 +57,18 @@ def parse_transaction(tx: dict, account: models.BankAccount) -> dict:
     # remittance_information est une liste ; on écarte la référence carte (« 210326 CB****1111 »)
     # et la ligne de change (« 5,40EUR 1 EURO = 1,000000 »)
     remittance = tx.get("remittance_information") or []
+    card_last4 = purchase_date = detail = None
     if isinstance(remittance, list):
         is_card = any(re.match(r'^\d{6}\s+CB\*', r) for r in remittance if r)
+        for r in remittance:
+            m = re.match(r'^(\d{2})(\d{2})(\d{2})\s+CB\*+(\d{4})', r or "")
+            if m:
+                purchase_date = f"20{m.group(3)}-{m.group(2)}-{m.group(1)}"
+                card_last4 = m.group(4)
         cleaned = [r for r in remittance if r and not re.match(r'^\d{6}\s+CB\*', r) and "EUR" not in r]
         description = cleaned[0] if cleaned else " / ".join(r for r in remittance if r)
+        if not is_card:
+            detail = remittance_detail(cleaned[1:], account.name)
     else:
         is_card = False
         description = str(remittance)
@@ -45,6 +82,9 @@ def parse_transaction(tx: dict, account: models.BankAccount) -> dict:
         "amount":       abs(amount),
         "is_debit":     is_debit,
         "is_card":      is_card,
+        "detail":       detail,
+        "card_last4":   card_last4,
+        "purchase_date": purchase_date,
         "currency":     tx.get("transaction_amount", {}).get("currency") or tx.get("currency", "EUR"),
         "account_name": account.name,
         "account_id":   str(account.id),
@@ -142,6 +182,9 @@ def add_transactions(db: Session, group: models.Group, month: models.Month, item
             amount=abs(tx["amount"]) if tx.get("is_debit", True) else -abs(tx["amount"]),
             account_name=tx["account_name"],
             is_card=tx.get("is_card", False),
+            detail=tx.get("detail"),
+            card_last4=tx.get("card_last4"),
+            purchase_date=tx.get("purchase_date"),
             category=cat,
         ))
         imported += 1

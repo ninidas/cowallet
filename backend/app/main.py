@@ -42,6 +42,17 @@ with engine.connect() as _conn:
     except Exception:
         pass
 
+    # Détail du libellé bancaire, carte et date d'achat ; cartes de chaque utilisateur
+    for ddl in ("ALTER TABLE bank_transactions ADD COLUMN detail VARCHAR",
+                "ALTER TABLE bank_transactions ADD COLUMN card_last4 VARCHAR",
+                "ALTER TABLE bank_transactions ADD COLUMN purchase_date VARCHAR",
+                "ALTER TABLE users ADD COLUMN card_digits VARCHAR"):
+        try:
+            _conn.execute(text(ddl))
+            _conn.commit()
+        except Exception:
+            pass
+
     # Colonne installment_amount sur charges (paiement en plusieurs fois au centime près)
     try:
         _conn.execute(text("ALTER TABLE charges ADD COLUMN installment_amount REAL"))
@@ -367,6 +378,7 @@ def get_config(db: Session = Depends(get_db), current_user: models.User = Depend
                 "user2_username":      group.user2.get_display_name() if group.user2 else None,
                 "user2_login":        group.user2.username if group.user2 else None,
                 "default_user1_share": group.default_share,
+                "my_cards":            current_user.card_digits or "",
             }
     return {
         "setup_needed": False,
