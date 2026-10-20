@@ -8,6 +8,10 @@ import {
 import { api } from '../api'
 import { useCategoriesMap } from '../hooks/useCategoriesMap'
 import { useFmt } from '../hooks/useFmt'
+import { useAuth } from '../context/AuthContext'
+
+// Clé renvoyée par le serveur pour les transactions pas encore catégorisées
+const UNCATEGORIZED = '__uncategorized__'
 
 function round2(n) { return Math.round(n * 100) / 100 }
 
@@ -45,6 +49,8 @@ export default function HistoryPage() {
   const fmt = useFmt()
   const fmtShort = useFmt({ maximumFractionDigits: 0 })
   const navigate = useNavigate()
+  const { getMyUserKey } = useAuth()
+  const myKey = getMyUserKey()
   const { categoriesMap } = useCategoriesMap()
   const [months, setMonths]       = useState([])
   const [statsData, setStatsData] = useState(null)
@@ -344,8 +350,9 @@ export default function HistoryPage() {
                       <p className="text-xs text-slate-400 text-center pt-3 px-4">{periodLabel}</p>
                       <div className="p-4 space-y-5">
                         {catRows.map(({ category, budget, actual, delta, pct }) => {
+                          const uncategorized = category === UNCATEGORIZED
                           const catData = categoriesMap.get(category)
-                          const color = catData?.color ?? '#94a3b8'
+                          const color = uncategorized ? '#f59e0b' : catData?.color ?? '#94a3b8'
                           const isOver = delta > 0
                           const hasActual = actual > 0
                           const barPct = budget > 0 ? Math.min(actual / budget * 100, 100) : 0
@@ -353,8 +360,10 @@ export default function HistoryPage() {
                             <div key={category}>
                               {/* Ligne 1 : nom + badge delta */}
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-base shrink-0">{catData?.icon ?? '•'}</span>
-                                <span className="text-sm font-semibold text-slate-700 flex-1">{category}</span>
+                                <span className="text-base shrink-0">{uncategorized ? '•' : catData?.icon ?? '•'}</span>
+                                <span className={`text-sm font-semibold flex-1 ${uncategorized ? 'text-amber-800' : 'text-slate-700'}`}>
+                                  {uncategorized ? t('month_detail.uncategorized_row') : category}
+                                </span>
                                 {hasActual && delta !== 0 && (
                                   <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${isOver ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-emerald-600'}`}>
                                     {isOver ? '+' : ''}{fmtShort(delta)}
@@ -509,7 +518,9 @@ export default function HistoryPage() {
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.label}</p>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        {t('history.each_person', { amount: fmtShort(m.total / 2) })}
+                        {m.user1_share === 50
+                          ? t('history.each_person', { amount: fmtShort(myKey === 'user2' ? m.user2_due : m.user1_due) })
+                          : t('history.your_share', { amount: fmtShort(myKey === 'user2' ? m.user2_due : m.user1_due) })}
                       </p>
                     </div>
                     <p className="text-sm font-bold text-slate-700 tabular-nums">{fmt(m.total)}</p>

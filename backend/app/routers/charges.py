@@ -102,6 +102,8 @@ def add_charge(
     if body.total_amount and body.installments_total > 1:
         data["amount"], per_installment = split_installments(body.total_amount, body.installments_total)
     charge = models.Charge(month_id=month_id, **data)
+    if body.installments_total > 1:
+        charge.installment_amount = per_installment
     db.add(charge)
     db.flush()
 
@@ -139,6 +141,7 @@ def add_charge(
                     month_id=m.id,
                     label=charge.label,
                     amount=per_installment,
+                    installment_amount=per_installment,
                     category=charge.category,
                     payment_type=charge.payment_type,
                     is_recurring=False,
@@ -189,6 +192,9 @@ def update_charge(
         setattr(charge, field, value)
     # Même correction sur les autres mois de la dépense : seulement ce qui a changé ici
     changed = {f: getattr(charge, f) for f in SERIES_FIELDS if getattr(charge, f) != old_values[f]}
+    if "amount" in changed:
+        charge.installment_amount = None
+        changed["installment_amount"] = None
     if not changed:
         siblings = []
     series_delta, series_months, any_settled = 0.0, 1, False

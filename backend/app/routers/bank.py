@@ -413,4 +413,6 @@ def budget_vs_actual(
         "uncategorized": uncategorized,
         "uncategorized_count": sum(1 for tx in txs if not tx.category),
         "has_transactions": bool(txs),
+        "first_date": min((tx.date for tx in txs), default=None),
+        "last_date": max((tx.date for tx in txs), default=None),
     }

@@ -19,8 +19,10 @@ function TransferPill({ done, name }) {
 
 const NOW = new Date()
 
+const shortDate = (iso, lang) => new Date(`${iso}T00:00:00`).toLocaleDateString(lang?.startsWith('en') ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short' })
+
 // Dépensé (transactions importées) face au prévu, sous le nom du mois
-function SpentBar({ spent, planned, fmt0, t }) {
+function SpentBar({ spent, planned, from, to, isCurrent, fmt0, t, lang }) {
   const gap = Math.round(spent - planned)
   const over = gap > 0
   return (
@@ -37,6 +39,10 @@ function SpentBar({ spent, planned, fmt0, t }) {
         <div className={`h-full rounded-full ${over ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, (spent / planned) * 100)}%` }} />
         {over && <div className="absolute top-0 bottom-0 w-0.5 bg-white" style={{ left: `${(planned / spent) * 100}%` }} />}
       </div>
+      {/* Mois passé : période réellement couverte par les transactions importées */}
+      {!isCurrent && from && to && (
+        <p className="text-xs text-slate-500">{t('months.spent_period', { from: shortDate(from, lang), to: shortDate(to, lang) })}</p>
+      )}
     </div>
   )
 }
@@ -44,6 +50,7 @@ function SpentBar({ spent, planned, fmt0, t }) {
 function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selected, t }) {
   const fmt = useFmt()
   const fmt0 = useFmt({ maximumFractionDigits: 0 })
+  const { i18n } = useTranslation()
   const bothDone = month.user1_transferred && month.user2_transferred
   const borderColor = selected ? '#7c3aed' : bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
 
@@ -100,7 +107,7 @@ function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selec
         )}
       </div>
 
-      {month.spent != null && month.planned > 0 && <SpentBar spent={month.spent} planned={month.planned} fmt0={fmt0} t={t} />}
+      {month.spent != null && month.planned > 0 && <SpentBar spent={month.spent} planned={month.planned} from={month.spent_from} to={month.spent_to} isCurrent={isCurrent} fmt0={fmt0} t={t} lang={i18n.language} />}
 
       <div className="flex items-center justify-between">
         <div className="flex gap-2">

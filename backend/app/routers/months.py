@@ -55,6 +55,9 @@ def compute_totals(month: models.Month) -> dict:
         "user2_due": user2_due,
         "user1_to_transfer": round(max(0, user1_due - user1_advanced), 2),
         "user2_to_transfer": round(max(0, user2_due - user2_advanced), 2),
+        # A avancé plus que sa part : le compte commun lui doit la différence (avant : perdue, affichée 0 €)
+        "user1_to_receive": round(max(0, user1_advanced - user1_due), 2),
+        "user2_to_receive": round(max(0, user2_advanced - user2_due), 2),
     }
 
 
@@ -73,6 +76,8 @@ def _to_summary(m: models.Month) -> schemas.MonthSummary:
         uncategorized=_uncategorized(m),
         planned=round(sum(c.amount for c in m.charges), 2),
         spent=round(sum(t.amount for t in m.bank_transactions), 2) if m.bank_transactions else None,
+        spent_from=min((t.date for t in m.bank_transactions), default=None),
+        spent_to=max((t.date for t in m.bank_transactions), default=None),
         total=totals["total"],
         user1_due=totals["user1_due"],
         user2_due=totals["user2_due"],
@@ -103,7 +108,7 @@ def _to_detail(m: models.Month, db: Session = None) -> schemas.MonthDetail:
         ).order_by(models.Month.year.desc(), models.Month.month.desc()).first()
         if prev:
             prev_lookup = {(c.label, c.category): c.amount for c in prev.charges}
-            prev_total  = round(sum(c.amount for c in prev.charges), 2)
+            prev_total  = compute_totals(prev)["total"]
     return schemas.MonthDetail(
         id=m.id, label=m.label, year=m.year, month=m.month,
         user1_share=m.user1_share, user2_share=100 - m.user1_share,
@@ -162,8 +167,11 @@ def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), curre
                     installments_total=1, installments_left=1,
                 ))
             elif c.installments_left > 1:
+                # Jamais le montant de la 1re échéance (33,34 € de 100 € en 3 fois) : celui des suivantes
                 db.add(models.Charge(
-                    month_id=month.id, label=c.label, amount=c.amount,
+                    month_id=month.id, label=c.label,
+                    amount=c.installment_amount if c.installment_amount is not None else c.amount,
+                    installment_amount=c.installment_amount,
                     category=c.category, payment_type=c.payment_type,
                     is_recurring=False, paid_by=None,
                     installments_total=c.installments_total,

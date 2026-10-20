@@ -99,6 +99,9 @@ class Charge(Base):
     paid_by            = Column(Integer, ForeignKey("users.id"), nullable=True)
     installments_total = Column(Integer, default=1, nullable=False, server_default="1")
     installments_left  = Column(Integer, default=1, nullable=False, server_default="1")
+    # En plusieurs fois : montant des échéances après la 1re (qui porte le centime de reste), recopié
+    # dans les mois créés plus tard. None : toutes les échéances valent `amount`.
+    installment_amount = Column(Float, nullable=True)
     note               = Column(String, nullable=True)
 
     month        = relationship("Month", back_populates="charges")

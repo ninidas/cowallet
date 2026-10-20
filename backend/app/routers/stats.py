@@ -5,9 +5,11 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models
 from ..auth import get_current_group
-from .months import effective_amount
 
 router = APIRouter(prefix="/stats", tags=["stats"])
+
+# Transactions pas encore catégorisées : comptées dans le réel, affichées « Sans catégorie »
+UNCATEGORIZED = "__uncategorized__"
 
 
 @router.get("")
@@ -26,18 +28,18 @@ def get_stats(
 
     charges = [c for m in months_q for c in m.charges]
 
-    # Budget (charges prévisionnelles) par catégorie
+    # Prévu : le montant prévu des dépenses (comme l'écran du mois), jamais le réel saisi
     cat_budget: dict[str, float] = {}
     for c in charges:
         key = c.category if c.category else "Autre"
-        cat_budget[key] = round(cat_budget.get(key, 0) + effective_amount(c), 2)
+        cat_budget[key] = round(cat_budget.get(key, 0) + c.amount, 2)
 
-    # Réel (transactions bancaires) par catégorie
+    # Réel (transactions bancaires) par catégorie, y compris ce qui n'est pas encore catégorisé
     cat_actual: dict[str, float] = {}
     for m in months_q:
         for tx in m.bank_transactions:
-            if tx.category:
-                cat_actual[tx.category] = round(cat_actual.get(tx.category, 0) + tx.amount, 2)
+            key = tx.category or UNCATEGORIZED
+            cat_actual[key] = round(cat_actual.get(key, 0) + tx.amount, 2)
 
     all_cats = sorted(set(cat_budget.keys()) | set(cat_actual.keys()))
     grand_budget = sum(cat_budget.values()) or 1
@@ -78,13 +80,13 @@ def get_stats(
 
     top_recurring = []  # rétrocompatibilité
 
-    # by_month : charges uniquement (pour le graphe d'évolution)
+    # by_month : montants prévus par catégorie (graphe d'évolution et « Prévu » d'un mois)
     by_month = []
     for m in months_q:
         row = {"label": m.label}
         for c in m.charges:
             key = c.category if c.category else "Autre"
-            row[key] = round(row.get(key, 0) + effective_amount(c), 2)
+            row[key] = round(row.get(key, 0) + c.amount, 2)
         by_month.append(row)
 
     # by_month_actual : transactions bancaires uniquement (pour "Par catégorie" filtré par mois)
@@ -92,8 +94,8 @@ def get_stats(
     for m in months_q:
         row = {"label": m.label}
         for tx in m.bank_transactions:
-            if tx.category:
-                row[tx.category] = round(row.get(tx.category, 0) + tx.amount, 2)
+            key = tx.category or UNCATEGORIZED
+            row[key] = round(row.get(key, 0) + tx.amount, 2)
         by_month_actual.append(row)
 
     return {

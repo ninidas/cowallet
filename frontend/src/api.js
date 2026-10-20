@@ -96,7 +96,7 @@ export const api = {
   updateTransfer:  (id, data)   => request(`/months/${id}/transfer`, { method: 'PATCH', body: JSON.stringify(data) })
                                      .then(r => { invalidate('months', `month:${id}`) ; return r }),
   updateShare:     (id, data)   => request(`/months/${id}/share`, { method: 'PATCH', body: JSON.stringify(data) })
-                                     .then(r => { invalidate(`month:${id}`) ; return r }),
+                                     .then(r => { invalidate('months', `month:${id}`, 'stats') ; return r }),
   validateMonth:   (id)         => request(`/months/${id}/validate`, { method: 'POST' })
                                      .then(r => { invalidate('months', `month:${id}`) ; return r }),
 
@@ -118,7 +118,7 @@ export const api = {
   createCategory:       (data)       => request('/categories', { method: 'POST', body: JSON.stringify(data) })
                                           .then(r => { invalidate('categories') ; return r }),
   updateCategory:       (id, data)   => request(`/categories/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
-                                          .then(r => { invalidate('categories') ; return r }),
+                                          .then(r => { invalidate('categories', 'months', 'month:*', 'stats') ; return r }),
   deleteCategory:       (id)         => request(`/categories/${id}`, { method: 'DELETE' })
                                           .then(r => { invalidate('categories') ; return r }),
 
@@ -146,10 +146,13 @@ export const api = {
   toggleBankAccount:    (id)          => request(`/bank/accounts/${id}`, { method: 'PATCH' }),
   deleteBankConnection: ()            => request('/bank/connection', { method: 'DELETE' }),
   getBankTransactions:  (from_date, to_date) => request(`/bank/transactions?${from_date ? `from_date=${from_date}` : ''}${to_date ? `&to_date=${to_date}` : ''}`),
-  importTransactions:   (data)        => request('/bank/transactions/import', { method: 'POST', body: JSON.stringify(data) }),
+  importTransactions:   (data)        => request('/bank/transactions/import', { method: 'POST', body: JSON.stringify(data) })
+                                          .then(r => { invalidate('months', 'stats') ; return r }),
   getMonthTransactions: (mid)         => request(`/bank/months/${mid}/transactions`),
-  categorizeTransaction:(id, cat)     => request(`/bank/transactions/${id}`, { method: 'PATCH', body: JSON.stringify({ category: cat }) }),
-  deleteTransaction:    (id)          => request(`/bank/transactions/${id}`, { method: 'DELETE' }),
+  categorizeTransaction:(id, cat)     => request(`/bank/transactions/${id}`, { method: 'PATCH', body: JSON.stringify({ category: cat }) })
+                                          .then(r => { invalidate('months', 'stats') ; return r }),
+  deleteTransaction:    (id)          => request(`/bank/transactions/${id}`, { method: 'DELETE' })
+                                          .then(r => { invalidate('months', 'stats') ; return r }),
   getBudgetVsActual:    (mid)         => request(`/bank/months/${mid}/budget-vs-actual?_=${Date.now()}`),
 
   getVapidPublicKey:   ()     => request('/push/vapid-public'),

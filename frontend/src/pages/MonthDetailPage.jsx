@@ -38,7 +38,7 @@ function HeroCard({ month, bva }) {
           {month.user1_share}/{month.user2_share}
         </span>
       </div>
-      {bva?.has_transactions && <SpentStrip bva={bva} />}
+      {bva?.has_transactions && <SpentStrip bva={bva} isCurrent={month.year === new Date().getFullYear() && month.month === new Date().getMonth() + 1} />}
       <div className="border-t border-white/20 pt-3 lg:pt-4">
         <p className="text-violet-200 text-xs lg:text-sm mb-0.5">{t(equal ? 'month_detail.each_share' : 'month_detail.your_share')}</p>
         <span className="text-white text-3xl lg:text-4xl font-extrabold tabular-nums">
@@ -50,8 +50,9 @@ function HeroCard({ month, bva }) {
 }
 
 // Dépensé (transactions importées) face au prévu, d'un coup d'œil
-function SpentStrip({ bva }) {
-  const { t } = useTranslation()
+function SpentStrip({ bva, isCurrent }) {
+  const { t, i18n } = useTranslation()
+  const day = iso => new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language?.startsWith('en') ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short' })
   const fmt = useFmt()
   const gap = Math.round((bva.total_actual - bva.total_budget) * 100) / 100
   const over = gap > 0
@@ -59,7 +60,9 @@ function SpentStrip({ bva }) {
   return (
     <div className="bg-white/10 rounded-2xl px-3.5 py-3 mb-3 lg:mb-4 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-violet-100 text-xs">{t('month_detail.spent_to_date')}</span>
+        <span className="text-violet-100 text-xs">
+          {isCurrent ? t('month_detail.spent_to_date') : t('month_detail.spent')}
+        </span>
         {gap !== 0 && (
           <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${over ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
             {over ? '+' : '−'}{t(over ? 'month_detail.over_budget' : 'month_detail.under_budget', { amount: fmt(Math.abs(gap)) })}
@@ -73,6 +76,10 @@ function SpentStrip({ bva }) {
         <div className={`h-full rounded-full ${over ? 'bg-red-300' : 'bg-emerald-300'}`} style={{ width: `${pct}%` }} />
         {over && <div className="absolute top-0 bottom-0 w-0.5 bg-white" style={{ left: `${(bva.total_budget / bva.total_actual) * 100}%` }} />}
       </div>
+      {/* Mois passé : période réellement couverte par les transactions importées */}
+      {!isCurrent && bva.first_date && (
+        <p className="text-violet-100 text-xs">{t('months.spent_period', { from: day(bva.first_date), to: day(bva.last_date) })}</p>
+      )}
       {bva.uncategorized > 0 && (
         <p className="text-violet-100 text-xs">{t('month_detail.incl_uncategorized', { amount: fmt(bva.uncategorized) })}</p>
       )}
@@ -81,7 +88,7 @@ function SpentStrip({ bva }) {
 }
 
 // ── Transfer button ────────────────────────────────────────────────────────────
-function TransferButton({ name, amount, done, onToggle, loading }) {
+function TransferButton({ name, amount, toReceive = 0, done, onToggle, loading }) {
   const { t } = useTranslation()
   const fmt = useFmt()
   return (
@@ -105,6 +112,10 @@ function TransferButton({ name, amount, done, onToggle, loading }) {
         <p className={`text-xs font-medium ${done ? 'text-emerald-600' : 'text-slate-500'}`}>
           {done ? t('month_detail.transferred') : t('month_detail.to_transfer', { amount: fmt(amount) })}
         </p>
+        {/* A avancé plus que sa part : le compte commun lui doit la différence */}
+        {toReceive > 0 && (
+          <p className="text-xs font-semibold text-emerald-700">{t('month_detail.to_receive', { amount: fmt(toReceive) })}</p>
+        )}
       </div>
     </button>
   )
@@ -558,7 +569,8 @@ export default function MonthDetailPage() {
 
   const categoryTotals = Object.entries(grouped).map(([cat, charges]) => ({
     cat,
-    total: charges.reduce((s, c) => s + c.amount, 0),
+    // Même règle que le total du mois : le réel quand il est saisi, pour que les catégories s'additionnent juste
+    total: charges.reduce((s, c) => s + (c.actual_amount ?? c.amount), 0),
     charges,
   }))
 
@@ -647,6 +659,7 @@ export default function MonthDetailPage() {
               <TransferButton
                 name={config?.user1_username ?? 'User 1'}
                 amount={month.user1_to_transfer}
+                toReceive={month.user1_to_receive}
                 done={month.user1_transferred}
                 onToggle={() => toggleTransfer('user1')}
                 loading={transferLoading}
@@ -654,6 +667,7 @@ export default function MonthDetailPage() {
               <TransferButton
                 name={config?.user2_username ?? 'User 2'}
                 amount={month.user2_to_transfer}
+                toReceive={month.user2_to_receive}
                 done={month.user2_transferred}
                 onToggle={() => toggleTransfer('user2')}
                 loading={transferLoading}

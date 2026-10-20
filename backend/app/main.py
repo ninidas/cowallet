@@ -42,6 +42,13 @@ with engine.connect() as _conn:
     except Exception:
         pass
 
+    # Colonne installment_amount sur charges (paiement en plusieurs fois au centime près)
+    try:
+        _conn.execute(text("ALTER TABLE charges ADD COLUMN installment_amount REAL"))
+        _conn.commit()
+    except Exception:
+        pass
+
     # Colonne actual_amount sur charges
     try:
         _conn.execute(text("ALTER TABLE charges ADD COLUMN actual_amount REAL"))

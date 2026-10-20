@@ -231,6 +231,8 @@ class MonthSummary(BaseModel):
     uncategorized: int = 0   # transactions bancaires sans catégorie
     planned: float = 0       # somme des dépenses prévues
     spent: Optional[float] = None   # somme des transactions importées, None s'il n'y en a pas
+    spent_from: Optional[str] = None  # première et dernière date des transactions : un mois importé
+    spent_to: Optional[str] = None    # en partie (du 4 au 15 mai) ne doit pas passer pour complet
 
     class Config:
         from_attributes = True
@@ -249,6 +251,8 @@ class MonthDetail(BaseModel):
     user2_due: float
     user1_to_transfer: float
     user2_to_transfer: float
+    user1_to_receive: float = 0
+    user2_to_receive: float = 0
     prev_total: Optional[float] = None
     charges: List[ChargeOut]
     validated_by: Optional[int] = None
