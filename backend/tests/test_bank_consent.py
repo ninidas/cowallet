@@ -84,6 +84,14 @@ def test_status_survives_enable_banking_outage(bclient, db, monkeypatch):
     assert st["connected"] and "expired" not in st
 
 
+def test_status_without_consent_does_not_wait_for_enable_banking(bclient, db, monkeypatch):
+    """Réglages : la carte Banque s'affiche d'abord sans l'échéance, sans attendre Enable Banking (parfois 15 s)."""
+    token = register(bclient, "camille", PW); _connect(db)
+    monkeypatch.setattr(enablebanking, "get_session", lambda sid: pytest.fail("Enable Banking appelé"))
+    st = bclient.get("/api/bank/status?consent=false", headers=headers(token)).json()
+    assert st["connected"] and st["provider_name"] == "Banque Demo" and "valid_until" not in st
+
+
 def test_transactions_expired_gives_clear_error(bclient, db, monkeypatch):
     token = register(bclient, "camille", PW); _connect(db)
     _session(monkeypatch, "CLOSED", datetime.date(2026, 7, 13))

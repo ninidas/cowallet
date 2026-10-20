@@ -417,6 +417,7 @@
     "category_name_placeholder": "Nom de la catégorie",
     "btn_add": "Ajouter",
     "payment_method_placeholder": "Ex : Virement, Lydia…",
+    "bank_loading": "Chargement…",
     "bank_not_configured": "Enable Banking non configuré",
     "bank_not_configured_hint": "Les variables ENABLEBANKING_APP_ID et ENABLEBANKING_PRIVATE_KEY_PATH sont manquantes sur le serveur.",
     "bank_connected_success": "Banque connectée avec succès",

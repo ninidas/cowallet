@@ -83,10 +83,13 @@ def list_aspsps(
 
 @router.get("/status")
 def get_status(
-    db:   Session      = Depends(get_db),
-    user: models.User  = Depends(get_current_user),
+    consent: bool         = True,
+    db:      Session      = Depends(get_db),
+    user:    models.User  = Depends(get_current_user),
 ):
-    """Retourne l'état de la connexion bancaire de l'utilisateur."""
+    """Retourne l'état de la connexion bancaire de l'utilisateur.
+    consent=false : sans l'échéance de l'accès, qui demande Enable Banking (parfois lent) ;
+    l'écran s'affiche avec ça puis complète."""
     if not enablebanking.is_configured():
         return {"configured": False}
 
@@ -98,7 +101,7 @@ def get_status(
     return {
         "configured":    True,
         "connected":     True,
-        **_consent(conn),
+        **(_consent(conn) if consent else {}),
         "no_accounts":   not accounts,
         "provider_name": conn.provider_name,
         "accounts": [

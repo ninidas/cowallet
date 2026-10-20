@@ -146,7 +146,7 @@ export const api = {
                                          .then(r => { invalidate('budget') ; return r }),
 
   // Bank sync
-  getBankStatus:        ()            => request('/bank/status'),
+  getBankStatus:        (consent = true) => request(consent ? '/bank/status' : '/bank/status?consent=false'),
   getAspsps:            (country = 'FR') => request(`/bank/aspsps?country=${country}`),
   startBankConnect:     (return_to, aspsp_name, aspsp_country = 'FR') => request('/bank/connect', { method: 'POST', body: JSON.stringify({ return_to, aspsp_name, aspsp_country }) }),
   finishBankConnect:    (auth_code)   => request('/bank/finish',    { method: 'POST', body: JSON.stringify({ auth_code }) }),

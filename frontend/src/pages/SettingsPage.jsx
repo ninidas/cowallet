@@ -144,7 +144,10 @@ export default function SettingsPage() {
   useEffect(() => {
     api.getCategories().then(setCategories).catch(() => {})
     api.getPaymentMethods().then(setPaymentMethods).catch(() => {})
-    api.getBankStatus().then(setBankStatus).catch(() => {})
+    // D'abord sans l'échéance (immédiat), puis avec : Enable Banking met parfois 15 s à répondre
+    let full = false
+    api.getBankStatus(false).then(s => { if (!full) setBankStatus(s) }).catch(() => {})
+    api.getBankStatus().then(s => { full = true; setBankStatus(s) }).catch(() => {})
   }, [])
 
   // Une ligne de résumé sous chaque rubrique : l'essentiel sans l'ouvrir
@@ -410,6 +413,7 @@ export default function SettingsPage() {
           <div id="settings-bank" className="space-y-4 scroll-mt-4">
             {/* Bank connection */}
             <Section title={t('settings.section_bank')}>
+                {!bankStatus && <p className="text-sm text-slate-400 py-2">{t('settings.bank_loading')}</p>}
                 {bankStatus && !bankStatus.configured && (
                   <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 text-amber-800 text-sm px-4 py-3 rounded-xl">
                     <span className="text-lg shrink-0">⚙️</span>

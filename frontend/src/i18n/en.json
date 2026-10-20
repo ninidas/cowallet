@@ -417,6 +417,7 @@
     "category_name_placeholder": "Category name",
     "btn_add": "Add",
     "payment_method_placeholder": "E.g. Bank transfer, PayPal…",
+    "bank_loading": "Loading…",
     "bank_not_configured": "Enable Banking not configured",
     "bank_not_configured_hint": "The ENABLEBANKING_APP_ID and ENABLEBANKING_PRIVATE_KEY_PATH variables are missing on the server.",
     "bank_connected_success": "Bank connected successfully",
