@@ -59,6 +59,11 @@ function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selec
                 {t('months.validated')}
               </span>
             )}
+            {month.uncategorized > 0 && (
+              <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap">
+                {t('months.to_categorize', { count: month.uncategorized })}
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-400 mt-0.5">
             {month.user1_share}/{100 - month.user1_share} · {fmt(month.total)}

@@ -170,11 +170,12 @@ def auto_import(db: Session, today: datetime.date = None) -> list:
             txs = fetch_transactions(db, conn, first.isoformat(), today.isoformat())
         except Exception as exc:
             logger.warning("Import automatique : banque injoignable (%s)", exc)
-            report.append({"error": str(exc)})
+            report.append({"connection_id": conn.id, "user_id": conn.user_id, "error": str(exc)})
             continue
         for ym, month in sorted(months.items(), reverse=True):
             items = [{**t, "saltedge_id": t["id"]} for t in txs if t["is_debit"] and t["date"][:7] == ym]
             res = add_transactions(db, group, month, items)
             logger.info("Import automatique, %s : %s", month.label, res)
-            report.append({"month": month.label, **res})
+            report.append({"connection_id": conn.id, "group_id": group.id, "month_id": month.id,
+                           "month": month.label, **res})
     return report

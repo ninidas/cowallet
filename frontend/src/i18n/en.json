@@ -82,6 +82,7 @@
     "error_password_mismatch": "Passwords do not match"
   },
   "months": {
+    "to_categorize": "{{count}} to categorise",
     "hello": "Hello,",
     "in_progress": "Active",
     "validated": "✓ Validated",
@@ -226,6 +227,9 @@
     "all": "All"
   },
   "budget": {
+    "confirm_delete_short": "Delete?",
+    "confirm_delete_category_one": "Delete the category?",
+    "confirm_delete_category_other": "Delete all {{count}} lines?",
     "type_income": "Income",
     "type_expense": "Personal expenses",
     "type_investment": "Investments",

@@ -245,7 +245,7 @@ function BudgetVsActualCard({ bva }) {
 }
 
 // ── Transactions tab ───────────────────────────────────────────────────────────
-function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, categories, onImport, t }) {
+function TransactionsTab({ monthId, month, bva, onBvaChange, onUncategorizedChange, categoriesMap, categories, onImport, t }) {
   const fmt = useFmt()
   const [transactions, setTx]   = useState([])
   const [loading,      setLoad] = useState(true)
@@ -262,10 +262,11 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, cate
       ])
       setTx(txs)
       onBvaChange(bvaData)
+      onUncategorizedChange?.(txs.filter(tx => !tx.category).length)
     } finally {
       setLoad(false)
     }
-  }, [monthId, onBvaChange])
+  }, [monthId, onBvaChange, onUncategorizedChange])
 
   useEffect(() => { load() }, [load])
 
@@ -362,7 +363,9 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, categoriesMap, cate
                     <select
                       value={tx.category ?? ''}
                       onChange={e => handleCategorize(tx.id, e.target.value || null)}
-                      className="text-xs px-2 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-600 focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full"
+                      className={`text-xs px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full ${
+                        tx.category ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-amber-300 bg-amber-50 text-amber-800'
+                      }`}
                     >
                       <option value="">{t('month_detail.no_category')}</option>
                       {categories.map(c => (
@@ -410,6 +413,7 @@ export default function MonthDetailPage() {
   const [month, setMonth]           = useState(null)
   const [months, setMonths]         = useState([])
   const [bva,   setBva]             = useState(null)
+  const [uncategorized, setUncategorized] = useState(0)
   const [loading, setLoading]       = useState(true)
   const [transferLoading, setTL]    = useState(false)
 
@@ -428,6 +432,7 @@ export default function MonthDetailPage() {
       const [data, all] = await Promise.all([api.getMonth(id), api.getMonths()])
       const bvaData = await api.getBudgetVsActual(id).catch(() => null)
       setMonth(data)
+      setUncategorized(data.uncategorized ?? 0)
       setMonths(all) // trié desc (plus récent en premier)
       setBva(bvaData)
     } catch {
@@ -647,6 +652,12 @@ export default function MonthDetailPage() {
               }`}
             >
               {t('month_detail.tab_transactions')}
+              {uncategorized > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold align-middle"
+                  aria-label={t('months.to_categorize', { count: uncategorized })}>
+                  {uncategorized}
+                </span>
+              )}
             </button>
           </div>
 
@@ -656,6 +667,7 @@ export default function MonthDetailPage() {
               month={month}
               bva={bva}
               onBvaChange={setBva}
+              onUncategorizedChange={setUncategorized}
               categoriesMap={categoriesMap}
               categories={categories ?? []}
               onImport={() => navigate(`/bank/import/${id}`)}

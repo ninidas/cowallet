@@ -223,6 +223,7 @@ class MonthSummary(BaseModel):
     user1_due: float
     user2_due: float
     validated_by: Optional[int] = None
+    uncategorized: int = 0   # transactions bancaires sans catégorie
 
     class Config:
         from_attributes = True
@@ -244,6 +245,7 @@ class MonthDetail(BaseModel):
     prev_total: Optional[float] = None
     charges: List[ChargeOut]
     validated_by: Optional[int] = None
+    uncategorized: int = 0
 
     class Config:
         from_attributes = True

@@ -93,6 +93,58 @@ def send_bank_expiry_reminders():
         db.close()
 
 
+NOTIF_IMPORT = {
+    "en": {"one": "1 new transaction", "many": "{n} new transactions",
+           "todo": "{label} · {k} to categorise", "done": "{label} · all categorised",
+           "error": "This morning's bank import failed",
+           "error_limit": "Your bank limits how often it can be read: next try tomorrow morning.",
+           "error_other": "Check your bank access in Settings."},
+    "fr": {"one": "1 nouvelle transaction", "many": "{n} nouvelles transactions",
+           "todo": "{label} · {k} à catégoriser", "done": "{label} · toutes catégorisées",
+           "error": "L'import bancaire de ce matin a échoué",
+           "error_limit": "La banque limite le nombre de lectures : nouvel essai demain matin.",
+           "error_other": "Vérifiez l'accès à votre banque dans Réglages."},
+}
+
+
+def notify_import_results(db, report: list):
+    """Après l'import du matin : les deux membres du groupe sont prévenus s'il y a de nouvelles
+    transactions ; le titulaire de la connexion l'est si la banque a refusé, une seule fois
+    jusqu'à ce que l'import réussisse de nouveau (pas une notification chaque matin)."""
+    lang = APP_LANG if APP_LANG in NOTIF_IMPORT else "en"
+    txt = NOTIF_IMPORT[lang]
+
+    by_group = {}
+    for r in report:
+        if "error" not in r and r["imported"]:
+            g = by_group.setdefault(r["group_id"], {"n": 0, "k": 0, "month": r})
+            g["n"] += r["imported"]
+            g["k"] += r["imported"] - r["auto_categorized"]
+    for group_id, g in by_group.items():
+        group = db.get(models.Group, group_id)
+        title = txt["one"] if g["n"] == 1 else txt["many"].format(n=g["n"])
+        body = (txt["todo"] if g["k"] else txt["done"]).format(label=g["month"]["month"], k=g["k"])
+        # Le mois le plus récent qui a reçu des transactions (le rapport va du plus récent au plus ancien)
+        url = f"/months/{g['month']['month_id']}?tab=transactions"
+        for user_id in filter(None, [group.user1_id, group.user2_id]):
+            send_notification(db, user_id, title=title, body=body, url=url)
+
+    for r in report:
+        key = f"bank_import_failing:{r['connection_id']}"
+        flag = db.get(models.AppConfig, key)
+        if "error" not in r:
+            if flag:
+                db.delete(flag)
+            continue
+        if flag:
+            continue
+        limit = "429" in r["error"] or "RATE_LIMIT" in r["error"]
+        send_notification(db, r["user_id"], title=txt["error"],
+                          body=txt["error_limit" if limit else "error_other"], url="/settings")
+        db.add(models.AppConfig(key=key, value=date.today().isoformat()))
+    db.commit()
+
+
 def import_bank_transactions():
     """Chaque matin : les nouveaux débits de la banque arrivent seuls dans le mois en cours.
     AUTO_IMPORT=0 le coupe (instance de dev : elle partage la connexion bancaire de la prod et
@@ -101,7 +153,7 @@ def import_bank_transactions():
         return
     db = SessionLocal()
     try:
-        bank_sync.auto_import(db)
+        notify_import_results(db, bank_sync.auto_import(db))
     except Exception:
         logger.exception("Automatic bank import failed")
     finally:

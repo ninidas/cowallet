@@ -82,6 +82,7 @@
     "error_password_mismatch": "Les mots de passe ne correspondent pas"
   },
   "months": {
+    "to_categorize": "{{count}} à catégoriser",
     "hello": "Bonjour,",
     "in_progress": "En cours",
     "validated": "✓ Validé",
@@ -226,6 +227,9 @@
     "all": "Tous"
   },
   "budget": {
+    "confirm_delete_short": "Supprimer ?",
+    "confirm_delete_category_one": "Supprimer la catégorie ?",
+    "confirm_delete_category_other": "Supprimer les {{count}} lignes ?",
     "type_income": "Revenus",
     "type_expense": "Dépenses perso",
     "type_investment": "Investissements",

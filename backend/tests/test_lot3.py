@@ -79,7 +79,8 @@ def test_auto_import_morning(client, db, monkeypatch):
         _eb("old", "EPICERIE CENTREFR DEMOVILLE", 10.0),        # déjà là : pas de doublon
     ])
     report = bank_sync.auto_import(db, today=datetime.date(2026, 10, 20))
-    assert report == [{"month": "Octobre 2026", "imported": 2, "skipped": 1, "auto_categorized": 1}]
+    assert [{k: r[k] for k in ("month", "imported", "skipped", "auto_categorized")} for r in report] == \
+        [{"month": "Octobre 2026", "imported": 2, "skipped": 1, "auto_categorized": 1}]
     got = {t.saltedge_id: (t.amount, t.category) for t in db.query(models.BankTransaction)}
     assert got["new-1"] == (42.1, "Alimentation") and got["new-2"] == (99.0, None) and "salaire" not in got
 

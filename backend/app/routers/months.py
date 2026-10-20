@@ -58,6 +58,10 @@ def compute_totals(month: models.Month) -> dict:
     }
 
 
+def _uncategorized(m: models.Month) -> int:
+    return sum(1 for t in m.bank_transactions if not t.category)
+
+
 def _to_summary(m: models.Month) -> schemas.MonthSummary:
     totals = compute_totals(m)
     return schemas.MonthSummary(
@@ -66,6 +70,7 @@ def _to_summary(m: models.Month) -> schemas.MonthSummary:
         user1_transferred=m.user1_transferred,
         user2_transferred=m.user2_transferred,
         validated_by=m.validated_by,
+        uncategorized=_uncategorized(m),
         total=totals["total"],
         user1_due=totals["user1_due"],
         user2_due=totals["user2_due"],
@@ -103,6 +108,7 @@ def _to_detail(m: models.Month, db: Session = None) -> schemas.MonthDetail:
         user1_transferred=m.user1_transferred,
         user2_transferred=m.user2_transferred,
         validated_by=m.validated_by,
+        uncategorized=_uncategorized(m),
         prev_total=prev_total,
         charges=_build_charges(m, prev_lookup),
         **totals,
