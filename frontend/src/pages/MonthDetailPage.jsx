@@ -59,12 +59,12 @@ function SpentStrip({ bva, isCurrent }) {
   const pct = bva.total_budget > 0 ? Math.min(100, (bva.total_actual / bva.total_budget) * 100) : 100
   return (
     <div className="bg-white/10 rounded-2xl px-3.5 py-3 mb-3 lg:mb-4 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-violet-100 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
+        <span className="text-violet-100 text-xs whitespace-nowrap">
           {isCurrent ? t('month_detail.spent_to_date') : t('month_detail.spent')}
         </span>
         {gap !== 0 && (
-          <span className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-full ${over ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
+          <span className={`shrink-0 whitespace-nowrap text-xs font-bold tabular-nums px-2.5 py-1 rounded-full ${over ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'}`}>
             {over ? '+' : '−'}{t(over ? 'month_detail.over_budget' : 'month_detail.under_budget', { amount: fmt(Math.abs(gap)) })}
           </span>
         )}
