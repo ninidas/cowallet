@@ -86,7 +86,10 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
   }
 
   const totalAmount   = parseAmount(form.amount) || 0
-  const perMonth      = form.installments > 1 ? totalAmount / form.installments : totalAmount
+  // En plusieurs fois : réparti au centime près, le reste sur la 1re échéance (même calcul que le serveur)
+  const totalCents    = Math.round(totalAmount * 100)
+  const perMonth      = form.installments > 1 ? Math.floor(totalCents / form.installments) / 100 : totalAmount
+  const firstMonth    = form.installments > 1 ? (totalCents - Math.floor(totalCents / form.installments) * (form.installments - 1)) / 100 : totalAmount
 
   const editInstallTotal = isEdit ? (charge?.installments_total ?? 1) : 1
   const isInstallmentCharge = editInstallTotal > 1
@@ -111,6 +114,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
       installments_total: isEdit ? editInstallTotal : form.installments,
       installments_left:  newInstallmentsLeft,
       note:               form.note.trim() || null,
+      ...(!isEdit && form.installments > 1 ? { total_amount: totalAmount } : {}),
     }
 
     try {
@@ -194,7 +198,9 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           </div>
           {!isEdit && form.installments > 1 && totalAmount > 0 && (
             <p className="text-sm text-violet-600 font-semibold mt-1.5 ml-1">
-              {t('chargeform.field_amount_per_month', { amount: fmt(perMonth) })}
+              {firstMonth !== perMonth
+                ? t('chargeform.field_amount_first_then', { first: fmt(firstMonth), rest: fmt(perMonth) })
+                : t('chargeform.field_amount_per_month', { amount: fmt(perMonth) })}
             </p>
           )}
         </div>

@@ -143,6 +143,8 @@ class ChargeCreate(BaseModel):
     installments_total: int = 1
     installments_left: int = 1
     note: Optional[str] = None
+    # Paiement en plusieurs fois : montant total, réparti au centime près (le reste sur la 1re échéance)
+    total_amount: Optional[float] = None
 
 class ChargeUpdate(BaseModel):
     label: Optional[str] = None

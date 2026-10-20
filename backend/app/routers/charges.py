@@ -73,6 +73,14 @@ def get_suggestions(db: Session = Depends(get_db), group: models.Group = Depends
     return charges
 
 
+def split_installments(total: float, n: int) -> tuple:
+    """(1re échéance, échéances suivantes) : 100 € en 3 fois -> 33,34 € puis 33,33 €, comme PayPal
+    (vol de Prague : 219,34 € puis 219,33 €). Avant : 3 × 33,33 € = 99,99 €."""
+    cents = round(total * 100)
+    rest = cents // n
+    return (cents - rest * (n - 1)) / 100, rest / 100
+
+
 @router.post("/months/{month_id}/charges", response_model=schemas.ChargeOut, status_code=status.HTTP_201_CREATED)
 def add_charge(
     month_id: int,
@@ -85,7 +93,11 @@ def add_charge(
     if not month:
         raise HTTPException(status_code=404, detail="Month not found")
 
-    charge = models.Charge(month_id=month_id, **body.model_dump())
+    data = body.model_dump(exclude={"total_amount"})
+    per_installment = data["amount"]
+    if body.total_amount and body.installments_total > 1:
+        data["amount"], per_installment = split_installments(body.total_amount, body.installments_total)
+    charge = models.Charge(month_id=month_id, **data)
     db.add(charge)
     db.flush()
 
@@ -122,7 +134,7 @@ def add_charge(
                 db.add(models.Charge(
                     month_id=m.id,
                     label=charge.label,
-                    amount=charge.amount,
+                    amount=per_installment,
                     category=charge.category,
                     payment_type=charge.payment_type,
                     is_recurring=False,

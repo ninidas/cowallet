@@ -62,6 +62,7 @@ export default function SettingsPage() {
   const [groupName,       setGroupName]       = useState(config?.group_name ?? '')
   const [currency,        setCurrency]        = useState(config?.currency ?? 'EUR')
   const [saving,  setSaving]  = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [success, setSuccess] = useState('')
   const [error,   setError]   = useState('')
 
@@ -193,6 +194,8 @@ export default function SettingsPage() {
       setSuccess(t('settings.success_saved'))
       setCurrentPassword('')
       setNewPassword('')
+      setShowPassword(false)
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -304,117 +307,131 @@ export default function SettingsPage() {
 
       <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-5 lg:-mt-8 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
 
-        {/* Colonne gauche */}
+        {/* Raccourcis vers les rubriques : la page est longue sur téléphone */}
+        <nav aria-label={t('settings.nav_label')} className="lg:hidden grid grid-cols-4 gap-2">
+          {[['bank', 'nav_bank'], ['spending', 'nav_spending'], ['couple', 'nav_couple'], ['me', 'nav_me']].map(([id, key]) => (
+            <a key={id} href={`#settings-${id}`}
+              onClick={e => { e.preventDefault(); document.getElementById(`settings-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
+              className="text-center px-1 py-2.5 rounded-full bg-white border border-slate-200 text-sm font-semibold text-slate-700 shadow-sm active:bg-violet-50 whitespace-nowrap">
+              {t(`settings.${key}`)}
+            </a>
+          ))}
+        </nav>
+
+        {/* Colonne gauche : banque, dépenses */}
         <div className="space-y-4">
+          <div id="settings-bank" className="space-y-4 scroll-mt-4">
+            {/* Bank connection */}
+            <Section title={t('settings.section_bank')}>
+                {bankStatus && !bankStatus.configured && (
+                  <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 text-amber-800 text-sm px-4 py-3 rounded-xl">
+                    <span className="text-lg shrink-0">⚙️</span>
+                    <div>
+                      <p className="font-semibold">{t('settings.bank_not_configured')}</p>
+                      <p className="text-xs text-amber-600 mt-0.5">{t('settings.bank_not_configured_hint')}</p>
+                    </div>
+                  </div>
+                )}
+                {(!bankStatus || bankStatus.configured) && searchParams.get('bank') === 'connected' && (
+                  <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 text-sm font-medium px-4 py-3 rounded-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0">
+                      <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
+                    </svg>
+                    {t('settings.bank_connected_success')}
+                  </div>
+                )}
 
-          {/* Notifications */}
-          {pushSupported && (
-            <Section title={t('settings.section_notifications')}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">{t('settings.notif_label')}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{t('settings.notif_hint')}</p>
-                  {permission === 'denied' && <p className="text-xs text-red-500 mt-1">{t('settings.notif_blocked')}</p>}
-                </div>
-                <button
-                  type="button"
-                  onClick={subscribed ? unsubscribe : subscribe}
-                  disabled={pushLoading || permission === 'denied'}
-                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${subscribed ? 'bg-violet-600' : 'bg-slate-200'}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${subscribed ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
-              </div>
-            </Section>
-          )}
+                {bankStatus?.configured && !bankStatus.connected ? (
+                  <div>
+                    <p className="text-sm text-slate-500 mb-4">
+                      {t('settings.bank_connect_hint')}
+                    </p>
+                    <button
+                      onClick={openBankPicker}
+                      disabled={bankConnecting}
+                      className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
+                    >
+                      {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_connect_bank')}
+                    </button>
+                  </div>
+                ) : bankStatus?.configured ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 py-2">
+                      <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center text-xl shrink-0">
+                        🏦
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">{bankStatus.provider_name}</p>
+                        {bankStatus.no_accounts ? (
+                          <p className="text-xs text-red-500 font-medium">{t('settings.bank_no_accounts')}</p>
+                        ) : bankStatus.expired ? (
+                          <p className="text-xs text-red-500 font-medium">
+                            {bankStatus.valid_until ? t('settings.bank_expired_on', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_expired')}
+                          </p>
+                        ) : bankStatus.expires_soon ? (
+                          <p className="text-xs text-amber-600 font-medium">{t('settings.bank_expires_on', { date: fmtBankDate(bankStatus.valid_until) })}</p>
+                        ) : (
+                          <p className="text-xs text-emerald-600 font-medium">
+                            {bankStatus.valid_until ? t('settings.bank_connected_until', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_connected_label')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-          {config?.invite_code && (
-            <Section title={t('settings.section_invite')}>
-              <p className="text-sm text-slate-500">{t('settings.invite_hint')}</p>
-              <div className="flex gap-2 mt-2">
-                <div className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 font-mono truncate">
-                  {`${window.location.origin}/invite/${config.invite_code}`}
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const url = `${window.location.origin}/invite/${config.invite_code}`
-                    if (navigator.share) {
-                      await navigator.share({ title: 'CoWallet', text: t('settings.invite_text'), url })
-                    } else {
-                      await navigator.clipboard.writeText(url)
-                      alert(t('settings.invite_copied'))
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition shrink-0"
-                >
-                  {t('settings.invite_share')}
-                </button>
-              </div>
-            </Section>
-          )}
+                    {(bankStatus.no_accounts || bankStatus.expired || bankStatus.expires_soon) ? (
+                      <div>
+                        <p className="text-sm text-slate-500 mb-3">
+                          {t(bankStatus.no_accounts ? 'settings.bank_no_accounts_hint' : bankStatus.expired ? 'settings.bank_expired_hint' : 'settings.bank_expires_hint')}
+                        </p>
+                        <button
+                          onClick={openBankPicker}
+                          disabled={bankConnecting}
+                          className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
+                        >
+                          {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={openBankPicker}
+                        disabled={bankConnecting}
+                        className="w-full py-3 rounded-2xl border border-violet-200 text-violet-600 font-semibold active:bg-violet-50 transition disabled:opacity-60"
+                      >
+                        {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
+                      </button>
+                    )}
 
-          <form onSubmit={handleSave} className="space-y-4">
-            <Section title={t('settings.section_group')}>
-              <Field label={t('settings.field_group_name')}>
-                <Input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder={t('settings.group_name_placeholder')} maxLength={40} />
-              </Field>
-              <p className="text-xs text-slate-400">{t('settings.group_name_hint')}</p>
-              <Field label={t('settings.field_currency')}>
-                <select
-                  value={currency}
-                  onChange={e => setCurrency(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                >
-                  {['EUR','USD','GBP','CHF','CAD','AUD','JPY','SEK','NOK','DKK','PLN','CZK'].map(code => {
-                    const symbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: code })
-                      .formatToParts(0).find(p => p.type === 'currency')?.value || code
-                    return <option key={code} value={code}>{code} ({symbol})</option>
-                  })}
-                </select>
-              </Field>
-            </Section>
-            <Section title={t('settings.section_account')}>
-              <Field label={t('settings.field_display_name')}>
-                <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('settings.username_placeholder')} required />
-              </Field>
-            </Section>
+                    {bankStatus.accounts?.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('settings.bank_accounts')}</p>
+                        {bankStatus.accounts.map(acc => (
+                          <div key={acc.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
+                            <span className="text-sm font-medium text-slate-700 flex-1 truncate">{acc.name}</span>
+                            <span className="text-xs text-slate-400">{acc.nature}</span>
+                            <button
+                              onClick={() => handleToggleAccount(acc.id)}
+                              className={`relative w-10 h-6 rounded-full transition-colors ${acc.enabled ? 'bg-violet-600' : 'bg-slate-200'}`}
+                            >
+                              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${acc.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-            <Section title={t('settings.section_password')}>
-              <Field label={t('settings.field_current_password')}>
-                <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
-              </Field>
-              <Field label={t('settings.field_new_password')}>
-                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
-              </Field>
-            </Section>
+                    <button
+                      onClick={handleBankDisconnect}
+                      disabled={bankDisconnecting}
+                      className="w-full py-2.5 rounded-2xl border border-red-100 text-red-500 text-sm font-medium active:bg-red-50 transition disabled:opacity-60"
+                    >
+                      {bankDisconnecting ? t('settings.btn_disconnecting') : t('settings.btn_disconnect_bank')}
+                    </button>
+                  </div>
+                ) : null}
+              </Section>
 
-            <Section title={t('settings.section_split')}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-600">{config?.user1_username ?? 'User 1'}</span>
-                <span className="text-sm font-bold text-violet-600">{share} / {100 - share}</span>
-                <span className="text-sm text-slate-600">{config?.user2_username ?? 'User 2'}</span>
-              </div>
-              <input type="range" min={1} max={99} value={share} onChange={e => setShare(Number(e.target.value))} className="w-full accent-violet-600" />
-              <div className="flex justify-center gap-2 mt-3 flex-wrap">
-                {[50, 60, 70].map(v => (
-                  <button key={v} type="button" onClick={() => setShare(v)}
-                    className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition ${share === v ? 'bg-violet-600 text-white border-violet-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                    {v}/{100 - v}
-                  </button>
-                ))}
-              </div>
-            </Section>
-
-            {error   && <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
-            {success && <div className="bg-emerald-50 text-emerald-700 text-sm px-4 py-3 rounded-xl">{success}</div>}
-
-          </form>
-        </div>
-
-        {/* Colonne droite */}
-        <div className="space-y-4">
-
+          </div>
+          <div id="settings-spending" className="space-y-4 scroll-mt-4">
           {/* Categories */}
           <Section title={t('settings.section_categories')}>
             <div className="space-y-2">
@@ -536,115 +553,126 @@ export default function SettingsPage() {
             </form>
           </Section>
 
-          {/* Bank connection */}
-          <Section title={t('settings.section_bank')}>
-              {bankStatus && !bankStatus.configured && (
-                <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 text-amber-800 text-sm px-4 py-3 rounded-xl">
-                  <span className="text-lg shrink-0">⚙️</span>
-                  <div>
-                    <p className="font-semibold">{t('settings.bank_not_configured')}</p>
-                    <p className="text-xs text-amber-600 mt-0.5">{t('settings.bank_not_configured_hint')}</p>
-                  </div>
-                </div>
-              )}
-              {(!bankStatus || bankStatus.configured) && searchParams.get('bank') === 'connected' && (
-                <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 text-sm font-medium px-4 py-3 rounded-xl">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 shrink-0">
-                    <path fillRule="evenodd" d="M19.916 4.626a.75.75 0 01.208 1.04l-9 13.5a.75.75 0 01-1.154.114l-6-6a.75.75 0 011.06-1.06l5.353 5.353 8.493-12.739a.75.75 0 011.04-.208z" clipRule="evenodd" />
-                  </svg>
-                  {t('settings.bank_connected_success')}
-                </div>
-              )}
+          </div>
+        </div>
 
-              {bankStatus?.configured && !bankStatus.connected ? (
-                <div>
-                  <p className="text-sm text-slate-500 mb-4">
-                    {t('settings.bank_connect_hint')}
-                  </p>
-                  <button
-                    onClick={openBankPicker}
-                    disabled={bankConnecting}
-                    className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
-                  >
-                    {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_connect_bank')}
-                  </button>
+        {/* Colonne droite : le couple, mon compte */}
+        <div className="space-y-4">
+          <div id="settings-couple" className="space-y-4 scroll-mt-4">
+          <form onSubmit={handleSave}>
+              <Section title={t('settings.section_split')}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-slate-600">{config?.user1_username ?? 'User 1'}</span>
+                  <span className="text-sm font-bold text-violet-600">{share} / {100 - share}</span>
+                  <span className="text-sm text-slate-600">{config?.user2_username ?? 'User 2'}</span>
                 </div>
-              ) : bankStatus?.configured ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 py-2">
-                    <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center text-xl shrink-0">
-                      🏦
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800 text-sm">{bankStatus.provider_name}</p>
-                      {bankStatus.no_accounts ? (
-                        <p className="text-xs text-red-500 font-medium">{t('settings.bank_no_accounts')}</p>
-                      ) : bankStatus.expired ? (
-                        <p className="text-xs text-red-500 font-medium">
-                          {bankStatus.valid_until ? t('settings.bank_expired_on', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_expired')}
-                        </p>
-                      ) : bankStatus.expires_soon ? (
-                        <p className="text-xs text-amber-600 font-medium">{t('settings.bank_expires_on', { date: fmtBankDate(bankStatus.valid_until) })}</p>
-                      ) : (
-                        <p className="text-xs text-emerald-600 font-medium">
-                          {bankStatus.valid_until ? t('settings.bank_connected_until', { date: fmtBankDate(bankStatus.valid_until) }) : t('settings.bank_connected_label')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {(bankStatus.no_accounts || bankStatus.expired || bankStatus.expires_soon) ? (
-                    <div>
-                      <p className="text-sm text-slate-500 mb-3">
-                        {t(bankStatus.no_accounts ? 'settings.bank_no_accounts_hint' : bankStatus.expired ? 'settings.bank_expired_hint' : 'settings.bank_expires_hint')}
-                      </p>
-                      <button
-                        onClick={openBankPicker}
-                        disabled={bankConnecting}
-                        className="w-full py-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition disabled:opacity-60"
-                      >
-                        {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={openBankPicker}
-                      disabled={bankConnecting}
-                      className="w-full py-3 rounded-2xl border border-violet-200 text-violet-600 font-semibold active:bg-violet-50 transition disabled:opacity-60"
-                    >
-                      {bankConnecting ? t('settings.btn_connecting') : t('settings.btn_reconnect_bank')}
+                <input type="range" min={1} max={99} value={share} onChange={e => setShare(Number(e.target.value))} className="w-full accent-violet-600" />
+                <div className="flex justify-center gap-2 mt-3 flex-wrap">
+                  {[50, 60, 70].map(v => (
+                    <button key={v} type="button" onClick={() => setShare(v)}
+                      className={`px-3 py-1.5 rounded-xl text-sm font-medium border transition ${share === v ? 'bg-violet-600 text-white border-violet-600' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                      {v}/{100 - v}
                     </button>
-                  )}
-
-                  {bankStatus.accounts?.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('settings.bank_accounts')}</p>
-                      {bankStatus.accounts.map(acc => (
-                        <div key={acc.id} className="flex items-center gap-3 py-2 px-3 rounded-xl bg-slate-50">
-                          <span className="text-sm font-medium text-slate-700 flex-1 truncate">{acc.name}</span>
-                          <span className="text-xs text-slate-400">{acc.nature}</span>
-                          <button
-                            onClick={() => handleToggleAccount(acc.id)}
-                            className={`relative w-10 h-6 rounded-full transition-colors ${acc.enabled ? 'bg-violet-600' : 'bg-slate-200'}`}
-                          >
-                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${acc.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={handleBankDisconnect}
-                    disabled={bankDisconnecting}
-                    className="w-full py-2.5 rounded-2xl border border-red-100 text-red-500 text-sm font-medium active:bg-red-50 transition disabled:opacity-60"
-                  >
-                    {bankDisconnecting ? t('settings.btn_disconnecting') : t('settings.btn_disconnect_bank')}
-                  </button>
+                  ))}
                 </div>
-              ) : null}
+              </Section>
+
+          </form>
+          {config?.invite_code && (
+            <Section title={t('settings.section_invite')}>
+              <p className="text-sm text-slate-500">{t('settings.invite_hint')}</p>
+              <div className="flex gap-2 mt-2">
+                <div className="flex-1 px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 font-mono truncate">
+                  {`${window.location.origin}/invite/${config.invite_code}`}
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = `${window.location.origin}/invite/${config.invite_code}`
+                    if (navigator.share) {
+                      await navigator.share({ title: 'CoWallet', text: t('settings.invite_text'), url })
+                    } else {
+                      await navigator.clipboard.writeText(url)
+                      alert(t('settings.invite_copied'))
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition shrink-0"
+                >
+                  {t('settings.invite_share')}
+                </button>
+              </div>
+            </Section>
+          )}
+
+          <form onSubmit={handleSave}>
+            <Section title={t('settings.section_group')}>
+              <Field label={t('settings.field_group_name')}>
+                <Input type="text" value={groupName} onChange={e => setGroupName(e.target.value)} placeholder={t('settings.group_name_placeholder')} maxLength={40} />
+              </Field>
+              <p className="text-xs text-slate-400">{t('settings.group_name_hint')}</p>
+              <Field label={t('settings.field_currency')}>
+                <select
+                  value={currency}
+                  onChange={e => setCurrency(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                >
+                  {['EUR','USD','GBP','CHF','CAD','AUD','JPY','SEK','NOK','DKK','PLN','CZK'].map(code => {
+                    const symbol = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: code })
+                      .formatToParts(0).find(p => p.type === 'currency')?.value || code
+                    return <option key={code} value={code}>{code} ({symbol})</option>
+                  })}
+                </select>
+              </Field>
+            </Section>
+          </form>
+          </div>
+          <div id="settings-me" className="space-y-4 scroll-mt-4">
+          {/* Notifications */}
+          {pushSupported && (
+            <Section title={t('settings.section_notifications')}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">{t('settings.notif_label')}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{t('settings.notif_hint')}</p>
+                  {permission === 'denied' && <p className="text-xs text-red-500 mt-1">{t('settings.notif_blocked')}</p>}
+                </div>
+                <button
+                  type="button"
+                  onClick={subscribed ? unsubscribe : subscribe}
+                  disabled={pushLoading || permission === 'denied'}
+                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${subscribed ? 'bg-violet-600' : 'bg-slate-200'}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${subscribed ? 'translate-x-6' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </Section>
+          )}
+
+          <form onSubmit={handleSave}>
+            <Section title={t('settings.section_account')}>
+              <Field label={t('settings.field_display_name')}>
+                <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder={t('settings.username_placeholder')} required />
+              </Field>
             </Section>
 
+          </form>
+          <form onSubmit={handleSave}>
+            <Section title={t('settings.section_password')}>
+              {!showPassword ? (
+                <button type="button" onClick={() => setShowPassword(true)}
+                  className="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 active:bg-slate-50 transition">
+                  {t('settings.btn_change_password')}
+                </button>
+              ) : (<>
+              <Field label={t('settings.field_current_password')}>
+                <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
+              </Field>
+              <Field label={t('settings.field_new_password')}>
+                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" autoComplete="new-password" />
+              </Field>
+              </>)}
+            </Section>
+          </form>
           {/* Language */}
           <Section title={t('settings.section_language')}>
             <div className="flex gap-2">
@@ -660,6 +688,7 @@ export default function SettingsPage() {
             </div>
           </Section>
 
+          </div>
         </div>
 
         {/* Compte : en dernier, sous les deux colonnes */}
@@ -784,6 +813,10 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {error   && <div role="alert" onClick={() => setError('')} className="fixed left-4 right-4 above-nav z-40 shadow-lg bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>}
+      {success && <div role="status" className="fixed left-4 right-4 above-nav z-40 shadow-lg bg-emerald-50 text-emerald-700 text-sm px-4 py-3 rounded-xl">{success}</div>}
+
 
       {/* Sticky save bar */}
       <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} className={`fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-xl transition-all duration-300 ${hasChanges ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'}`}>
