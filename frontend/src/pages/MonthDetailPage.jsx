@@ -159,26 +159,23 @@ function ChargeItem({ charge, onTap, onSwipeDelete, config, suiviMode, actualVal
       <div className="relative bg-white">
         <button
           onClick={() => onTap(charge)}
-          className="w-full flex items-center gap-3 py-3.5 px-4 lg:group-hover:pr-12 active:bg-violet-50 active:scale-[0.99] transition-all text-left"
+          className="w-full flex items-center gap-3 py-3 px-4 min-h-[52px] lg:group-hover:pr-12 active:bg-violet-50 active:scale-[0.99] transition-all text-left"
         >
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-slate-900 truncate">{charge.label}</span>
-              {charge.is_recurring && (
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 text-slate-400 shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-              )}
-              {charge.installments_total > 1 && (
-                <span className="text-xs font-semibold bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-lg shrink-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-medium text-slate-900 break-words min-w-0">{charge.label}</span>
+              {/* On ne signale que l'exception : la plupart des dépenses reviennent chaque mois */}
+              {charge.installments_total > 1 ? (
+                <span className="text-xs font-semibold bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full shrink-0">
                   {charge.installments_total - charge.installments_left + 1}/{charge.installments_total}
+                </span>
+              ) : !charge.is_recurring && (
+                <span className="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+                  {t('month_detail.one_off')}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              {charge.payment_type && (
-                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{charge.payment_type}</span>
-              )}
+            <div className="flex items-center gap-1.5 flex-wrap empty:hidden mt-1">
               {paidBy && (
                 <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">{t('month_detail.advanced_by', { name: paidBy })}</span>
               )}
@@ -301,12 +298,65 @@ function BudgetVsActualCard({ bva }) {
 }
 
 // ── Transactions tab ───────────────────────────────────────────────────────────
+// Libellé de la banque tel quel (on le retrouve sur le relevé), sans le « PRLV SEPA » déjà dit par « Prélèvement »
+const txLabel = d => d.replace(/^PRLV SEPA\s+/i, '').replace(/\s{2,}/g, ' ')
+const txKind  = tx => tx.is_card ? 'card' : /^PRLV SEPA/i.test(tx.description) ? 'debit' : null
+
+// Une transaction touchée : sa catégorie en gros boutons, et sa suppression rangée ici plutôt que sur chaque ligne
+function TransactionSheet({ tx, categories, onPick, onDelete, onClose, t }) {
+  const fmt = useFmt()
+  const { i18n } = useTranslation()
+  const [armed, confirm] = useArm()
+  if (!tx) return <BottomSheet open={false} onClose={onClose} />
+  const date = new Date(`${tx.date}T00:00:00`).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
+  const kind = txKind(tx)
+  return (
+    <BottomSheet open onClose={onClose}>
+      <div className="px-4 pb-safe space-y-4">
+        <div className="flex justify-between gap-3 items-start">
+          <div className="min-w-0">
+            <p className="font-bold text-slate-900 leading-snug break-words">{txLabel(tx.description)}</p>
+            <p className="text-sm text-slate-500 mt-0.5 first-letter:uppercase">{date}{kind && ` · ${t(`month_detail.tx_${kind}`)}`}</p>
+          </div>
+          <p className={`text-lg font-extrabold tabular-nums whitespace-nowrap ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+            {tx.amount < 0 ? `+${fmt(-tx.amount)}` : fmt(tx.amount)}
+          </p>
+        </div>
+        <div role="radiogroup" aria-label={t('month_detail.category')} className="grid grid-cols-2 gap-2">
+          {categories.map(c => {
+            const on = tx.category === c.name
+            return (
+              <button key={c.id} role="radio" aria-checked={on} onClick={() => onPick(on ? null : c.name)}
+                className={`h-12 px-3 rounded-xl flex items-center gap-2.5 text-sm font-semibold text-left transition active:scale-[0.98] ${on ? 'border-2 border-violet-600 bg-violet-50 text-slate-900' : 'border border-slate-200 bg-white text-slate-800'}`}>
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+                <span className="flex-1 truncate">{c.name}</span>
+                {on && (
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 text-violet-700 shrink-0" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7" />
+                  </svg>
+                )}
+              </button>
+            )
+          })}
+        </div>
+        {!tx.category && <p className="text-sm text-slate-600 bg-violet-50 rounded-xl px-3 py-2.5">{t('month_detail.same_merchant_hint')}</p>}
+        <button onClick={() => confirm('del') && onDelete()}
+          className={`w-full h-12 rounded-xl text-sm font-semibold transition ${armed ? 'bg-red-500 text-white' : 'border border-red-200 text-red-600 active:bg-red-50'}`}>
+          {armed ? t('month_detail.confirm_delete_tx') : t('month_detail.aria_delete_tx')}
+        </button>
+      </div>
+    </BottomSheet>
+  )
+}
+
 function TransactionsTab({ monthId, month, bva, onBvaChange, onUncategorizedChange, categoriesMap, categories, onImport, t }) {
   const fmt = useFmt()
+  const { i18n } = useTranslation()
   const [transactions, setTx]   = useState([])
   const [loading,      setLoad] = useState(true)
-  // Suppression en deux touches : la première arme le bouton, la seconde supprime
-  const [armedTx,      setArmedTx] = useState(null)
+  const [openTx,       setOpenTx] = useState(null)
+  const [filter,       setFilter] = useState('all')   // 'all' | 'todo'
+  const [showBva,      setShowBva] = useState(false)
   const [armedAll, confirmAll]     = useArm()
   const [searchParams, setSearchParams] = useSearchParams()
   const autoCount = parseInt(searchParams.get('auto') || '0')
@@ -327,19 +377,15 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, onUncategorizedChan
 
   useEffect(() => { load() }, [load])
 
-  async function handleCategorize(txId, category) {
-    await api.categorizeTransaction(txId, category || null)
+  async function handleCategorize(tx, category) {
+    setOpenTx(null)
+    await api.categorizeTransaction(tx.id, category)
     await load()
   }
 
-  async function handleDelete(txId) {
-    if (armedTx !== txId) {
-      setArmedTx(txId)
-      setTimeout(() => setArmedTx(a => (a === txId ? null : a)), 3000)
-      return
-    }
-    setArmedTx(null)
-    await api.deleteTransaction(txId)
+  async function handleDelete(tx) {
+    setOpenTx(null)
+    await api.deleteTransaction(tx.id)
     await load()
   }
 
@@ -355,103 +401,125 @@ function TransactionsTab({ monthId, month, bva, onBvaChange, onUncategorizedChan
     </div>
   )
 
+  const todo = transactions.filter(tx => !tx.category).length
+  const shown = filter === 'todo' ? transactions.filter(tx => !tx.category) : transactions
+  // Regroupées par jour, le plus récent en premier (la liste arrive déjà triée)
+  const days = []
+  for (const tx of shown) {
+    const last = days[days.length - 1]
+    if (last && last.date === tx.date) last.txs.push(tx)
+    else days.push({ date: tx.date, txs: [tx] })
+  }
+  const dayLabel = iso => new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })
+  const gap = bva ? Math.round((bva.total_actual - bva.total_budget) * 100) / 100 : 0
+
   return (
     <div className="space-y-3">
-      <BudgetVsActualCard bva={bva} />
+      {/* Prévu vs réel par catégorie : replié sur une ligne, déplié à la demande */}
+      {bva && (bva.rows.length > 0 || bva.uncategorized > 0) && (
+        showBva ? (
+          <div className="space-y-2">
+            <button onClick={() => setShowBva(false)} className="w-full flex items-center justify-between px-1 text-sm font-semibold text-violet-700">
+              {t('month_detail.hide_by_category')}
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.4} stroke="currentColor" className="w-4 h-4" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 15l6-6 6 6" /></svg>
+            </button>
+            <BudgetVsActualCard bva={bva} />
+          </div>
+        ) : (
+          <button onClick={() => setShowBva(true)} className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 flex items-center gap-3 text-left active:bg-slate-50 transition">
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold text-slate-800">{t('month_detail.by_category')}</span>
+              <span className="block text-xs text-slate-500 tabular-nums">{t('month_detail.actual_vs_planned', { actual: fmt(bva.total_actual), planned: fmt(bva.total_budget) })}</span>
+            </span>
+            {gap !== 0 && <span className={`text-sm font-bold tabular-nums ${gap > 0 ? 'text-red-600' : 'text-emerald-700'}`}>{gap > 0 ? '+' : '−'}{fmt(Math.abs(gap))}</span>}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg>
+          </button>
+        )
+      )}
 
       {autoCount > 0 && (
         <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 text-violet-700 text-sm px-4 py-3 rounded-xl">
-          <span>✨</span>
           <span>{t('month_detail.auto_categorized', { count: autoCount })}</span>
-          <button onClick={() => { searchParams.delete('auto'); setSearchParams(searchParams) }} className="ml-auto text-violet-400 hover:text-violet-600">✕</button>
+          <button onClick={() => { searchParams.delete('auto'); setSearchParams(searchParams) }} aria-label={t('month_detail.cancel')} className="hit ml-auto text-violet-400 hover:text-violet-600">✕</button>
         </div>
       )}
 
-      <div>
-        <div className="flex items-center justify-between mb-2 px-1">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            {t('month_detail.real_transactions', { count: transactions.length })}
-          </p>
-          <div className="flex items-center gap-2">
-            {transactions.length > 0 && (
-              <button
-                onClick={handleDeleteAll}
-                className={`hit flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition ${armedAll ? 'bg-red-500 text-white' : 'bg-red-50 text-red-500 active:bg-red-100'}`}
-              >
-                {armedAll ? t('month_detail.confirm_delete_all_btn') : t('month_detail.delete_all')}
-              </button>
-            )}
-            <button
-              onClick={onImport}
-              className="hit flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-violet-600 text-white text-xs font-semibold active:bg-violet-700 transition"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              {t('month_detail.import_bank')}
+      {/* Filtre et import */}
+      <div className="flex items-center gap-2">
+        <div role="group" aria-label={t('month_detail.filter')} className="flex-1 flex gap-2 min-w-0">
+          <button onClick={() => setFilter('all')} aria-pressed={filter === 'all'}
+            className={`h-10 px-3.5 rounded-full text-sm font-semibold whitespace-nowrap transition ${filter === 'all' ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600'}`}>
+            {t('month_detail.filter_all', { count: transactions.length })}
+          </button>
+          {todo > 0 && (
+            <button onClick={() => setFilter(filter === 'todo' ? 'all' : 'todo')} aria-pressed={filter === 'todo'}
+              className={`h-10 px-3.5 rounded-full text-sm font-semibold whitespace-nowrap transition ${filter === 'todo' ? 'bg-amber-500 text-white' : 'bg-amber-50 border border-amber-300 text-amber-800'}`}>
+              {t('month_detail.filter_todo', { count: todo })}
             </button>
-          </div>
+          )}
         </div>
-
-        {transactions.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-200">
-            <div className="text-3xl mb-3">🏦</div>
-            <p className="font-semibold text-slate-700 mb-1">{t('month_detail.no_transactions')}</p>
-            <p className="text-slate-400 text-sm">{t('month_detail.no_transactions_hint')}</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-50">
-            {transactions.map(tx => (
-              <div key={tx.id} className="px-4 py-3 flex items-start gap-3 group">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-800 truncate">{tx.description}</p>
-                    {tx.is_card && (
-                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500">CB</span>
-                    )}
-                    <span className="text-xs text-slate-400 shrink-0">{tx.date.slice(8)}/{tx.date.slice(5, 7)}</span>
-                  </div>
-                  {/* Category selector */}
-                  <div className="flex items-center gap-1.5 mt-1.5">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: categoriesMap.get(tx.category)?.color ?? '#cbd5e1' }}
-                    />
-                    <select
-                      value={tx.category ?? ''}
-                      onChange={e => handleCategorize(tx.id, e.target.value || null)}
-                      className={`text-xs px-2 py-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-violet-400 max-w-full ${
-                        tx.category ? 'border-slate-200 bg-slate-50 text-slate-600' : 'border-amber-300 bg-amber-50 text-amber-800'
-                      }`}
-                    >
-                      <option value="">{t('month_detail.no_category')}</option>
-                      {categories.map(c => (
-                        <option key={c.id} value={c.name}>{c.icon} {c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-sm font-bold tabular-nums ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-800'}`}>{tx.amount < 0 ? `+${fmt(-tx.amount)}` : fmt(tx.amount)}</span>
-                  <button
-                    onClick={() => handleDelete(tx.id)}
-                    aria-label={t('month_detail.aria_delete_tx')}
-                    className={armedTx === tx.id
-                      ? 'h-9 px-2.5 rounded-lg bg-red-500 text-white text-xs font-semibold transition-all'
-                      : 'w-9 h-9 rounded-lg bg-red-50 text-red-400 flex items-center justify-center lg:opacity-0 lg:group-hover:opacity-100 hover:bg-red-100 transition-all'}
-                  >
-                    {armedTx === tx.id ? t('month_detail.confirm_delete_short') : (
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <button onClick={onImport} aria-label={t('month_detail.import_bank')} title={t('month_detail.import_bank')}
+          className="w-11 h-11 rounded-full bg-violet-600 text-white flex items-center justify-center shrink-0 active:bg-violet-700 transition shadow-sm shadow-violet-200">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-5 h-5" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v11M7 10l5 5 5-5M5 20h14" />
+          </svg>
+        </button>
       </div>
+
+      {transactions.length === 0 ? (
+        <div className="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-200">
+          <p className="font-semibold text-slate-700 mb-1">{t('month_detail.no_transactions')}</p>
+          <p className="text-slate-500 text-sm">{t('month_detail.no_transactions_hint')}</p>
+        </div>
+      ) : (
+        days.map(day => (
+          <section key={day.date} className="space-y-1.5">
+            <h3 className="flex justify-between px-1 pt-1 text-xs font-bold tracking-wide text-slate-500 uppercase">
+              <span>{dayLabel(day.date)}</span>
+              <span className="tabular-nums">{fmt(day.txs.reduce((s, tx) => s + tx.amount, 0))}</span>
+            </h3>
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+              {day.txs.map(tx => {
+                const cat = tx.category ? categoriesMap.get(tx.category) : null
+                const kind = txKind(tx)
+                return (
+                  <button key={tx.id} onClick={() => setOpenTx(tx)}
+                    className={`w-full px-4 py-3 flex items-start gap-3 text-left transition active:bg-violet-50 ${tx.category ? '' : 'bg-amber-50/40'}`}>
+                    <span className="flex-1 min-w-0 space-y-1.5">
+                      <span className="block text-sm font-semibold text-slate-800 leading-snug break-words">{txLabel(tx.description)}</span>
+                      <span className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-semibold border ${tx.category ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-amber-50 border-amber-300 text-amber-800'}`}>
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tx.category ? (cat?.color ?? '#94a3b8') : '#f59e0b' }} />
+                          {tx.category ?? t('month_detail.to_categorize_chip')}
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.6} stroke="currentColor" className="w-3 h-3" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" /></svg>
+                        </span>
+                        {kind && <span className="text-xs text-slate-500">{t(`month_detail.tx_${kind}`)}</span>}
+                      </span>
+                    </span>
+                    <span className={`text-[15px] font-bold tabular-nums whitespace-nowrap ${tx.amount < 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+                      {tx.amount < 0 ? `+${fmt(-tx.amount)}` : fmt(tx.amount)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        ))
+      )}
+
+      {transactions.length > 0 && (
+        <div className="flex justify-center pt-2">
+          <button onClick={handleDeleteAll}
+            className={`h-11 px-4 rounded-full text-sm transition ${armedAll ? 'bg-red-500 text-white font-semibold' : 'text-slate-500 hover:text-red-500'}`}>
+            {armedAll ? t('month_detail.confirm_delete_all_btn') : t('month_detail.delete_all_month')}
+          </button>
+        </div>
+      )}
+
+      <TransactionSheet tx={openTx} categories={categories} t={t}
+        onClose={() => setOpenTx(null)}
+        onPick={cat => handleCategorize(openTx, cat)}
+        onDelete={() => handleDelete(openTx)} />
     </div>
   )
 }
@@ -648,7 +716,7 @@ export default function MonthDetailPage() {
       <div className="max-w-6xl mx-auto lg:px-6 lg:py-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
 
         {/* Colonne droite sur desktop (hero + virements) — affichée en premier sur mobile */}
-        <div className="lg:col-span-1 lg:sticky lg:top-6 space-y-4">
+        <div className="lg:col-span-1 lg:sticky lg:top-36 space-y-4">
           {/* Hero */}
           <div className="mt-4 mx-4 lg:mx-0 lg:mt-0 lg:-mt-10">
             <HeroCard month={month} bva={bva} />
@@ -676,6 +744,15 @@ export default function MonthDetailPage() {
               />
             </div>
           </div>
+
+          {/* Sur ordinateur : ce qu'il reste à faire, sous les virements */}
+          {uncategorized > 0 && (
+            <button onClick={() => setActiveTab('transactions')}
+              className="hidden lg:flex w-full items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200 text-sm font-semibold text-amber-800 active:bg-amber-100 transition">
+              {t('months.todo_categorize', { count: uncategorized })}
+              <span aria-hidden="true">›</span>
+            </button>
+          )}
         </div>
 
         {/* Colonne gauche sur desktop (charges / transactions) */}
@@ -783,17 +860,16 @@ export default function MonthDetailPage() {
               <p className="text-slate-400 text-sm">{t('month_detail.no_expenses_hint')}</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="lg:columns-2 lg:gap-3">
               {categoryTotals.map(({ cat, total, charges }) => {
                 const catData = categoriesMap.get(cat)
                 return (
-                  <div key={cat} className="bg-white rounded-2xl overflow-hidden border border-slate-100"
-                       style={{ borderLeft: `3px solid ${catData?.color ?? '#94a3b8'}` }}>
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: catData?.color ?? '#94a3b8' }} />
-                        <CategoryBadge category={cat} icon={catData?.icon} color={catData?.color} />
-                      </div>
+                  <div key={cat} className="bg-white rounded-2xl overflow-hidden border border-slate-200 break-inside-avoid mb-3">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/60">
+                      <h3 className="flex items-center gap-2.5 text-sm font-bold text-slate-800">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: catData?.color ?? '#94a3b8' }} />
+                        {cat}
+                      </h3>
                       <div className="flex items-center gap-2">
                         {suiviMode && (() => {
                           const actualTotal = charges.reduce((s, c) => {

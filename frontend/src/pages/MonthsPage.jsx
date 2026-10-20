@@ -7,27 +7,29 @@ import { useFmt } from '../hooks/useFmt'
 import MonthForm from '../components/MonthForm'
 import { useArm } from '../hooks/useArm'
 
-function TransferPill({ done, name }) {
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
-      done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-    }`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${done ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-      {name}
-    </span>
-  )
-}
-
 const NOW = new Date()
+const NOW_KEY = NOW.getFullYear() * 12 + NOW.getMonth() + 1
+const monthKey = m => m.year * 12 + m.month
 
 const shortDate = (iso, lang) => new Date(`${iso}T00:00:00`).toLocaleDateString(lang?.startsWith('en') ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short' })
 
-// Dépensé (transactions importées) face au prévu, sous le nom du mois
+const Check = ({ className = 'w-3 h-3' }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3.2} stroke="currentColor" className={className} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12.5l4.5 4.5L19 7" />
+  </svg>
+)
+const Chevron = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.2} stroke="currentColor" className="w-4 h-4 shrink-0" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 6l6 6-6 6" />
+  </svg>
+)
+
+// Dépensé (transactions importées) face au prévu
 function SpentBar({ spent, planned, from, to, isCurrent, fmt0, t, lang }) {
   const gap = Math.round(spent - planned)
   const over = gap > 0
   return (
-    <div className={`rounded-xl px-3 py-2.5 mb-3 space-y-1.5 ${over ? 'bg-red-50' : 'bg-emerald-50'}`}>
+    <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2 text-sm">
         <span className="text-slate-700 min-w-0">{t('months.spent_vs_planned', { spent: fmt0(spent), planned: fmt0(planned) })}</span>
         {gap !== 0 && (
@@ -36,7 +38,7 @@ function SpentBar({ spent, planned, from, to, isCurrent, fmt0, t, lang }) {
           </span>
         )}
       </div>
-      <div className={`h-2 rounded-full overflow-hidden relative ${over ? 'bg-red-200' : 'bg-emerald-100'}`}>
+      <div className={`h-2 rounded-full overflow-hidden relative ${over ? 'bg-red-100' : 'bg-emerald-100'}`}>
         <div className={`h-full rounded-full ${over ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, (spent / planned) * 100)}%` }} />
         {over && <div className="absolute top-0 bottom-0 w-0.5 bg-white" style={{ left: `${(planned / spent) * 100}%` }} />}
       </div>
@@ -48,79 +50,101 @@ function SpentBar({ spent, planned, from, to, isCurrent, fmt0, t, lang }) {
   )
 }
 
-function MonthCard({ month, config, myKey, onClick, isCurrent, selectMode, selected, t }) {
+// Le mois en cours en grand, avec ce qu'il reste à faire
+function CurrentCard({ month, config, myKey, onOpen, onCategorize, t }) {
   const fmt = useFmt()
   const fmt0 = useFmt({ maximumFractionDigits: 0 })
   const { i18n } = useTranslation()
-  const bothDone = month.user1_transferred && month.user2_transferred
-  const borderColor = selected ? '#7c3aed' : bothDone ? '#10b981' : isCurrent ? '#7c3aed' : '#e2e8f0'
-
+  const done1 = month.user1_transferred, done2 = month.user2_transferred
   return (
-    <button
-      onClick={onClick}
-      className={`w-full bg-white rounded-2xl p-5 shadow-sm border active:scale-[0.98] transition text-left ${
-        selected ? 'border-violet-300 ring-2 ring-violet-200 bg-violet-50' :
-        isCurrent ? 'border-violet-200 ring-2 ring-violet-100' : 'border-slate-100'
-      }`}
-      style={{ borderLeft: `4px solid ${borderColor}` }}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          {/* Badges sous le nom quand la place manque, plutôt que de couper « Octobre 2026 » en deux */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {selectMode && (
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                selected ? 'border-violet-600 bg-violet-600' : 'border-slate-300'
-              }`}>
-                {selected && (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="white" className="w-3 h-3">
-                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-            )}
-            <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap">{month.label}</h3>
-            {isCurrent && (
-              <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full whitespace-nowrap">
-                {t('months.in_progress')}
-              </span>
-            )}
-            {month.validated_by && (
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full whitespace-nowrap">
-                {t('months.validated')}
-              </span>
-            )}
-            {month.uncategorized > 0 && (
-              <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full whitespace-nowrap">
-                {t('months.to_categorize', { count: month.uncategorized })}
-              </span>
-            )}
+    <div className="bg-white rounded-3xl border border-violet-100 shadow-lg shadow-violet-100/60 overflow-hidden">
+      <button onClick={onOpen} className="w-full text-left p-5 space-y-4 active:bg-violet-50/50 transition">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold tracking-wider text-violet-600 uppercase">{t('months.in_progress')}</p>
+            <h3 className="text-xl font-extrabold text-slate-900 whitespace-nowrap">{month.label}</h3>
+            <p className="text-sm text-slate-500">{t('months.total_split', { amount: fmt(month.total), split: `${month.user1_share}/${100 - month.user1_share}` })}</p>
           </div>
-          <p className="text-sm text-slate-400 mt-0.5">
-            {month.user1_share}/{100 - month.user1_share} · {fmt(month.total)}
+          <div className="text-right shrink-0">
+            <p className="text-xs text-slate-500">{t('months.your_share')}</p>
+            <p className="text-2xl font-extrabold text-violet-700 tabular-nums">{fmt(myKey === 'user2' ? month.user2_due : month.user1_due)}</p>
+          </div>
+        </div>
+        {month.spent != null && month.planned > 0 && (
+          <SpentBar spent={month.spent} planned={month.planned} from={month.spent_from} to={month.spent_to} isCurrent fmt0={fmt0} t={t} lang={i18n.language} />
+        )}
+      </button>
+      <div className="border-t border-slate-100 px-5 py-2">
+        {month.uncategorized > 0 && (
+          <button onClick={onCategorize} className="w-full flex items-center gap-3 py-2.5 text-sm font-semibold text-amber-800 text-left">
+            <span className="w-6 h-6 rounded-full bg-amber-100 text-xs font-bold flex items-center justify-center shrink-0">{month.uncategorized}</span>
+            <span className="flex-1">{t('months.todo_categorize', { count: month.uncategorized })}</span>
+            <Chevron />
+          </button>
+        )}
+        {done1 && done2 ? (
+          <p className="flex items-center gap-3 py-2.5 text-sm text-emerald-700">
+            <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Check /></span>
+            {t(month.validated_by ? 'months.transfers_done_validated' : 'months.transfers_done')}
           </p>
-        </div>
-        {!selectMode && (
-          <div className="text-right">
-            <p className="text-xs text-slate-400 mb-0.5">{t(month.user1_share === 50 ? 'months.per_person' : 'months.your_share')}</p>
-            <p className="text-xl font-bold text-violet-600">{fmt(myKey === 'user2' ? month.user2_due : month.user1_due)}</p>
-          </div>
+        ) : (
+          [[done1, config?.user1_username], [done2, config?.user2_username]].filter(([d, n]) => !d && n).map(([, name]) => (
+            <button key={name} onClick={onOpen} className="w-full flex items-center gap-3 py-2.5 text-sm text-slate-700 text-left">
+              <span className="w-6 h-6 rounded-full bg-slate-100 shrink-0" />
+              <span className="flex-1">{t('months.transfer_waiting', { name })}</span>
+              <Chevron />
+            </button>
+          ))
         )}
       </div>
+    </div>
+  )
+}
 
-      {month.spent != null && month.planned > 0 && <SpentBar spent={month.spent} planned={month.planned} from={month.spent_from} to={month.spent_to} isCurrent={isCurrent} fmt0={fmt0} t={t} lang={i18n.language} />}
-
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
-          <TransferPill done={month.user1_transferred} name={config?.user1_username ?? 'User 1'} />
-          <TransferPill done={month.user2_transferred} name={config?.user2_username ?? 'User 2'} />
-        </div>
-        {bothDone && !selectMode && (
-          <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-            {t('months.closed')}
-          </span>
-        )}
+// Un mois à venir : prévu et part, sans détail
+function UpcomingCard({ month, myKey, onClick, t }) {
+  const fmt = useFmt()
+  return (
+    <button onClick={onClick} className="w-full bg-white rounded-2xl border border-slate-200 px-4 py-3.5 flex items-center justify-between gap-3 text-left active:bg-slate-50 transition">
+      <div className="min-w-0">
+        <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">{t('months.upcoming')}</p>
+        <p className="text-base font-bold text-slate-900">{month.label}</p>
+        <p className="text-sm text-slate-500">{t('months.planned_total', { amount: fmt(month.total) })}</p>
       </div>
+      <div className="text-right shrink-0">
+        <p className="text-xs text-slate-500">{t('months.your_share')}</p>
+        <p className="text-lg font-bold text-violet-700 tabular-nums">{fmt(myKey === 'user2' ? month.user2_due : month.user1_due)}</p>
+      </div>
+    </button>
+  )
+}
+
+// Un mois passé sur une ligne : réglé (coche) ou virement en attente
+function MonthRow({ month, myKey, onClick, selectMode, selected, t }) {
+  const fmt = useFmt()
+  const settled = month.user1_transferred && month.user2_transferred
+  const name = month.label.replace(/\s+\d{4}$/, '')
+  return (
+    <button onClick={onClick} aria-pressed={selectMode ? selected : undefined}
+      className={`w-full min-h-[56px] px-4 py-2.5 flex items-center gap-3 text-left border-b border-slate-100 last:border-b-0 transition ${selected ? 'bg-violet-50' : 'active:bg-slate-50'}`}>
+      {selectMode ? (
+        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? 'border-violet-600 bg-violet-600 text-white' : 'border-slate-300'}`}>
+          {selected && <Check />}
+        </span>
+      ) : settled ? (
+        <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0"><Check /></span>
+      ) : (
+        <span className="w-5 h-5 rounded-full border-2 border-amber-400 shrink-0" />
+      )}
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] font-semibold text-slate-900">{name}</span>
+        <span className="block text-xs text-slate-500">
+          {t('months.total', { amount: fmt(month.total) })}
+          {!settled && <span className="text-amber-700"> · {t('months.not_settled')}</span>}
+          {month.uncategorized > 0 && <span className="text-amber-700"> · {t('months.to_categorize', { count: month.uncategorized })}</span>}
+        </span>
+      </span>
+      <span className="text-[15px] font-bold text-slate-700 tabular-nums">{fmt(myKey === 'user2' ? month.user2_due : month.user1_due)}</span>
     </button>
   )
 }
@@ -138,6 +162,13 @@ export default function MonthsPage() {
   const [selected, setSelected]     = useState(new Set())
   const [deleting, setDeleting]     = useState(false)
   const [armedBulk, confirmBulk]    = useArm()
+
+  const current  = months.find(m => monthKey(m) === NOW_KEY)
+  const upcoming = months.filter(m => monthKey(m) > NOW_KEY).sort((a, b) => monthKey(a) - monthKey(b))
+  // En mode sélection, tous les mois passent en lignes pour être cochés
+  const rows = selectMode ? months : months.filter(m => monthKey(m) < NOW_KEY)
+  const pastByYear = [...new Set(rows.map(m => m.year))].sort((a, b) => b - a)
+    .map(y => [y, rows.filter(m => m.year === y).sort((a, b) => monthKey(b) - monthKey(a))])
 
   async function load() {
     try {
@@ -190,81 +221,55 @@ export default function MonthsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 page-enter">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-10 lg:pb-12">
-        <div className="max-w-6xl mx-auto lg:px-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-violet-200 text-sm">{t('months.hello')}</p>
-              <h1 className="text-2xl font-bold text-white capitalize">{user?.displayName ?? user?.username}</h1>
-              {config?.group_name && (
-                <p className="text-violet-300 text-sm font-medium mt-0.5">{config.group_name}</p>
-              )}
-            </div>
-            {/* Bouton paramètres visible uniquement sur mobile (sidebar gère ça sur desktop) */}
-            <button
-              onClick={() => navigate('/settings')}
-              className="lg:hidden w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:bg-white/30 transition"
-              aria-label={t('nav.settings')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
+      {/* En-tête : le même sur toutes les pages (titre, sous-titre, actions à droite) */}
+      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-14 lg:pb-16">
+        <div className="max-w-6xl mx-auto lg:px-6 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-violet-200 text-sm truncate">
+              {selectMode
+                ? (selected.size === 0 ? t('months.select_months') : t('months.selected', { count: selected.size }))
+                : `${t('months.hello')} ${user?.displayName ?? user?.username ?? ''}`}
+            </p>
+            <h1 className="text-2xl font-extrabold text-white">{t('nav.months')}</h1>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {selectMode ? (
+              <button onClick={exitSelectMode}
+                className="h-10 px-4 rounded-full bg-white/20 text-white text-sm font-semibold active:bg-white/30 transition">
+                {t('months.cancel')}
+              </button>
+            ) : (
+              <>
+                <Link to="/search" aria-label={t('search.title')}
+                  className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:bg-white/30 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </Link>
+                {months.length > 0 && (
+                  <button onClick={() => setSelectMode(true)} aria-label={t('months.select_months')}
+                    className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:bg-white/30 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                      <rect x="4" y="4" width="16" height="16" rx="4" /><path strokeLinecap="round" strokeLinejoin="round" d="M8.5 12l2.5 2.5 4.5-5" />
+                    </svg>
+                  </button>
+                )}
+                {/* Réglages : sur ordinateur, la barre latérale s'en charge */}
+                <button onClick={() => navigate('/settings')} aria-label={t('nav.settings')}
+                  className="lg:hidden w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:bg-white/30 transition">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-6xl mx-auto px-4 py-6 pb-safe">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-slate-800">
-            {selectMode ? (
-              selected.size === 0 ? t('months.select_months') : t('months.selected', { count: selected.size })
-            ) : t('nav.months')}
-          </h2>
-          <div className="flex items-center gap-3">
-            {selectMode ? (
-              <button
-                onClick={exitSelectMode}
-                className="text-sm font-medium text-slate-500 active:text-slate-700 transition"
-              >
-                {t('months.cancel')}
-              </button>
-            ) : (
-              <>
-                {months.length > 0 && (
-                  <button
-                    onClick={() => setSelectMode(true)}
-                    className="text-sm font-medium text-slate-500 active:text-slate-700 transition"
-                  >
-                    {t('months.select')}
-                  </button>
-                )}
-                <Link
-                  to="/search"
-                  aria-label={t('search.title')}
-                  className="w-9 h-9 -my-1 rounded-full flex items-center justify-center text-violet-600 active:bg-violet-50 transition"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                  </svg>
-                </Link>
-                <Link
-                  to="/history"
-                  className="lg:hidden flex items-center gap-1.5 text-sm font-medium text-violet-600 active:text-violet-800 transition"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-                  </svg>
-                  {t('nav.history')}
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-
+      <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-10 pb-28 lg:pb-10">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
@@ -319,20 +324,39 @@ export default function MonthsPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {months.map(m => (
-              <MonthCard
-                myKey={myKey}
-                key={m.id}
-                month={m}
-                config={config}
-                isCurrent={m.year === NOW.getFullYear() && m.month === NOW.getMonth() + 1}
-                onClick={selectMode ? () => toggleSelect(m.id) : () => navigate(`/months/${m.id}`)}
-                selectMode={selectMode}
-                selected={selected.has(m.id)}
-                t={t}
-              />
-            ))}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-3 lg:space-y-0">
+            {/* Le mois en cours et ceux à venir */}
+            {!selectMode && (current || upcoming.length > 0) && (
+              <div className="space-y-3">
+                {current && (
+                  <CurrentCard month={current} config={config} myKey={myKey} t={t}
+                    onOpen={() => navigate(`/months/${current.id}`)}
+                    onCategorize={() => navigate(`/months/${current.id}?tab=transactions`)} />
+                )}
+                {upcoming.map(m => (
+                  <UpcomingCard key={m.id} month={m} myKey={myKey} t={t} onClick={() => navigate(`/months/${m.id}`)} />
+                ))}
+              </div>
+            )}
+            {/* Les autres mois, une ligne chacun, par année (en mode sélection : tous les mois) */}
+            <div className="space-y-4">
+              {pastByYear.map(([year, list]) => (
+                <section key={year} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  {/* L'année dans la carte : lisible même posée sur le dégradé de l'en-tête (ordinateur) */}
+                  <div className="flex justify-between items-baseline px-4 pt-3 pb-2 border-b border-slate-100 bg-slate-50/60">
+                    <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">{year}</h2>
+                    {!selectMode && <span className="text-xs text-slate-500">{t('months.your_share')}</span>}
+                  </div>
+                  <div>
+                    {list.map(m => (
+                      <MonthRow key={m.id} month={m} myKey={myKey} t={t}
+                        selectMode={selectMode} selected={selected.has(m.id)}
+                        onClick={selectMode ? () => toggleSelect(m.id) : () => navigate(`/months/${m.id}`)} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
         )}
       </div>

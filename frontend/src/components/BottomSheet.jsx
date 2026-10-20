@@ -11,15 +11,15 @@ export default function BottomSheet({ open, onClose, title, children }) {
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] transition-opacity duration-300 ${
           open ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
       />
 
-      {/* Sheet — bottom sur mobile, modale centrée sur desktop */}
+      {/* Sheet — bottom sur mobile, modale centrée sur desktop ; au-dessus de la barre du bas (z-50) */}
       <div
-        className={`fixed inset-0 z-50 flex items-end justify-center lg:items-center ${
+        className={`fixed inset-0 z-[70] flex items-end justify-center lg:items-center ${
           open ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
         onClick={onClose}

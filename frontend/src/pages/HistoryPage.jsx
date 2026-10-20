@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ResponsiveContainer, LineChart, Line,
+  ResponsiveContainer, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts'
 import { api } from '../api'
@@ -23,23 +23,13 @@ function shortLabel(label) {
   return `${month.slice(0, 3)}. ${String(year).slice(2)}`
 }
 
-function StatCard({ label, value, sub, color = 'text-slate-800' }) {
+// Trois chiffres dans une seule carte : libellés courts, sur une ligne même à 375 px
+function Stat({ label, value, sub, color }) {
   return (
-    <div className="bg-white rounded-2xl p-4 border border-slate-100">
-      <p className="text-xs font-medium text-slate-400 mb-1">{label}</p>
-      <p className={`text-xl font-bold tabular-nums ${color}`}>{value}</p>
-      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
-    </div>
-  )
-}
-
-function CustomTooltip({ active, payload, label }) {
-  const fmt = useFmt()
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-slate-200 rounded-2xl shadow-xl p-3 text-sm">
-      <p className="font-semibold text-slate-700 mb-1">{label}</p>
-      <p className="font-bold text-violet-600">{fmt(payload[0]?.value)}</p>
+    <div className="px-3 py-3.5 min-w-0">
+      <p className="text-xs text-slate-500 truncate">{label}</p>
+      <p className={`text-lg font-extrabold tabular-nums mt-1 ${color}`}>{value}</p>
+      <p className="text-xs text-slate-500 truncate">{sub}</p>
     </div>
   )
 }
@@ -86,11 +76,6 @@ export default function HistoryPage() {
   const years = [...new Set(months.map(m => m.year))].sort()
   const filtered = yearFilter === 'all' ? months : months.filter(m => m.year === yearFilter)
 
-  const chartData = filtered.map(m => ({
-    label: shortLabel(m.label),
-    total: m.total,
-  }))
-
   const totalCumul = filtered.reduce((s, m) => s + m.total, 0)
   const avgTotal   = filtered.length ? totalCumul / filtered.length : 0
   const maxMonth   = filtered.length ? filtered.reduce((a, b) => a.total > b.total ? a : b) : null
@@ -107,20 +92,12 @@ export default function HistoryPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-safe page-enter">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-10 lg:pb-12">
-        <div className="max-w-6xl mx-auto lg:px-6 flex items-center gap-3">
-          <button
-            onClick={() => navigate('/months')}
-            className="lg:hidden w-10 h-10 rounded-full bg-white/20 flex items-center justify-center active:bg-white/30 transition"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-          </button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-white">{t('history.title')}</h1>
-            <p className="text-violet-200 text-xs">{t('history.months_count', { count: filtered.length })}</p>
+      {/* En-tête : le même sur toutes les pages ; pas de flèche retour, c'est un onglet */}
+      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-14 lg:pb-16">
+        <div className="max-w-6xl mx-auto lg:px-6 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-violet-200 text-sm">{t('history.months_count', { count: filtered.length })}</p>
+            <h1 className="text-2xl font-extrabold text-white">{t('history.title')}</h1>
           </div>
           {months.length > 0 && (
             <button
@@ -129,7 +106,7 @@ export default function HistoryPage() {
                 try { await api.exportCsv() } finally { setExporting(false) }
               }}
               disabled={exporting}
-              className="flex items-center gap-1.5 bg-white/20 text-white text-sm font-medium px-3 py-2 rounded-xl active:bg-white/30 transition disabled:opacity-60"
+              className="h-10 flex items-center gap-1.5 bg-white/20 text-white text-sm font-semibold px-4 rounded-full active:bg-white/30 transition disabled:opacity-60"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -140,7 +117,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-5 lg:-mt-8 space-y-4">
+      <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-10 space-y-4">
 
         {/* Filtre par année */}
         {years.length > 1 && (
@@ -174,104 +151,48 @@ export default function HistoryPage() {
           </div>
         ) : (
           <>
-            {/* Stats — 3 cartes */}
-            <div className="grid grid-cols-3 gap-2">
-              <StatCard
-                label={t('history.stat_avg')}
-                value={fmtShort(avgTotal)}
-                sub={t('history.months_short', { count: months.length })}
-                color="text-violet-600"
-              />
-              {maxMonth && (
-                <StatCard
-                  label={t('history.stat_max')}
-                  value={fmtShort(maxMonth.total)}
-                  sub={shortLabel(maxMonth.label)}
-                  color="text-red-500"
-                />
-              )}
-              {minMonth && (
-                <StatCard
-                  label={t('history.stat_min')}
-                  value={fmtShort(minMonth.total)}
-                  sub={shortLabel(minMonth.label)}
-                  color="text-emerald-600"
-                />
-              )}
+            {/* Trois chiffres */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-lg shadow-violet-100/50 grid grid-cols-3 divide-x divide-slate-100">
+              <Stat label={t('history.stat_avg_short')} value={fmtShort(avgTotal)} sub={t('history.stat_per_month')} color="text-violet-700" />
+              {maxMonth && <Stat label={t('history.stat_max_short')} value={fmtShort(maxMonth.total)} sub={maxMonth.label} color="text-red-600" />}
+              {minMonth && <Stat label={t('history.stat_min_short')} value={fmtShort(minMonth.total)} sub={minMonth.label} color="text-emerald-700" />}
             </div>
 
-            <div className="lg:grid lg:grid-cols-2 lg:gap-4">
-            {/* Graphe évolution totale */}
-            {months.length >= 2 && (
-              <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-4 px-1">{t('history.section_monthly_trend')}</p>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                    <YAxis
-                      tickFormatter={v => v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(v)}
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
-                      axisLine={false} tickLine={false} width={48}
-                      domain={['auto', 'auto']}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="total" stroke="#7c3aed" strokeWidth={2.5}
-                      dot={{ r: 4, fill: '#7c3aed', strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-            {/* Graphe lignes par catégorie */}
+            {/* Une barre par mois, découpée par catégorie (remplace les 6 courbes superposées) */}
             {months.length >= 2 && byMonthChart.length > 0 && (
-              <div className="bg-white rounded-3xl p-4 border border-slate-100">
-                <p className="text-sm font-semibold text-slate-700 mb-1 px-1">{t('history.section_by_category')}</p>
-                <p className="text-xs text-slate-400 mb-4 px-1">{t('history.section_by_month')}</p>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={byMonthChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <div className="bg-white rounded-2xl p-4 border border-slate-200">
+                <p className="text-sm font-bold text-slate-800 px-1">{t('history.section_by_month_bars')}</p>
+                <p className="text-xs text-slate-500 mb-4 px-1">{t('history.section_by_month_bars_hint')}</p>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={byMonthChart} margin={{ top: 4, right: 4, left: -16, bottom: 0 }} barCategoryGap="22%">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis
                       tickFormatter={v => v >= 1000 ? `${+(v / 1000).toFixed(1)}k` : String(v)}
-                      tick={{ fontSize: 11, fill: '#94a3b8' }}
+                      tick={{ fontSize: 11, fill: '#64748b' }}
                       axisLine={false} tickLine={false} width={48}
-                      domain={['auto', 'auto']}
                     />
                     <Tooltip
+                      cursor={{ fill: '#f5f3ff' }}
                       formatter={(value, name) => [fmt(value), name]}
                       contentStyle={{ borderRadius: 16, border: '1px solid #e2e8f0', fontSize: 12 }}
                     />
-                    {activeCategories.map(cat => {
-                      const color = categoriesMap.get(cat)?.color ?? '#94a3b8'
-                      return (
-                        <Line
-                          key={cat}
-                          type="monotone"
-                          dataKey={cat}
-                          stroke={color}
-                          strokeWidth={2}
-                          dot={{ r: 3, fill: color, strokeWidth: 0 }}
-                          activeDot={{ r: 5 }}
-                          connectNulls
-                        />
-                      )
-                    })}
-                  </LineChart>
+                    {activeCategories.map((cat, i) => (
+                      <Bar key={cat} dataKey={cat} stackId="m" fill={categoriesMap.get(cat)?.color ?? '#94a3b8'}
+                        radius={i === activeCategories.length - 1 ? [4, 4, 0, 0] : 0} />
+                    ))}
+                  </BarChart>
                 </ResponsiveContainer>
-                {/* Légende */}
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3 px-1">
                   {activeCategories.map(cat => (
                     <div key={cat} className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: categoriesMap.get(cat)?.color ?? '#94a3b8' }} />
-                      <span className="text-xs text-slate-500">{cat}</span>
+                      <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: categoriesMap.get(cat)?.color ?? '#94a3b8' }} />
+                      <span className="text-xs text-slate-600">{cat}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            </div>{/* fin grid graphes */}
 
             {/* Section fusionnée Par catégorie / Par libellé */}
             {(statsData?.by_category?.length > 0 || statsData?.by_label?.length > 0) && (
