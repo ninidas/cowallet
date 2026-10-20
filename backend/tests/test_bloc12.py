@@ -42,7 +42,7 @@ def test_bank_error_notifies_owner_once_until_it_works(client, db, monkeypatch):
     fail = lambda *a: (_ for _ in ()).throw(Exception('HTTP 429 — {"error":"ASPSP_RATE_LIMIT_EXCEEDED"}'))
     monkeypatch.setattr(enablebanking, "get_transactions", fail)
     _run(db, datetime.date(2026, 10, 20))
-    assert [(s[0], s[3]) for s in sent] == [(g.user1_id, "/settings")] and "demain matin" in sent[0][2]
+    assert [(s[0], s[3]) for s in sent] == [(g.user1_id, "/settings/bank")] and "demain matin" in sent[0][2]
     _run(db, datetime.date(2026, 10, 21))          # toujours en échec : pas de 2e notification
     assert len(sent) == 1
     monkeypatch.setattr(enablebanking, "get_transactions", lambda *a: [])

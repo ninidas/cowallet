@@ -85,7 +85,7 @@ def send_bank_expiry_reminders():
             if not kind:
                 continue
             title, body = NOTIF_BANK[lang][kind]
-            send_notification(db, conn.user_id, title=title.format(n=days), body=body, url="/settings")
+            send_notification(db, conn.user_id, title=title.format(n=days), body=body, url="/settings/bank")
             logger.info("Bank expiry reminder (%s) sent to user_id=%s", kind, conn.user_id)
     except Exception:
         logger.exception("Bank expiry reminders failed")
@@ -140,7 +140,7 @@ def notify_import_results(db, report: list):
             continue
         limit = "429" in r["error"] or "RATE_LIMIT" in r["error"]
         send_notification(db, r["user_id"], title=txt["error"],
-                          body=txt["error_limit" if limit else "error_other"], url="/settings")
+                          body=txt["error_limit" if limit else "error_other"], url="/settings/bank")
         db.add(models.AppConfig(key=key, value=date.today().isoformat()))
     db.commit()
 

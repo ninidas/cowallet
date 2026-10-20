@@ -126,7 +126,7 @@ def test_reminders_7_days_1_day_and_expiry_day(db, monkeypatch):
         scheduler.send_bank_expiry_reminders()
         assert len(sent) == expected, (days, sent)
         if expected:
-            assert sent[0][2] == "/settings"
+            assert sent[0][2] == "/settings/bank"
 
 
 def test_reconnect_without_accounts_keeps_old_connection(bclient, db, monkeypatch):

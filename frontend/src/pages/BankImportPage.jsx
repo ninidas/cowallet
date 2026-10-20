@@ -105,7 +105,7 @@ export default function BankImportPage() {
         {error === 'Bank access expired' ? (
           <>
             <p className="text-slate-600 mb-4 text-sm">{t('bank_import.expired')}</p>
-            <button onClick={() => navigate('/settings')} className="w-full py-3 px-6 mb-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition">{t('bank_import.btn_reconnect')}</button>
+            <button onClick={() => navigate('/settings/bank')} className="w-full py-3 px-6 mb-3 rounded-2xl bg-violet-600 text-white font-semibold active:bg-violet-700 transition">{t('bank_import.btn_reconnect')}</button>
           </>
         ) : (
           <p className="text-red-500 mb-4 text-sm">{error}</p>

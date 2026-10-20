@@ -16,7 +16,7 @@ export default function BankCallbackPage() {
       return
     }
     api.finishBankConnect(code)
-      .then(() => navigate('/settings?bank=connected', { replace: true }))
+      .then(() => navigate('/settings/bank?bank=connected', { replace: true }))
       .catch(err => setError(err.message === 'No account shared by the bank' ? t('bank_callback.error_no_accounts') : err.message))
   }, [])
 
@@ -27,7 +27,7 @@ export default function BankCallbackPage() {
         <p className="font-semibold text-slate-800 mb-2">{t('bank_callback.error_title')}</p>
         <p className="text-slate-500 text-sm mb-6">{error}</p>
         <button
-          onClick={() => navigate('/settings')}
+          onClick={() => navigate('/settings/bank')}
           className="px-6 py-3 bg-violet-600 text-white rounded-2xl font-semibold"
         >
           {t('bank_callback.btn_back')}

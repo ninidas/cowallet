@@ -45,7 +45,7 @@ export default function App() {
       <Route path="/history"     element={<PrivateRoute><HistoryPage /></PrivateRoute>} />
       <Route path="/search"      element={<PrivateRoute><SearchPage /></PrivateRoute>} />
       <Route path="/budget"      element={<PrivateRoute><BudgetPage /></PrivateRoute>} />
-      <Route path="/settings"      element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+      <Route path="/settings/:section?" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
       <Route path="/bank/callback" element={<PrivateRoute><BankCallbackPage /></PrivateRoute>} />
       <Route path="/bank/import/:monthId" element={<PrivateRoute><BankImportPage /></PrivateRoute>} />
       <Route path="*"            element={<Navigate to="/" replace />} />

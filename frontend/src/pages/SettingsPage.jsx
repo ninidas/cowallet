@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
@@ -21,6 +21,28 @@ const PRESET_EMOJIS = [
   '🏠','🎁','🛍️','🧾','📦','🔧','🐾','🎓','💡','📱',
   '🖥️','🔑','🌍','🧽','💈','🏡','🎀','🚑','👗','🎪',
 ]
+
+// Rubriques des réglages : un sommaire, puis une page par rubrique (/settings/bank…)
+const SECTIONS = ['bank', 'spending', 'couple', 'me']
+const SECTION_ICONS = {
+  bank:     'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z',
+  spending: 'M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z',
+  couple:   'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+  me:       'M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z',
+}
+
+// Ordinateur : sommaire à gauche et rubrique à droite ; téléphone : l'un puis l'autre
+function useIsDesktop() {
+  const query = '(min-width: 1024px)'
+  const [desktop, setDesktop] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const onChange = e => setDesktop(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return desktop
+}
 
 function Section({ title, children }) {
   return (
@@ -54,7 +76,11 @@ function Input({ ...props }) {
 export default function SettingsPage() {
   const { t, i18n } = useTranslation()
   const navigate   = useNavigate()
-  const { user, config, logout, refreshConfig, updateDisplayName } = useAuth()
+  const { user, config, logout, refreshConfig, updateDisplayName, getMyUserKey } = useAuth()
+  const { section: sectionParam } = useParams()
+  const isDesktop = useIsDesktop()
+  const section   = SECTIONS.includes(sectionParam) ? sectionParam : null
+  const active    = section ?? (isDesktop ? 'bank' : null)
   const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePush()
   const [username,        setUsername]        = useState(user?.displayName ?? user?.username ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
@@ -111,12 +137,38 @@ export default function SettingsPage() {
   const [aspspCountry,    setAspspCountry]    = useState('FR')
   const [aspspSearch,     setAspspSearch]     = useState('')
 
+  useEffect(() => { window.scrollTo(0, 0) }, [section])
+
   useEffect(() => {
-    window.scrollTo(0, 0)
     api.getCategories().then(setCategories).catch(() => {})
     api.getPaymentMethods().then(setPaymentMethods).catch(() => {})
     api.getBankStatus().then(setBankStatus).catch(() => {})
   }, [])
+
+  // Une ligne de résumé sous chaque rubrique : l'essentiel sans l'ouvrir
+  function summary(id) {
+    if (id === 'bank') {
+      if (!bankStatus) return { text: '' }
+      if (!bankStatus.configured) return { text: t('settings.sum_bank_unconfigured') }
+      if (!bankStatus.connected) return { text: t('settings.sum_bank_off') }
+      const bank = bankStatus.provider_name
+      if (bankStatus.expired) return { text: t('settings.sum_bank_expired', { bank }), tone: 'text-red-600' }
+      if (!bankStatus.valid_until) return { text: bank }
+      const date = new Date(`${bankStatus.valid_until}T00:00:00`).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short', year: 'numeric' })
+      return { text: t('settings.sum_bank_until', { bank, date }), tone: bankStatus.expires_soon ? 'text-amber-700' : '' }
+    }
+    if (id === 'spending') {
+      return { text: `${t('settings.sum_categories', { count: categories.length })} · ${t('settings.sum_payment_methods', { count: paymentMethods.length })}` }
+    }
+    if (id === 'couple') {
+      const s = config?.default_user1_share ?? 50
+      const split = `${s}/${100 - s}`
+      const partner = getMyUserKey?.() === 'user2' ? config?.user1_username : config?.user2_username
+      return { text: partner ? t('settings.sum_couple', { name: partner, split }) : t('settings.sum_couple_alone', { split }) }
+    }
+    const name = user?.displayName ?? user?.username ?? ''
+    return { text: pushSupported ? `${name} · ${t(subscribed ? 'settings.sum_notif_on' : 'settings.sum_notif_off')}` : name }
+  }
 
   // Échéance de l'accès bancaire (« 2027-04-16 » → « 16 avril 2027 »)
   const fmtBankDate = iso => new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language, { day: 'numeric', month: 'long', year: 'numeric' })
@@ -300,32 +352,58 @@ export default function SettingsPage() {
       <div className="bg-gradient-to-r from-violet-600 to-indigo-600 safe-top px-4 pb-10 lg:pb-12">
         <div className="max-w-6xl mx-auto lg:px-6 flex items-center gap-3">
           <button
-            onClick={() => navigate('/months')}
+            onClick={() => navigate(section ? '/settings' : '/months')}
+            aria-label={t('settings.aria_back')}
             className="lg:hidden w-10 h-10 rounded-full bg-white/20 flex items-center justify-center active:bg-white/30 transition"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-white">{t('settings.title')}</h1>
+          <h1 className="text-xl font-bold text-white">
+            {section && !isDesktop ? t(`settings.nav_${section}`) : t('settings.title')}
+          </h1>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-5 lg:-mt-8 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
+      <div className="max-w-6xl mx-auto px-4 lg:px-6 -mt-5 lg:-mt-8 lg:grid lg:grid-cols-[320px_minmax(0,1fr)] lg:gap-6 lg:items-start space-y-4 lg:space-y-0">
 
-        {/* Raccourcis vers les rubriques : la page est longue sur téléphone */}
-        <nav aria-label={t('settings.nav_label')} className="lg:hidden grid grid-cols-4 gap-2">
-          {[['bank', 'nav_bank'], ['spending', 'nav_spending'], ['couple', 'nav_couple'], ['me', 'nav_me']].map(([id, key]) => (
-            <a key={id} href={`#settings-${id}`}
-              onClick={e => { e.preventDefault(); document.getElementById(`settings-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}
-              className="text-center px-1 py-2.5 rounded-full bg-white border border-slate-200 text-sm font-semibold text-slate-700 shadow-sm active:bg-violet-50 whitespace-nowrap">
-              {t(`settings.${key}`)}
-            </a>
-          ))}
-        </nav>
+        {/* Sommaire */}
+        {(isDesktop || !active) && (
+          <div className="space-y-4">
+            <nav aria-label={t('settings.nav_label')} className="bg-white rounded-2xl border border-slate-100 overflow-hidden divide-y divide-slate-100">
+              {SECTIONS.map(id => {
+                const sum = summary(id)
+                return (
+                  <Link key={id} to={`/settings/${id}`} aria-current={active === id ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-4 py-3.5 transition active:bg-violet-50 ${active === id ? 'lg:bg-violet-50' : 'hover:bg-slate-50'}`}>
+                    <span className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d={SECTION_ICONS[id]} />
+                      </svg>
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[15px] font-semibold text-slate-800">{t(`settings.nav_${id}`)}</span>
+                      <span className={`block text-xs leading-snug ${sum.tone || 'text-slate-500'}`}>{sum.text || '\u00a0'}</span>
+                    </span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-300 shrink-0" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </Link>
+                )
+              })}
+            </nav>
+            <button type="button" onClick={logout}
+              className="w-full py-4 rounded-2xl bg-white text-red-500 font-semibold border border-red-100 active:bg-red-50 transition">
+              {t('settings.btn_logout')}
+            </button>
+          </div>
+        )}
 
-        {/* Colonne gauche : banque, dépenses */}
-        <div className="space-y-4">
+        {/* Rubrique ouverte */}
+        {active && (
+        <div className="space-y-4 min-w-0">
+          {active === 'bank' && (
           <div id="settings-bank" className="space-y-4 scroll-mt-4">
             {/* Bank connection */}
             <Section title={t('settings.section_bank')}>
@@ -437,6 +515,8 @@ export default function SettingsPage() {
               </Section>
 
           </div>
+          )}
+          {active === 'spending' && (
           <div id="settings-spending" className="space-y-4 scroll-mt-4">
           {/* Categories */}
           <Section title={t('settings.section_categories')}>
@@ -574,10 +654,8 @@ export default function SettingsPage() {
           </Section>
 
           </div>
-        </div>
-
-        {/* Colonne droite : le couple, mon compte */}
-        <div className="space-y-4">
+          )}
+          {active === 'couple' && (
           <div id="settings-couple" className="space-y-4 scroll-mt-4">
           <form onSubmit={handleSave}>
               <Section title={t('settings.section_split')}>
@@ -647,6 +725,8 @@ export default function SettingsPage() {
             </Section>
           </form>
           </div>
+          )}
+          {active === 'me' && (
           <div id="settings-me" className="space-y-4 scroll-mt-4">
           {/* Notifications */}
           {pushSupported && (
@@ -709,16 +789,8 @@ export default function SettingsPage() {
             </div>
           </Section>
 
-          </div>
-        </div>
-
-        {/* Compte : en dernier, sous les deux colonnes */}
-        <div className="lg:col-span-2 lg:max-w-md lg:mx-auto lg:w-full space-y-2 pt-2">
-          <button type="button" onClick={logout}
-            className="w-full py-4 rounded-2xl bg-white text-red-500 font-semibold border border-red-100 active:bg-red-50 transition">
-            {t('settings.btn_logout')}
-          </button>
-
+          {/* Supprimer le compte : en bas de « Mon compte » */}
+          <div className="space-y-2 pt-2">
           {!showDeleteConfirm ? (
             <button type="button" onClick={() => setShowDeleteConfirm(true)}
               className="w-full py-3 text-sm text-slate-400 hover:text-red-400 transition">
@@ -748,7 +820,11 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+          </div>
+          </div>
+          )}
         </div>
+        )}
       </div>
 
       <div className="h-8" />
