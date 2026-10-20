@@ -77,6 +77,42 @@ def get_suggestions(db: Session = Depends(get_db), group: models.Group = Depends
     return charges
 
 
+def _following_months(db: Session, group: models.Group, month: models.Month) -> list:
+    return db.query(models.Month).filter_by(group_id=group.id).filter(
+        (models.Month.year > month.year) |
+        ((models.Month.year == month.year) & (models.Month.month > month.month))
+    ).order_by(models.Month.year, models.Month.month).all()
+
+
+def _copy_recurring(db: Session, charge: models.Charge, months: list) -> int:
+    """Recopie une dépense récurrente dans les mois déjà créés après le sien. Un mois qui a déjà une dépense
+    de ce nom la garde (son montant peut différer) et la marque récurrente. Renvoie le nombre de mois touchés."""
+    n = 0
+    for m in months:
+        existing = db.query(models.Charge).filter(
+            models.Charge.month_id == m.id,
+            models.Charge.label == charge.label,
+        ).first()
+        if existing:
+            if not existing.is_recurring:
+                existing.is_recurring = True
+                n += 1
+            continue
+        db.add(models.Charge(
+            month_id=m.id,
+            label=charge.label,
+            amount=charge.amount,
+            category=charge.category,
+            payment_type=charge.payment_type,
+            is_recurring=True,
+            paid_by=None,
+            installments_total=1,
+            installments_left=1,
+        ))
+        n += 1
+    return n
+
+
 def split_installments(total: float, n: int) -> tuple:
     """(1re échéance, échéances suivantes) : 100 € en 3 fois -> 33,34 € puis 33,33 €, comme PayPal
     (vol de Prague : 219,34 € puis 219,33 €). Avant : 3 × 33,33 € = 99,99 €."""
@@ -108,33 +144,13 @@ def add_charge(
     db.flush()
 
     if body.is_recurring or body.installments_total > 1:
-        subsequent_months = db.query(models.Month).filter_by(group_id=group.id).filter(
-            (models.Month.year > month.year) |
-            ((models.Month.year == month.year) & (models.Month.month > month.month))
-        ).order_by(models.Month.year, models.Month.month).all()
+        subsequent_months = _following_months(db, group, month)
 
         remaining = body.installments_left - 1
-        for m in subsequent_months:
-            if body.is_recurring:
-                existing = db.query(models.Charge).filter(
-                    models.Charge.month_id == m.id,
-                    models.Charge.label == charge.label,
-                ).first()
-                if existing:
-                    existing.is_recurring = True
-                else:
-                    db.add(models.Charge(
-                        month_id=m.id,
-                        label=charge.label,
-                        amount=charge.amount,
-                        category=charge.category,
-                        payment_type=charge.payment_type,
-                        is_recurring=True,
-                        paid_by=None,
-                        installments_total=1,
-                        installments_left=1,
-                    ))
-            else:
+        if body.is_recurring:
+            _copy_recurring(db, charge, subsequent_months)
+        else:
+            for m in subsequent_months:
                 if remaining <= 0:
                     break
                 db.add(models.Charge(
@@ -186,6 +202,7 @@ def update_charge(
         raise HTTPException(status_code=404, detail="Charge not found")
 
     old_amount = _effective(charge)
+    was_recurring = bool(charge.is_recurring)
     old_values = {f: getattr(charge, f) for f in SERIES_FIELDS}
     siblings = _series_siblings(db, group, charge, body.scope)
     for field, value in body.model_dump(exclude_unset=True, exclude={"scope"}).items():
@@ -206,9 +223,13 @@ def update_charge(
             any_settled = True
             series_delta += (_effective(sib) - before) * _partner_share(group, sib.month, current_user.id)
         series_months += 1
+    # Rendue récurrente après coup : elle rejoint aussi les mois suivants déjà créés (avant : seulement les mois créés plus tard)
+    copied = 0
+    if charge.is_recurring and not was_recurring and charge.installments_total <= 1:
+        copied = _copy_recurring(db, charge, _following_months(db, group, charge.month))
     db.commit()
     db.refresh(charge)
-    charge.also_updated = len(siblings)
+    charge.also_updated = len(siblings) + copied
 
     new_amount = _effective(charge)
     if siblings and "amount" in changed:
@@ -293,10 +314,7 @@ def fix_installments(
 
     charge.installments_left = body.installments_left
     month = db.query(models.Month).filter_by(id=charge.month_id).first()
-    subsequent_months = db.query(models.Month).filter_by(group_id=group.id).filter(
-        (models.Month.year > month.year) |
-        ((models.Month.year == month.year) & (models.Month.month > month.month))
-    ).order_by(models.Month.year, models.Month.month).all()
+    subsequent_months = _following_months(db, group, month)
 
     remaining = body.installments_left - 1
     for m in subsequent_months:

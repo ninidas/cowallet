@@ -17,6 +17,12 @@ const ERROR_KEYS = {
   'You cannot join your own group':    'own_group',
   'Unsupported currency':              'unsupported_currency',
   'An error occurred':                 'generic',
+  'Invalid input':                     'invalid_input',
+  'Text too long':                     'too_long',
+  'Too many attempts':                 'too_many_attempts',
+  'A category with this name already exists': 'category_exists',
+  'Payment method already exists':     'payment_method_exists',
+  'Month already exists':              'month_exists',
 }
 
 export function tError(t, msg) {

@@ -263,8 +263,8 @@ def validate_month(
     if not month:
         raise HTTPException(status_code=404, detail="Month not found")
 
-    # Toggle : re-cliquer dévalide
-    month.validated_by = None if month.validated_by == current_user.id else current_user.id
+    # Bascule : un mois validé, par soi ou par l'autre, se dévalide (avant : le clic reprenait la validation de l'autre)
+    month.validated_by = None if month.validated_by is not None else current_user.id
     db.commit()
     db.refresh(month)
     return _to_detail(month, db)

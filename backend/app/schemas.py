@@ -1,14 +1,23 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator
+from typing import Annotated, Literal, Optional, List
+
+# Bornes des saisies : un texte de plusieurs Mo ou un mois 13 est refusé proprement (422), pas en erreur 500
+Username = Annotated[str, Field(max_length=50)]
+Password = Annotated[str, Field(max_length=128)]
+Name     = Annotated[str, Field(max_length=60)]
+Label    = Annotated[str, Field(max_length=120)]
+Note     = Annotated[str, Field(max_length=1000)]
+Amount   = Annotated[float, Field(ge=-10_000_000, le=10_000_000)]
+Count    = Annotated[int, Field(ge=1, le=600)]
 
 
 # --- Setup ---
 
 class SetupRequest(BaseModel):
-    user1_username: str
-    user1_password: str
-    user2_username: str
-    user2_password: str
+    user1_username: Username
+    user1_password: Password
+    user2_username: Username
+    user2_password: Password
     default_user1_share: int = 50
 
     @field_validator("default_user1_share")
@@ -25,12 +34,12 @@ class SetupStatus(BaseModel):
 # --- Auth / Register ---
 
 class RegisterRequest(BaseModel):
-    username: str
-    password: str
+    username: Username
+    password: Password
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: Annotated[str, Field(max_length=200)]
+    password: Annotated[str, Field(max_length=200)]
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -44,9 +53,9 @@ class TokenResponse(BaseModel):
 # --- Groups ---
 
 class GroupCreate(BaseModel):
-    name: str = ""
+    name: Name = ""
     default_share: int = 50
-    currency: str = "EUR"
+    currency: Annotated[str, Field(max_length=8)] = "EUR"
 
     @field_validator("default_share")
     @classmethod
@@ -56,13 +65,13 @@ class GroupCreate(BaseModel):
         return v
 
 class GroupJoin(BaseModel):
-    invite_code: str
+    invite_code: Annotated[str, Field(max_length=64)]
 
 class GroupRename(BaseModel):
-    name: str
+    name: Name
 
 class GroupCurrencyUpdate(BaseModel):
-    currency: str
+    currency: Annotated[str, Field(max_length=8)]
 
 class GroupOut(BaseModel):
     id: int
@@ -94,14 +103,14 @@ class CategoryOut(BaseModel):
         from_attributes = True
 
 class CategoryCreate(BaseModel):
-    name: str
-    icon: str = "📦"
-    color: str = "#94a3b8"
+    name: Name
+    icon: Annotated[str, Field(max_length=16)] = "📦"
+    color: Annotated[str, Field(max_length=16)] = "#94a3b8"
 
 class CategoryUpdate(BaseModel):
-    name: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
+    name: Optional[Name] = None
+    icon: Optional[Annotated[str, Field(max_length=16)]] = None
+    color: Optional[Annotated[str, Field(max_length=16)]] = None
     sort_order: Optional[int] = None
 
 
@@ -116,7 +125,7 @@ class PaymentMethodOut(BaseModel):
         from_attributes = True
 
 class PaymentMethodCreate(BaseModel):
-    name: str
+    name: Name
 
 
 # --- Charge suggestions ---
@@ -134,35 +143,35 @@ class ChargeSuggestion(BaseModel):
 # --- Charges ---
 
 class ChargeCreate(BaseModel):
-    label: str
-    amount: float
-    category: str
-    payment_type: Optional[str] = None
+    label: Label
+    amount: Amount
+    category: Name
+    payment_type: Optional[Name] = None
     is_recurring: bool = False
     paid_by: Optional[int] = None
-    installments_total: int = 1
-    installments_left: int = 1
-    note: Optional[str] = None
+    installments_total: Count = 1
+    installments_left: Count = 1
+    note: Optional[Note] = None
     # Paiement en plusieurs fois : montant total, réparti au centime près (le reste sur la 1re échéance)
-    total_amount: Optional[float] = None
+    total_amount: Optional[Amount] = None
 
 class ChargeUpdate(BaseModel):
-    label: Optional[str] = None
-    amount: Optional[float] = None
-    actual_amount: Optional[float] = None
-    category: Optional[str] = None
-    payment_type: Optional[str] = None
+    label: Optional[Label] = None
+    amount: Optional[Amount] = None
+    actual_amount: Optional[Amount] = None
+    category: Optional[Name] = None
+    payment_type: Optional[Name] = None
     is_recurring: Optional[bool] = None
     paid_by: Optional[int] = None
-    note: Optional[str] = None
-    installments_total: Optional[int] = None
-    installments_left: Optional[int] = None
+    note: Optional[Note] = None
+    installments_total: Optional[Count] = None
+    installments_left: Optional[Count] = None
     # Dépense récurrente ou en plusieurs fois : "this" (ce mois), "following" (et les suivants), "all" (tous les mois)
-    scope: str = "this"
+    scope: Literal["this", "following", "all"] = "this"
 
 
 class FixInstallmentsBody(BaseModel):
-    installments_left: int
+    installments_left: Count
 
 class ChargeOut(BaseModel):
     id: int
@@ -187,8 +196,8 @@ class ChargeOut(BaseModel):
 # --- Months ---
 
 class MonthCreate(BaseModel):
-    year: int
-    month: int
+    year: Annotated[int, Field(ge=2000, le=2100)]
+    month: Annotated[int, Field(ge=1, le=12)]
     user1_share: int = 50
 
     @field_validator("user1_share")
@@ -199,7 +208,7 @@ class MonthCreate(BaseModel):
         return v
 
 class BulkDeleteMonths(BaseModel):
-    ids: List[int]
+    ids: Annotated[List[int], Field(max_length=1000)]
 
 class TransferUpdate(BaseModel):
     user1_transferred: Optional[bool] = None
@@ -265,16 +274,16 @@ class MonthDetail(BaseModel):
 # --- Budget entries ---
 
 class BudgetEntryCreate(BaseModel):
-    type: str   # "income" | "expense" | "investment"
-    label: str
-    amount: float
-    category: Optional[str] = None
+    type: Literal["income", "expense", "investment", "shared"]
+    label: Label
+    amount: Amount
+    category: Optional[Name] = None
     sort_order: int = 0
 
 class BudgetEntryUpdate(BaseModel):
-    label: Optional[str] = None
-    amount: Optional[float] = None
-    category: Optional[str] = None
+    label: Optional[Label] = None
+    amount: Optional[Amount] = None
+    category: Optional[Name] = None
     sort_order: Optional[int] = None
 
 class BudgetEntryOut(BaseModel):

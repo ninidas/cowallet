@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel, field_validator
 
+from ..schemas import Password, Username
+
 from ..database import get_db
 from .. import models
 from ..auth import get_current_user, get_current_group, verify_password, hash_password
@@ -11,9 +13,9 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 class SettingsUpdate(BaseModel):
-    display_name:         Optional[str] = None
-    current_password:     Optional[str] = None
-    new_password:         Optional[str] = None
+    display_name:         Optional[Username] = None
+    current_password:     Optional[Password] = None
+    new_password:         Optional[Password] = None
     default_user1_share:  Optional[int] = None
 
     @field_validator("default_user1_share")

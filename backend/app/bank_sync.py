@@ -98,12 +98,13 @@ def merchant_key(description: str, raw: bool = False) -> str:
 
 def category_index(db: Session, group: models.Group) -> tuple:
     """(libellé exact -> catégorie, commerçant -> catégorie), d'après les transactions déjà catégorisées
-    du groupe ; la plus récente l'emporte."""
+    du groupe ; la plus récente l'emporte. Une catégorie supprimée depuis n'est plus proposée."""
     exact, by_merchant = {}, {}
+    names = [c.name for c in db.query(models.Category).filter_by(group_id=group.id).all()]
     past = (
         db.query(models.BankTransaction)
         .join(models.Month)
-        .filter(models.Month.group_id == group.id, models.BankTransaction.category.isnot(None))
+        .filter(models.Month.group_id == group.id, models.BankTransaction.category.in_(names))
         .order_by(models.BankTransaction.date.desc())
         .all()
     )

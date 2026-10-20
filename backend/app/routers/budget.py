@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -9,14 +10,36 @@ from ..auth import get_current_user
 router = APIRouter(prefix="/budget", tags=["budget"])
 
 
+def _seeded_key(user_id: int) -> str:
+    return f"budget_seeded:{user_id}"
+
+
+def _mark_seeded(db: Session, user_id: int) -> None:
+    """Les lignes d'exemple ne sont proposées qu'une fois : un budget vidé exprès reste vide."""
+    # INSERT OR IGNORE : les lignes d'exemple sont créées en parallèle, sans conflit sur la clé
+    db.execute(sqlite_insert(models.AppConfig).values(key=_seeded_key(user_id), value="1").on_conflict_do_nothing())
+
+
 @router.get("", response_model=List[schemas.BudgetEntryOut])
 def get_budget(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return db.query(models.BudgetEntry).filter_by(user_id=current_user.id).order_by(
+    entries = db.query(models.BudgetEntry).filter_by(user_id=current_user.id).order_by(
         models.BudgetEntry.type, models.BudgetEntry.sort_order
     ).all()
+    if entries and not db.get(models.AppConfig, _seeded_key(current_user.id)):
+        _mark_seeded(db, current_user.id)
+        db.commit()
+    return entries
+
+
+@router.get("/seeded")
+def get_seeded(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return {"seeded": db.get(models.AppConfig, _seeded_key(current_user.id)) is not None}
 
 
 @router.post("", response_model=schemas.BudgetEntryOut, status_code=201)
@@ -25,8 +48,6 @@ def create_entry(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if body.type not in ("income", "expense", "investment", "shared"):
-        raise HTTPException(status_code=400, detail="Type invalide")
     entry = models.BudgetEntry(
         user_id=current_user.id,
         type=body.type,
@@ -36,6 +57,7 @@ def create_entry(
         sort_order=body.sort_order,
     )
     db.add(entry)
+    _mark_seeded(db, current_user.id)
     db.commit()
     db.refresh(entry)
     return entry

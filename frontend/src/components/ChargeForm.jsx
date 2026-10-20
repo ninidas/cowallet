@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tError } from '../utils/tError'
 import { api } from '../api'
 import { useFmt } from '../hooks/useFmt'
 import { useAuth } from '../context/AuthContext'
@@ -245,7 +246,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
                 <button
                   type="button"
                   onClick={() => setInstallmentCurrent(n => Math.max(1, n - 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-amber-300 text-amber-700 font-bold flex items-center justify-center active:scale-95 transition"
+                  className="hit w-8 h-8 rounded-full bg-white border border-amber-300 text-amber-700 font-bold flex items-center justify-center active:scale-95 transition"
                 >−</button>
                 <span className="text-lg font-bold text-amber-900 tabular-nums w-16 text-center">
                   {installmentCurrent} / {editInstallTotal}
@@ -253,7 +254,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
                 <button
                   type="button"
                   onClick={() => setInstallmentCurrent(n => Math.min(editInstallTotal, n + 1))}
-                  className="w-8 h-8 rounded-full bg-white border border-amber-300 text-amber-700 font-bold flex items-center justify-center active:scale-95 transition"
+                  className="hit w-8 h-8 rounded-full bg-white border border-amber-300 text-amber-700 font-bold flex items-center justify-center active:scale-95 transition"
                 >+</button>
               </div>
             </div>
@@ -355,7 +356,12 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
               </svg>
               <div className="text-left">
                 <p className={`text-sm font-semibold ${form.is_recurring ? 'text-violet-700' : 'text-slate-700'}`}>{t('chargeform.field_recurring')}</p>
-                <p className="text-xs text-slate-400">{t('chargeform.field_recurring_hint')}</p>
+                <p className="text-xs text-slate-400">
+                  {/* Rendue récurrente après coup : le serveur l'ajoute aussi aux mois suivants déjà créés */}
+                  {isEdit && !charge?.is_recurring && form.is_recurring && !isInstallmentCharge
+                    ? t('chargeform.field_recurring_hint_now')
+                    : t('chargeform.field_recurring_hint')}
+                </p>
               </div>
             </div>
             <div className={`w-11 h-6 rounded-full transition-colors ${form.is_recurring ? 'bg-violet-600' : 'bg-slate-300'}`}>
@@ -394,7 +400,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
         )}
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
+          <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>
         )}
 
         <button

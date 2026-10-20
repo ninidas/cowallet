@@ -140,14 +140,14 @@ export default function Layout({ children }) {
             <div className="flex gap-2 shrink-0">
               <button
                 onClick={dismissBanner}
-                className="text-xs text-violet-300 hover:text-white px-2 py-1.5 rounded-lg transition"
+                className="hit text-xs text-violet-300 hover:text-white px-2 py-1.5 rounded-lg transition"
               >
                 {t('push_banner.later')}
               </button>
               <button
                 onClick={handleActivate}
                 disabled={loading}
-                className="text-xs font-semibold bg-white text-violet-700 px-3 py-1.5 rounded-lg active:bg-violet-50 transition"
+                className="hit text-xs font-semibold bg-white text-violet-700 px-3 py-1.5 rounded-lg active:bg-violet-50 transition"
               >
                 {t('push_banner.enable')}
               </button>

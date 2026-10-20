@@ -58,8 +58,14 @@ async function request(path, options = {}) {
     throw new Error(err.detail || 'Invalid credentials')
   }
 
+  if (res.status === 429) throw new Error('Too many attempts')
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
+    // Saisie refusée par le serveur (422) : une liste d'erreurs, pas un texte
+    if (Array.isArray(err.detail)) {
+      throw new Error(err.detail.some(e => e.type === 'string_too_long') ? 'Text too long' : 'Invalid input')
+    }
     throw new Error(err.detail || 'An error occurred')
   }
 
@@ -131,6 +137,7 @@ export const api = {
                                           .then(r => { invalidate('payment_methods') ; return r }),
 
   getBudget:           ()           => cached('budget', () => request('/budget')),
+  getBudgetSeeded:     ()           => request('/budget/seeded'),
   createBudgetEntry:   (data)       => request('/budget', { method: 'POST', body: JSON.stringify(data) })
                                          .then(r => { invalidate('budget') ; return r }),
   updateBudgetEntry:   (id, data)   => request(`/budget/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
@@ -161,7 +168,7 @@ export const api = {
 
   getChargeSuggestions: () => cached('suggestions', () => request('/charges/suggestions')),
   addCharge:       (mid, data)  => request(`/months/${mid}/charges`, { method: 'POST', body: JSON.stringify(data) })
-                                     .then(r => { invalidate('months', `month:${mid}`, 'stats', 'suggestions') ; return r }),
+                                     .then(r => { invalidate('months', 'month:*', 'stats', 'suggestions') ; return r }),
   updateCharge:    (id, data)   => request(`/charges/${id}`, { method: 'PUT', body: JSON.stringify(data) })
                                      .then(r => { invalidate('months', 'month:*', 'stats') ; return r }),
   fixInstallments: (id, installments_left) => request(`/charges/${id}/fix-installments`, { method: 'POST', body: JSON.stringify({ installments_left }) })

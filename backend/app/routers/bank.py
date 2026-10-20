@@ -1,8 +1,8 @@
 import datetime
-from typing import Optional, List
+from typing import Annotated, Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -59,7 +59,7 @@ class ImportTransactionsRequest(BaseModel):
     transactions: List[TransactionImportItem]
 
 class CategorizeRequest(BaseModel):
-    category: Optional[str] = None
+    category: Optional[Annotated[str, Field(max_length=60)]] = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────

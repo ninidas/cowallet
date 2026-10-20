@@ -5,6 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useFmt } from '../hooks/useFmt'
 import MonthForm from '../components/MonthForm'
+import { useArm } from '../hooks/useArm'
 
 function TransferPill({ done, name }) {
   return (
@@ -136,6 +137,7 @@ export default function MonthsPage() {
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected]     = useState(new Set())
   const [deleting, setDeleting]     = useState(false)
+  const [armedBulk, confirmBulk]    = useArm()
 
   async function load() {
     try {
@@ -174,8 +176,8 @@ export default function MonthsPage() {
 
   async function handleBulkDelete() {
     if (selected.size === 0) return
-    const label = `${selected.size}`
-    if (!window.confirm(t('months.confirm_delete', { label }))) return
+    // Deux touches : la première arme le bouton (rouge vif, « Confirmer »), la seconde supprime
+    if (!confirmBulk('bulk')) return
     setDeleting(true)
     try {
       await api.deleteMonths(Array.from(selected))
@@ -341,9 +343,9 @@ export default function MonthsPage() {
           <button
             onClick={handleBulkDelete}
             disabled={selected.size === 0 || deleting}
-            className="w-full py-4 rounded-2xl font-semibold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-40 bg-red-500 shadow-red-200"
+            className={`w-full py-4 rounded-2xl font-semibold text-white shadow-lg transition active:scale-[0.98] disabled:opacity-40 shadow-red-200 ${armedBulk ? 'bg-red-700 ring-4 ring-red-200' : 'bg-red-500'}`}
           >
-            {deleting ? t('months.deleting') : selected.size === 0 ? t('months.select_months') : t('months.delete_btn', { count: selected.size })}
+            {deleting ? t('months.deleting') : selected.size === 0 ? t('months.select_months') : t(armedBulk ? 'months.confirm_delete_btn' : 'months.delete_btn', { count: selected.size })}
           </button>
         </div>
       )}
@@ -353,7 +355,7 @@ export default function MonthsPage() {
         <button
           onClick={() => setShowForm(true)}
           className="fixed above-nav right-5 w-14 h-14 bg-violet-600 rounded-full shadow-xl shadow-violet-300 flex items-center justify-center active:scale-95 transition z-10"
-          aria-label="Nouveau mois"
+          aria-label={t('months.aria_new_month')}
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-7 h-7">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

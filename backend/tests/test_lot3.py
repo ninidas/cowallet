@@ -35,6 +35,7 @@ def _setup(client, db, months=((2026, 10, "Octobre 2026"),)):
     u = db.query(models.User).filter_by(username="camille").first()
     g = models.Group(name="Notre budget", invite_code="ABCD", user1_id=u.id)
     db.add(g); db.commit()
+    db.add(models.Category(group_id=g.id, name="Alimentation")); db.commit()   # l'import ne devine qu'une catégorie existante
     ms = [models.Month(group_id=g.id, label=l, year=y, month=m) for (y, m, l) in months]
     db.add_all(ms); db.commit()
     conn = models.BankConnection(user_id=u.id, saltedge_connection_id="sess", saltedge_customer_id="sess",

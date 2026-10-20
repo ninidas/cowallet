@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { tError } from '../utils/tError'
 import { api } from '../api'
 import { getMonthNames } from '../constants'
 import BottomSheet from './BottomSheet'
@@ -140,7 +141,7 @@ export default function MonthForm({ open, onClose, onCreated, config }) {
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
+          <div className="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-xl">{tError(t, error)}</div>
         )}
 
         <button

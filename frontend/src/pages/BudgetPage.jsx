@@ -146,11 +146,11 @@ function EntryRow({ entry, onUpdate, onDelete }) {
         ? <span className="text-xs text-emerald-500 shrink-0">✓</span>
         : armed
           ? <button onClick={() => confirmDelete(entry.id) && onDelete(entry.id)}
-              className="h-8 px-2.5 mr-1 rounded-lg bg-red-500 text-white text-xs font-semibold shrink-0">
+              className="hit h-8 px-2.5 mr-1 rounded-lg bg-red-500 text-white text-xs font-semibold shrink-0">
               {t('budget.confirm_delete_short')}
             </button>
           : <button onClick={() => confirmDelete(entry.id)} aria-label={t('budget.confirm_delete_short')}
-              className="lg:opacity-0 lg:group-hover:opacity-100 p-2 rounded-lg text-slate-400 hover:text-red-500 transition shrink-0">
+              className="hit lg:opacity-0 lg:group-hover:opacity-100 p-2 rounded-lg text-slate-400 hover:text-red-500 transition shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -194,7 +194,7 @@ function AddEntryForm({ type, onAdd, onCancel = null, category = null, hint = nu
         ? <span className="text-xs text-emerald-500 pr-2 shrink-0">✓</span>
         : onCancel && (
           <button onMouseDown={e => { e.preventDefault(); onCancel() }}
-            className="p-1 mr-1 text-slate-300 hover:text-red-400 transition shrink-0">
+            className="hit p-1 mr-1 text-slate-300 hover:text-red-400 transition shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -228,28 +228,28 @@ function CategoryGroup({ name, entries, type, onAdd, onUpdate, onDelete, onRenam
               className="flex-1 px-2 py-1 text-sm text-slate-900 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-violet-400"
               autoFocus onKeyDown={e => { if (e.key === 'Enter') { onRename(name, newName.trim()); setEditingName(false) } }} />
             <button onClick={() => { onRename(name, newName.trim()); setEditingName(false) }}
-              className="px-2 py-1 rounded-lg bg-violet-600 text-white text-xs font-semibold">OK</button>
+              className="hit px-2 py-1 rounded-lg bg-violet-600 text-white text-xs font-semibold">OK</button>
             <button onClick={() => setEditingName(false)}
-              className="px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-500">✕</button>
+              className="hit px-2 py-1 rounded-lg border border-slate-200 text-xs text-slate-500">✕</button>
           </>
         ) : (
           <>
             <span className="flex-1 text-sm font-semibold text-slate-700">{name}</span>
             <span className="text-xs text-slate-500 font-medium">{fmt(total)}</span>
-            <button onClick={() => setEditingName(true)} className="p-1 text-slate-400 hover:text-violet-600 transition">
+            <button onClick={() => setEditingName(true)} className="hit p-1 text-slate-400 hover:text-violet-600 transition">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
               </svg>
             </button>
             {armed ? (
               <button onClick={() => confirmDelete(name) && onDeleteCategory(name)}
-                className="px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold whitespace-nowrap">
+                className="hit px-2 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold whitespace-nowrap">
                 {t('budget.confirm_delete_category', { count: entries.length })}
               </button>
             ) : (
             <button onClick={() => (entries.length ? confirmDelete(name) : onDeleteCategory(name))}
               aria-label={t('budget.confirm_delete_category', { count: entries.length })}
-              className="p-1 text-slate-400 hover:text-red-500 transition sm:opacity-0 sm:group-hover/header:opacity-100">
+              className="hit p-1 text-slate-400 hover:text-red-500 transition sm:opacity-0 sm:group-hover/header:opacity-100">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
@@ -435,7 +435,9 @@ export default function BudgetPage() {
       .then(async ([budgetData, monthsData]) => {
         const shared = budgetData.find(e => e.type === 'shared')
         let real = budgetData.filter(e => e.type !== 'shared')
-        if (real.length === 0) {
+        // Lignes d'exemple au tout premier passage seulement : un budget vidé exprès reste vide
+        const firstVisit = real.length === 0 && !shared && !(await api.getBudgetSeeded().catch(() => ({ seeded: true }))).seeded
+        if (firstVisit) {
           const demoEntries = [
             { type: 'income',     category: t('budget.default_cat_income'),      label: t('budget.hint_salary'),    amount: 2500 },
             { type: 'investment', category: t('budget.default_cat_investments'), label: t('budget.hint_stocks'),    amount: 150  },
@@ -651,7 +653,7 @@ export default function BudgetPage() {
                       <span className="text-sm font-semibold text-slate-900">{fmt(sharedTotal)}</span>
                       {sharedMode === 'custom' && (
                         <button onClick={() => { setSharedInput(String(sharedCustom?.amount ?? 0)); setEditingShared(true) }}
-                          className="p-1 rounded-lg text-slate-400 hover:text-violet-600 transition">
+                          className="hit p-1 rounded-lg text-slate-400 hover:text-violet-600 transition">
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                           </svg>

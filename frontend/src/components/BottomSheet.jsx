@@ -44,7 +44,7 @@ export default function BottomSheet({ open, onClose, title, children }) {
               <h3 className="font-semibold text-slate-900">{title}</h3>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 active:bg-slate-200 transition"
+                className="hit w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 active:bg-slate-200 transition"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 text-slate-500">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

@@ -120,7 +120,7 @@ export default function HistoryPage() {
           </button>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-white">{t('history.title')}</h1>
-            <p className="text-violet-200 text-xs">{t('history.months_count_other', { count: filtered.length })}</p>
+            <p className="text-violet-200 text-xs">{t('history.months_count', { count: filtered.length })}</p>
           </div>
           {months.length > 0 && (
             <button
@@ -149,7 +149,7 @@ export default function HistoryPage() {
               onClick={() => setYearFilter('all')}
               className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition ${yearFilter === 'all' ? 'bg-violet-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
             >
-              Tout
+              {t('history.filter_all')}
             </button>
             {years.map(y => (
               <button
@@ -179,7 +179,7 @@ export default function HistoryPage() {
               <StatCard
                 label={t('history.stat_avg')}
                 value={fmtShort(avgTotal)}
-                sub={`${months.length} mois`}
+                sub={t('history.months_short', { count: months.length })}
                 color="text-violet-600"
               />
               {maxMonth && (

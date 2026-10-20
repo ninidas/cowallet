@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useRef } from 'react'
 import { usePush } from '../context/PushContext'
 import { tError } from '../utils/tError'
+import { useArm } from '../hooks/useArm'
 
 const PRESET_COLORS = [
   '#3b82f6', '#f97316', '#10b981', '#a855f7',
@@ -64,6 +65,8 @@ export default function SettingsPage() {
   const [saving,  setSaving]  = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [success, setSuccess] = useState('')
+  // Suppressions et déconnexion de la banque en deux touches, comme dans le Budget
+  const [armed, confirmArm] = useArm()
   const [error,   setError]   = useState('')
 
   const hasChanges = (
@@ -147,6 +150,7 @@ export default function SettingsPage() {
   }
 
   async function handleBankDisconnect() {
+    if (!confirmArm('bank')) return
     setBankDisc(true)
     try {
       await api.deleteBankConnection()
@@ -234,6 +238,7 @@ export default function SettingsPage() {
   }
 
   async function handleDeleteCategory(id) {
+    if (!confirmArm(`cat-${id}`)) return
     try {
       await api.deleteCategory(id)
       setCategories(cs => cs.filter(c => c.id !== id))
@@ -268,6 +273,7 @@ export default function SettingsPage() {
   }
 
   async function handleDeletePaymentMethod(id) {
+    if (!confirmArm(`pm-${id}`)) return
     try {
       await api.deletePaymentMethod(id)
       setPaymentMethods(pms => pms.filter(p => p.id !== id))
@@ -422,9 +428,9 @@ export default function SettingsPage() {
                     <button
                       onClick={handleBankDisconnect}
                       disabled={bankDisconnecting}
-                      className="w-full py-2.5 rounded-2xl border border-red-100 text-red-500 text-sm font-medium active:bg-red-50 transition disabled:opacity-60"
+                      className={`w-full py-2.5 rounded-2xl border text-sm font-medium transition disabled:opacity-60 ${armed === 'bank' ? 'bg-red-500 border-red-500 text-white' : 'border-red-100 text-red-500 active:bg-red-50'}`}
                     >
-                      {bankDisconnecting ? t('settings.btn_disconnecting') : t('settings.btn_disconnect_bank')}
+                      {bankDisconnecting ? t('settings.btn_disconnecting') : armed === 'bank' ? t('settings.confirm_disconnect_bank') : t('settings.btn_disconnect_bank')}
                     </button>
                   </div>
                 ) : null}
@@ -456,17 +462,24 @@ export default function SettingsPage() {
                       onClick={() => { setEditingCatId(cat.id); setEditingCatName(cat.name) }}
                     >{cat.name}</span>
                   )}
-                  <button onClick={() => handleDeleteCategory(cat.id)}
-                    className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
+                  {armed === `cat-${cat.id}` ? (
+                    <button onClick={() => handleDeleteCategory(cat.id)}
+                      className="h-10 px-3 shrink-0 rounded-lg bg-red-500 text-white text-xs font-semibold">
+                      {t('settings.confirm_delete_short')}
+                    </button>
+                  ) : (
+                  <button onClick={() => handleDeleteCategory(cat.id)} aria-label={t('settings.confirm_delete_short')}
+                    className="w-10 h-10 shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+                  )}
                 </div>
               ))}
             </div>
 
-            {catError && <p className="text-xs text-red-500">{catError}</p>}
+            {catError && <p className="text-xs text-red-500">{tError(t, catError)}</p>}
 
             <form onSubmit={handleAddCategory} className="space-y-3 pt-4 border-t border-slate-100">
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{t('settings.new_category')}</p>
@@ -530,17 +543,24 @@ export default function SettingsPage() {
                       onClick={() => { setEditingPmId(pm.id); setEditingPmName(pm.name) }}
                     >{pm.name}</span>
                   )}
-                  <button onClick={() => handleDeletePaymentMethod(pm.id)}
-                    className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
+                  {armed === `pm-${pm.id}` ? (
+                    <button onClick={() => handleDeletePaymentMethod(pm.id)}
+                      className="h-10 px-3 shrink-0 rounded-lg bg-red-500 text-white text-xs font-semibold">
+                      {t('settings.confirm_delete_short')}
+                    </button>
+                  ) : (
+                  <button onClick={() => handleDeletePaymentMethod(pm.id)} aria-label={t('settings.confirm_delete_short')}
+                    className="w-10 h-10 shrink-0 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+                  )}
                 </div>
               ))}
             </div>
 
-            {pmError && <p className="text-xs text-red-500">{pmError}</p>}
+            {pmError && <p className="text-xs text-red-500">{tError(t, pmError)}</p>}
 
             <form onSubmit={handleAddPaymentMethod} className="flex gap-2 pt-2 border-t border-slate-100">
               <input value={newPmName} onChange={e => setNewPmName(e.target.value)}
@@ -593,7 +613,8 @@ export default function SettingsPage() {
                       await navigator.share({ title: 'CoWallet', text: t('settings.invite_text'), url })
                     } else {
                       await navigator.clipboard.writeText(url)
-                      alert(t('settings.invite_copied'))
+                      setSuccess(t('settings.invite_copied'))
+                      setTimeout(() => setSuccess(''), 3000)
                     }
                   }}
                   className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition shrink-0"

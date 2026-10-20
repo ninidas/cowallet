@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 class DeleteAccountRequest(BaseModel):
-    password: str
+    password: schemas.Password
 
 
 @router.post("/register", response_model=schemas.TokenResponse, status_code=201)
@@ -65,6 +65,17 @@ def delete_account(
         else:
             # user2 part → retirer du groupe
             group.user2_id = None
+
+    # Ce qui n'appartient qu'à lui : accès bancaire (et ses comptes), budget perso, notifications, réglages
+    uid = current_user.id
+    for conn in db.query(models.BankConnection).filter_by(user_id=uid).all():
+        db.query(models.AppConfig).filter_by(key=f"bank_import_failing:{conn.id}").delete()
+        db.delete(conn)
+    db.query(models.BudgetEntry).filter_by(user_id=uid).delete()
+    db.query(models.PushSubscription).filter_by(user_id=uid).delete()
+    db.query(models.AppConfig).filter_by(key=f"budget_seeded:{uid}").delete()
+    # Ses validations de mois ne pointent plus vers un compte disparu
+    db.query(models.Month).filter_by(validated_by=uid).update({"validated_by": None})
 
     db.delete(current_user)
     db.commit()

@@ -12,6 +12,7 @@ export default function GroupSetupPage() {
   const { t } = useTranslation()
   const [tab, setTab]           = useState(() => sessionStorage.getItem('invite_code') ? 'join' : 'create')
   const [inviteCode, setInviteCode] = useState(() => sessionStorage.getItem('invite_code') ?? '')
+  const [copied, setCopied]     = useState(false)
   const [createdGroup, setCreatedGroup] = useState(null)
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
@@ -73,12 +74,13 @@ export default function GroupSetupPage() {
                   await navigator.share({ title: 'CoWallet', url })
                 } catch {
                   await navigator.clipboard.writeText(url)
-                  alert(t('settings.invite_copied'))
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 3000)
                 }
               }}
               className="w-full py-3 rounded-xl bg-violet-600 text-white font-semibold text-sm active:scale-95 transition"
             >
-              {t('settings.invite_share')}
+              {copied ? t('settings.invite_copied') : t('settings.invite_share')}
             </button>
           </div>
 

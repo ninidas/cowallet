@@ -68,4 +68,4 @@ def test_cannot_delete_other_users_entry(client):
 def test_invalid_budget_type(client):
     token = register(client, "camille")
     r = client.post("/api/budget", json={"type": "invalid", "label": "Test", "amount": 100.0}, headers=headers(token))
-    assert r.status_code == 400
+    assert r.status_code == 422

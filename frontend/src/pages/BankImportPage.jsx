@@ -205,7 +205,7 @@ export default function BankImportPage() {
 
         {alreadyCount > 0 && (
           <p className="text-xs text-slate-400 text-center">
-            {t('bank_import.already_imported_other', { count: alreadyCount })}
+            {t('bank_import.already_imported', { count: alreadyCount })}
           </p>
         )}
 
@@ -221,7 +221,7 @@ export default function BankImportPage() {
             >
               {importing
                 ? t('bank_import.btn_importing')
-                : t('bank_import.btn_import_other', { count: selected.size })}
+                : t('bank_import.btn_import', { count: selected.size })}
             </button>
           </div>
         </div>
