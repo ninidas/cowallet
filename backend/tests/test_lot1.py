@@ -21,8 +21,8 @@ PW = "mot-de-passe-de-test"   # 12 caractères minimum (le conftest en utilise u
 @pytest.fixture
 def app_client(db, monkeypatch):
     sent = []
-    monkeypatch.setattr(charges, "send_notification", lambda db, uid, title, body, url="/": sent.append(title))
-    monkeypatch.setattr(months, "send_notification", lambda db, uid, title, body, url="/": sent.append(title))
+    monkeypatch.setattr(charges, "send_notification", lambda db, uid, title, body, url="/", kind=None: sent.append(title))
+    monkeypatch.setattr(months, "send_notification", lambda db, uid, title, body, url="/", kind=None: sent.append(title))
     monkeypatch.setattr(charges, "APP_LANG", "fr")
     app = FastAPI()
     api = APIRouter(prefix="/api")

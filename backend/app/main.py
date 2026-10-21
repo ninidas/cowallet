@@ -46,7 +46,10 @@ with engine.connect() as _conn:
     for ddl in ("ALTER TABLE bank_transactions ADD COLUMN detail VARCHAR",
                 "ALTER TABLE bank_transactions ADD COLUMN card_last4 VARCHAR",
                 "ALTER TABLE bank_transactions ADD COLUMN purchase_date VARCHAR",
-                "ALTER TABLE users ADD COLUMN card_digits VARCHAR"):
+                "ALTER TABLE users ADD COLUMN card_digits VARCHAR",
+                "ALTER TABLE users ADD COLUMN notif_partner BOOLEAN NOT NULL DEFAULT 1",
+                "ALTER TABLE users ADD COLUMN notif_bank BOOLEAN NOT NULL DEFAULT 1",
+                "ALTER TABLE users ADD COLUMN notif_reminder BOOLEAN NOT NULL DEFAULT 1"):
         try:
             _conn.execute(text(ddl))
             _conn.commit()
@@ -379,6 +382,7 @@ def get_config(db: Session = Depends(get_db), current_user: models.User = Depend
                 "user2_login":        group.user2.username if group.user2 else None,
                 "default_user1_share": group.default_share,
                 "my_cards":            current_user.card_digits or "",
+                "notif": {k: bool(getattr(current_user, f"notif_{k}")) for k in ("partner", "bank", "reminder")},
             }
     return {
         "setup_needed": False,

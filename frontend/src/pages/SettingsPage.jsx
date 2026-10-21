@@ -73,6 +73,23 @@ function Input({ ...props }) {
   )
 }
 
+// Une ligne de réglage avec interrupteur
+function NotifRow({ label, hint, on, disabled, onToggle, children }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-slate-700">{label}</p>
+        <p className="text-xs text-slate-500 mt-0.5">{hint}</p>
+        {children}
+      </div>
+      <button type="button" role="switch" aria-checked={!!on} aria-label={label} onClick={onToggle} disabled={disabled}
+        className={`hit relative w-12 h-6 rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-50 ${on ? 'bg-violet-600' : 'bg-slate-200'}`}>
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${on ? 'translate-x-6' : 'translate-x-0'}`} />
+      </button>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { t, i18n } = useTranslation()
   const navigate   = useNavigate()
@@ -138,6 +155,20 @@ export default function SettingsPage() {
   const [aspspsLoading,   setAspspsLoading]   = useState(false)
   const [aspspCountry,    setAspspCountry]    = useState('FR')
   const [aspspSearch,     setAspspSearch]     = useState('')
+
+  // Types de notifications choisis (enregistrés sur le serveur, valables sur tous les appareils)
+  const [notif, setNotif] = useState(config?.notif ?? { partner: true, bank: true, reminder: true })
+  const partnerName = getMyUserKey() === 'user2' ? config?.user1_username : config?.user2_username
+  async function toggleNotif(kind) {
+    const next = { ...notif, [kind]: !notif[kind] }
+    setNotif(next)
+    try {
+      await api.updateSettings({ [`notif_${kind}`]: next[kind] })
+      refreshConfig()
+    } catch {
+      setNotif(notif)
+    }
+  }
 
   useEffect(() => { window.scrollTo(0, 0) }, [section])
 
@@ -735,23 +766,22 @@ export default function SettingsPage() {
           )}
           {active === 'me' && (
           <div id="settings-me" className="space-y-4 scroll-mt-4">
-          {/* Notifications */}
+          {/* Notifications : l'appareil (abonnement push), puis les types voulus (valables partout) */}
           {pushSupported && (
             <Section title={t('settings.section_notifications')}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-700">{t('settings.notif_label')}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">{t('settings.notif_hint')}</p>
-                  {permission === 'denied' && <p className="text-xs text-red-500 mt-1">{t('settings.notif_blocked')}</p>}
-                </div>
-                <button
-                  type="button"
-                  onClick={subscribed ? unsubscribe : subscribe}
-                  disabled={pushLoading || permission === 'denied'}
-                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${subscribed ? 'bg-violet-600' : 'bg-slate-200'}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${subscribed ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
+              <NotifRow label={t('settings.notif_device')} hint={t('settings.notif_device_hint')}
+                on={subscribed} disabled={pushLoading || permission === 'denied'}
+                onToggle={subscribed ? unsubscribe : subscribe}>
+                {permission === 'denied' && <p className="text-xs text-red-500 mt-1">{t('settings.notif_blocked')}</p>}
+              </NotifRow>
+              <div className={`border-t border-slate-100 pt-4 space-y-4 transition-opacity ${subscribed ? '' : 'opacity-50'}`}>
+                {[
+                  ['partner',  t('settings.notif_partner', { name: partnerName }), t('settings.notif_partner_hint')],
+                  ['bank',     t('settings.notif_bank'),     t('settings.notif_bank_hint')],
+                  ['reminder', t('settings.notif_reminder'), t('settings.notif_reminder_hint')],
+                ].filter(([kind]) => kind !== 'partner' || partnerName).map(([kind, label, hint]) => (
+                  <NotifRow key={kind} label={label} hint={hint} on={notif[kind]} onToggle={() => toggleNotif(kind)} />
+                ))}
               </div>
             </Section>
           )}

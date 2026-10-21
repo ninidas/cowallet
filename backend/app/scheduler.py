@@ -7,6 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from .database import SessionLocal
 from . import models, enablebanking, bank_sync
 from .routers.push import send_notification
+from .routers import charges
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ def send_monthly_reminders():
             # Notifier les deux membres
             title = NOTIF_REMINDER.get(lang, NOTIF_REMINDER["en"]).format(label=label)
             for user_id in filter(None, [group.user1_id, group.user2_id]):
-                send_notification(db, user_id, title=title, body="", url="/months")
+                send_notification(db, user_id, title=title, body="", url="/months", kind="reminder")
                 logger.info("Reminder sent to user_id=%s for %s", user_id, label)
     finally:
         db.close()
@@ -85,7 +86,7 @@ def send_bank_expiry_reminders():
             if not kind:
                 continue
             title, body = NOTIF_BANK[lang][kind]
-            send_notification(db, conn.user_id, title=title.format(n=days), body=body, url="/settings/bank")
+            send_notification(db, conn.user_id, title=title.format(n=days), body=body, url="/settings/bank", kind="bank")
             logger.info("Bank expiry reminder (%s) sent to user_id=%s", kind, conn.user_id)
     except Exception:
         logger.exception("Bank expiry reminders failed")
@@ -127,7 +128,7 @@ def notify_import_results(db, report: list):
         # Le mois le plus récent qui a reçu des transactions (le rapport va du plus récent au plus ancien)
         url = f"/months/{g['month']['month_id']}?tab=transactions"
         for user_id in filter(None, [group.user1_id, group.user2_id]):
-            send_notification(db, user_id, title=title, body=body, url=url)
+            send_notification(db, user_id, title=title, body=body, url=url, kind="bank")
 
     for r in report:
         key = f"bank_import_failing:{r['connection_id']}"
@@ -140,7 +141,7 @@ def notify_import_results(db, report: list):
             continue
         limit = "429" in r["error"] or "RATE_LIMIT" in r["error"]
         send_notification(db, r["user_id"], title=txt["error"],
-                          body=txt["error_limit" if limit else "error_other"], url="/settings/bank")
+                          body=txt["error_limit" if limit else "error_other"], url="/settings/bank", kind="bank")
         db.add(models.AppConfig(key=key, value=date.today().isoformat()))
     db.commit()
 
@@ -201,6 +202,16 @@ def retry_bank_import(today: date = None):
         db.close()
 
 
+def flush_added_charges():
+    db = SessionLocal()
+    try:
+        charges.flush_added_charges(db)
+    except Exception:
+        logger.exception("Grouped notifications failed")
+    finally:
+        db.close()
+
+
 def create_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
     # Tous les jours à 9h
@@ -208,5 +219,7 @@ def create_scheduler() -> AsyncIOScheduler:
     scheduler.add_job(send_bank_expiry_reminders, CronTrigger(hour=9, minute=5))
     # 7 h à Paris (le conteneur est à l'heure UTC)
     scheduler.add_job(import_bank_transactions, CronTrigger(hour=7, minute=0, timezone="Europe/Paris"))
+    # Chaque minute : ajouts de dépenses regroupés en une notification
+    scheduler.add_job(flush_added_charges, "interval", minutes=1)
     scheduler.add_job(retry_bank_import, CronTrigger(hour=12, minute=0, timezone="Europe/Paris"))
     return scheduler

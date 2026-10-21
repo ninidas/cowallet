@@ -9,7 +9,7 @@ from .test_lot3 import client, _setup, _tx, _eb  # noqa: F401  (fixture partagé
 def _capture(monkeypatch):
     sent = []
     monkeypatch.setattr(scheduler, "send_notification",
-                        lambda db, user_id, title, body, url="/": sent.append((user_id, title, body, url)))
+                        lambda db, user_id, title, body, url="/", kind=None: sent.append((user_id, title, body, url)))
     return sent
 
 

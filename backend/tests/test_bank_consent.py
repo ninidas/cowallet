@@ -126,7 +126,7 @@ def test_reminders_7_days_1_day_and_expiry_day(db, monkeypatch):
     monkeypatch.setattr(enablebanking, "is_configured", lambda: True)
     monkeypatch.setattr(scheduler, "SessionLocal", lambda: db)
     monkeypatch.setattr(db, "close", lambda: None)
-    monkeypatch.setattr(scheduler, "send_notification", lambda d, uid, title, body, url: sent.append((uid, title, url)))
+    monkeypatch.setattr(scheduler, "send_notification", lambda d, uid, title, body, url, kind=None: sent.append((uid, title, url)))
     _connect(db)
     for days, expected in ((7, 1), (5, 0), (1, 1), (0, 1), (-3, 0)):
         sent.clear(); enablebanking._consent_cache.clear()

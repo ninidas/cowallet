@@ -13,6 +13,10 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     # 4 derniers chiffres de sa ou ses cartes (« 4242 » ou « 4242,1234 ») : « Carte de Camille » sur les transactions
     card_digits   = Column(String, nullable=True)
+    # Notifications choisies (valables sur tous ses appareils) : activité du couple, banque, rappel du 28
+    notif_partner  = Column(Boolean, default=True, nullable=False, server_default="1")
+    notif_bank     = Column(Boolean, default=True, nullable=False, server_default="1")
+    notif_reminder = Column(Boolean, default=True, nullable=False, server_default="1")
 
     def get_display_name(self):
         return self.display_name if self.display_name else self.username

@@ -75,8 +75,13 @@ def unsubscribe(
     return {"detail": "Subscription removed"}
 
 
-def send_notification(db: Session, user_id: int, title: str, body: str, url: str = "/"):
-    """Envoie une notification push à tous les appareils d'un utilisateur."""
+def send_notification(db: Session, user_id: int, title: str, body: str, url: str = "/", kind: str = None):
+    """Envoie une notification push à tous les appareils d'un utilisateur.
+    kind (partner, bank, reminder) : rien n'est envoyé si l'utilisateur a coupé ce type dans Réglages › Profil."""
+    if kind:
+        user = db.get(models.User, user_id)
+        if user is not None and getattr(user, f"notif_{kind}") is False:
+            return
     from py_vapid import Vapid
     pub_key, priv_pem = get_vapid_keys(db)
     if not pub_key or not priv_pem:

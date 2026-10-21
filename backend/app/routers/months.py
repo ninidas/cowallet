@@ -189,7 +189,7 @@ def create_month(body: schemas.MonthCreate, db: Session = Depends(get_db), curre
                 user=current_user.get_display_name(), label=month.label
             ),
             body="",
-            url=f"/months/{month.id}",
+            url=f"/months/{month.id}", kind="partner",
         )
 
     return _to_detail(month, db)
@@ -232,7 +232,7 @@ def update_transfer(
                 db, partner_id,
                 title=NOTIF_TRANSFERRED.get(APP_LANG, NOTIF_TRANSFERRED["en"]).format(user=current_user.get_display_name(), label=month.label),
                 body="",
-                url=f"/months/{month.id}",
+                url=f"/months/{month.id}", kind="partner",
             )
 
     return _to_detail(month, db)

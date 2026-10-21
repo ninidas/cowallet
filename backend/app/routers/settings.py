@@ -19,6 +19,9 @@ class SettingsUpdate(BaseModel):
     default_user1_share:  Optional[int] = None
     # 4 derniers chiffres de ses cartes, séparés par des virgules (« 4242 » ; vide pour effacer)
     card_digits:          Optional[str] = None
+    notif_partner:        Optional[bool] = None
+    notif_bank:           Optional[bool] = None
+    notif_reminder:       Optional[bool] = None
 
     @field_validator("card_digits")
     @classmethod
@@ -62,6 +65,11 @@ def update_settings(
 
     if body.card_digits is not None:
         current_user.card_digits = body.card_digits or None
+
+    for kind in ("partner", "bank", "reminder"):
+        value = getattr(body, f"notif_{kind}")
+        if value is not None:
+            setattr(current_user, f"notif_{kind}", value)
 
     if body.default_user1_share is not None:
         group.default_share = body.default_user1_share

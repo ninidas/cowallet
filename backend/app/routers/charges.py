@@ -1,4 +1,6 @@
+import json
 import os
+import time
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -15,18 +17,65 @@ NOTIF_CHARGE_ADDED = {
     "en": "{user} added '{label}' ({amount}€) on {month}",
     "fr": "{user} a ajouté '{label}' ({amount}€) sur {month}",
 }
+NOTIF_CHARGES_ADDED = {
+    "en": "{user} added {n} expenses on {month}",
+    "fr": "{user} a ajouté {n} dépenses sur {month}",
+}
 NOTIF_CHARGE_UPDATED = {
     "en": "{user} updated '{label}' from {old}€ to {new}€. Your share: {delta:+.0f}€",
-    "fr": "{user} a modifié '{label}' de {old}€ à {new}€. Ta part : {delta:+.0f}€",
+    "fr": "{user} a modifié '{label}' de {old}€ à {new}€. Votre part : {delta:+.0f}€",
 }
 NOTIF_CHARGE_UPDATED_SERIES = {
     "en": "{user} updated '{label}' from {old}€ to {new}€ on {n} months. Your share on settled months: {delta:+.0f}€",
-    "fr": "{user} a modifié '{label}' de {old}€ à {new}€ sur {n} mois. Ta part sur les mois réglés : {delta:+.0f}€",
+    "fr": "{user} a modifié '{label}' de {old}€ à {new}€ sur {n} mois. Votre part sur les mois réglés : {delta:+.0f}€",
 }
 NOTIF_CHARGE_DELETED = {
     "en": "{user} deleted '{label}' ({amount}€) on {month}",
     "fr": "{user} a supprimé '{label}' ({amount}€) sur {month}",
 }
+
+
+# Ajouts de dépenses regroupés : la notification part quand l'autre n'a rien ajouté depuis QUIET secondes
+ADDED_KEY = "notif_added:"
+QUIET = 120
+
+
+def queue_added_charge(db: Session, partner_id: int, user: models.User, month: models.Month, charge: models.Charge):
+    key = f"{ADDED_KEY}{partner_id}:{user.id}:{month.id}"
+    row = db.get(models.AppConfig, key)
+    data = json.loads(row.value) if row else {"items": []}
+    data["items"].append([charge.label, _eur(charge.amount)])
+    data["at"] = time.time()
+    if row:
+        row.value = json.dumps(data)
+    else:
+        db.add(models.AppConfig(key=key, value=json.dumps(data)))
+    db.commit()
+
+
+def flush_added_charges(db: Session, now: float = None):
+    """Appelé chaque minute : envoie les ajouts en attente depuis plus de QUIET secondes."""
+    now = now or time.time()
+    lang = APP_LANG if APP_LANG in NOTIF_CHARGE_ADDED else "en"
+    for row in db.query(models.AppConfig).filter(models.AppConfig.key.startswith(ADDED_KEY)).all():
+        data = json.loads(row.value)
+        if now - data["at"] < QUIET:
+            continue
+        partner_id, user_id, month_id = (int(x) for x in row.key[len(ADDED_KEY):].split(":"))
+        db.delete(row)
+        db.commit()
+        user, month = db.get(models.User, user_id), db.get(models.Month, month_id)
+        if not user or not month:
+            continue
+        items = data["items"]
+        if len(items) == 1:
+            title = NOTIF_CHARGE_ADDED[lang].format(user=user.get_display_name(), label=items[0][0],
+                                                    amount=items[0][1], month=month.label)
+            body = ""
+        else:
+            title = NOTIF_CHARGES_ADDED[lang].format(user=user.get_display_name(), n=len(items), month=month.label)
+            body = ", ".join(f"{label} ({amount}€)" for label, amount in items[:4]) + ("…" if len(items) > 4 else "")
+        send_notification(db, partner_id, title=title, body=body, url=f"/months/{month_id}", kind="partner")
 
 
 def _effective(c) -> float:
@@ -172,17 +221,8 @@ def add_charge(
 
     partner_id = _partner_id(group, current_user.id)
     if partner_id:
-        send_notification(
-            db, partner_id,
-            title=NOTIF_CHARGE_ADDED.get(APP_LANG, NOTIF_CHARGE_ADDED["en"]).format(
-                user=current_user.get_display_name(),
-                label=charge.label,
-                amount=_eur(charge.amount),
-                month=month.label,
-            ),
-            body="",
-            url=f"/months/{month.id}",
-        )
+        # Pas tout de suite : les ajouts d'affilée partent en une seule notification (voir flush_added_charges)
+        queue_added_charge(db, partner_id, current_user, month, charge)
 
     return charge
 
@@ -248,7 +288,7 @@ def update_charge(
                     old=_eur(old_amount), new=_eur(new_amount), n=series_months, delta=series_delta,
                 ),
                 body="",
-                url=f"/months/{month.id}",
+                url=f"/months/{month.id}", kind="partner",
             )
     elif _both_transferred(db.query(models.Month).filter_by(id=charge.month_id).first()):
         month = db.query(models.Month).filter_by(id=charge.month_id).first()
@@ -266,7 +306,7 @@ def update_charge(
                     delta=delta,
                 ),
                 body="",
-                url=f"/months/{month.id}",
+                url=f"/months/{month.id}", kind="partner",
             )
 
     return charge
@@ -370,5 +410,5 @@ def delete_charge(
                     month=month_label,
                 ),
                 body="",
-                url=f"/months/{month_id}",
+                url=f"/months/{month_id}", kind="partner",
             )
