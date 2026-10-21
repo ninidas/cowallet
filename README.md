@@ -54,9 +54,10 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 ## Screenshots
 
 <p align="center">
-  <img src="docs/cowallet-homepage.png" alt="My months" width="80%" />
-  <img src="docs/cowallet-monthly-page.png" alt="Month detail" width="80%" />
-  <img src="docs/cowallet-history.png" alt="History" width="80%" />
+  <img src="docs/cowallet-homepage.png" alt="My months" width="24%" />
+  <img src="docs/cowallet-monthly-page.png" alt="Month detail" width="24%" />
+  <img src="docs/cowallet-history.png" alt="History" width="24%" />
+  <img src="docs/cowallet-categories.png" alt="History by category" width="24%" />
 </p>
 
 ## Quick Start
