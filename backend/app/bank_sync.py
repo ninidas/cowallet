@@ -138,6 +138,26 @@ def merchant_key(description: str, raw: bool = False) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
+def merchant_group(description: str, is_card: bool = None) -> tuple:
+    """(clé, nom affiché, genre) d'un commerçant, pour regrouper ses opérations dans l'Historique.
+    Même découpe que merchant_key, sur le libellé d'origine (accents et casse gardés), et le nom raccourci
+    seulement pour un paiement par carte quand on le sait (is_card) ; un virement
+    garde son libellé entier (« VIR MME ALEX MARTIN ») ; PayPal est un seul commerçant."""
+    desc = re.sub(r"\s+", " ", (description or "").strip())
+    if is_generic(desc):
+        return "PAYPAL", "PayPal", "debit"
+    if desc.upper().startswith("VIR "):
+        return merchant_key(desc, raw=True), desc, "transfer"
+    key = merchant_key(description)          # libellé d'origine : la découpe compte les espaces
+    if (description or "").startswith("PRLV SEPA "):
+        return key, desc[len("PRLV SEPA "):].strip(), "debit"
+    s = description or ""
+    card = is_card if is_card is not None else bool(len(s) > 17 and re.match(r"[A-Z]{2}|\d{2}", merchant_key(s, raw=True)[15:17]))
+    if card and len(s) > 17:
+        return key, re.sub(r"\s+", " ", s[:15]).strip(), "card"
+    return key, desc, "other"
+
+
 def category_index(db: Session, group: models.Group) -> tuple:
     """(libellé exact -> catégorie, commerçant -> catégorie), d'après les transactions déjà catégorisées
     du groupe ; la plus récente l'emporte. Une catégorie supprimée depuis n'est plus proposée."""

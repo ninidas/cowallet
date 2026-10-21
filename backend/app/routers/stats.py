@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from .. import models
 from ..auth import get_current_group
+from ..bank_sync import merchant_group
 
 router = APIRouter(prefix="/stats", tags=["stats"])
 
@@ -24,7 +25,7 @@ def get_stats(
     months_q = months_q.order_by(models.Month.year, models.Month.month).all()
 
     if not months_q:
-        return {"by_category": [], "top_recurring": [], "by_label": [], "by_month": [], "by_month_actual": []}
+        return {"by_category": [], "top_recurring": [], "by_merchant": [], "by_month": [], "by_month_actual": []}
 
     charges = [c for m in months_q for c in m.charges]
 
@@ -57,26 +58,19 @@ def get_stats(
         key=lambda x: x["budget"], reverse=True,
     )
 
-    # by_label : transactions bancaires uniquement (pas les charges prévisionnelles)
-    by_label: dict[str, dict] = {}
+    # by_merchant : réel de chaque commerçant, par mois et par catégorie (détail d'une catégorie dans l'Historique)
+    merchants: dict[tuple, dict] = {}
     for m in months_q:
-        tx_by_desc: dict[str, dict] = {}
         for tx in m.bank_transactions:
-            if tx.description not in tx_by_desc:
-                tx_by_desc[tx.description] = {"amount": 0.0, "count": 0, "category": tx.category or ""}
-            tx_by_desc[tx.description]["amount"] = round(tx_by_desc[tx.description]["amount"] + tx.amount, 2)
-            tx_by_desc[tx.description]["count"] += 1
-        for desc, info in tx_by_desc.items():
-            if desc not in by_label:
-                by_label[desc] = {"label": desc, "category": info["category"], "total": 0, "count": 0, "months": []}
-            by_label[desc]["total"] = round(by_label[desc]["total"] + info["amount"], 2)
-            by_label[desc]["count"] += info["count"]
-            by_label[desc]["months"].append({"label": m.label, "amount": info["amount"], "count": info["count"]})
-
-    top_by_label = sorted(
-        [{**v, "avg": round(v["total"] / v["count"], 2)} for v in by_label.values()],
-        key=lambda x: x["total"], reverse=True,
-    )
+            key, name, kind = merchant_group(tx.description, tx.is_card)
+            cat = tx.category or UNCATEGORIZED
+            row = merchants.setdefault((m.id, cat, key), {
+                "month": m.label, "month_id": m.id, "category": cat, "key": key,
+                "merchant": name, "kind": kind, "total": 0.0, "count": 0,
+            })
+            row["total"] = round(row["total"] + tx.amount, 2)
+            row["count"] += 1
+    by_merchant = sorted(merchants.values(), key=lambda r: r["total"], reverse=True)
 
     top_recurring = []  # rétrocompatibilité
 
@@ -101,7 +95,7 @@ def get_stats(
     return {
         "by_category":      by_category,
         "top_recurring":    top_recurring,
-        "by_label":         top_by_label,
+        "by_merchant":      by_merchant,
         "by_month":         by_month,
         "by_month_actual":  by_month_actual,
     }
