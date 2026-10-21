@@ -11,7 +11,7 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 ## Features
 
 ### Budget & Expenses
-- **Monthly tracking** - create a month, add charges, mark transfers as done
+- **Monthly tracking** - create a month, add charges, see each person's share and transfer, mark transfers as done
 - **Configurable split** - 50/50, 60/40, or any ratio you want
 - **Recurring charges** - automatically copied to the next month
 - **Installment payments** - split a purchase over N months, auto-carried forward
@@ -22,6 +22,7 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 - **Charge suggestions** - autocomplete based on past entries
 - **Custom categories** - create categories with icon and color
 - **Custom payment methods** - add your own payment methods
+- **Search** - find any charge or bank transaction across all months
 
 ### Bank Sync (optional)
 - **Connect your bank** - link a joint account via Enable Banking (supports 2000+ banks across Europe)
@@ -34,6 +35,7 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 
 ### History & Analytics
 - **History & charts** - monthly evolution (planned or actual), breakdown by category, top recurring costs
+- **Personal budget** - each person plans their own income, personal expenses and investments, visible only to them
 - **Sankey diagram** - visualize income, shared expenses, personal spending and investments
 - **CSV export** - keep a backup of all your data
 
@@ -44,6 +46,7 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 
 ### App & Security
 - **PWA** - installable on iOS (Safari) and Android home screen
+- **English & French** - interface language switchable in settings
 - **Rate-limited login** - brute-force protection on the auth endpoint
 - **Password policy** - minimum 12 characters
 - **First-run setup** - no config file needed, just open the app
