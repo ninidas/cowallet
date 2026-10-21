@@ -10,6 +10,8 @@ from .routers.push import send_notification
 from .routers import charges
 
 logger = logging.getLogger(__name__)
+# La tâche de chaque minute (notifications regroupées) noierait le journal : seulement les erreurs
+logging.getLogger("apscheduler.executors.default").setLevel(logging.WARNING)
 
 APP_LANG = os.environ.get("APP_LANG", "en").lower()
 
