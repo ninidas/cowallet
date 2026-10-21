@@ -21,7 +21,9 @@ function shortLabel(label) {
   const parts = label.split(' ')
   const year = parts[parts.length - 1]
   const month = parts.slice(0, parts.length - 1).join(' ')
-  return `${month.slice(0, 3)}. ${String(year).slice(2)}`
+  // Juin et juillet donneraient tous deux « Jui. »
+  const short = { juin: 'Juin', juillet: 'Juil.' }[month.toLowerCase()] ?? `${month.slice(0, 3)}.`
+  return `${short} ${String(year).slice(2)}`
 }
 
 // Trois chiffres dans une seule carte : libellés courts, sur une ligne même à 375 px
