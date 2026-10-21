@@ -86,7 +86,7 @@ export default function LandingPage() {
       <div className="bg-gradient-to-br from-violet-600 via-violet-700 to-indigo-700 text-white">
         <div className="max-w-4xl mx-auto px-6 pt-16 pb-24 text-center">
           <div className="flex justify-center mb-6">
-            <img src="/icons/icon-192.png" alt="CoWallet" className="w-20 h-20 rounded-3xl shadow-2xl shadow-violet-900/50" />
+            <img src="/icons/logo-web.png" alt="CoWallet" className="w-20 h-20 rounded-3xl shadow-2xl shadow-violet-900/50" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight">
             CoWallet
