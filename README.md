@@ -28,13 +28,13 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 - **Connect your bank** - link a joint account via Enable Banking (supports 2000+ banks across Europe)
 - **Automatic import** - new debits arrive every morning (7:00, Europe/Paris), retried once at noon if the bank is unreachable
 - **Manual import** - import transactions month by month, with debit filter and duplicate detection
-- **Auto-categorization** - transactions are categorized from past imports, recognizing the same merchant across stores
+- **Auto-categorization** - transactions are categorized from past imports, recognizing the same merchant across stores (never for PayPal or bank transfers, where each payment can be for something different)
 - **Full bank label** - payment reason, loan instalment breakdown, real purchase date, and who paid (from each person's card's last 4 digits)
 - **Budget vs actual** - compare planned charges against real spending, category by category
 - **Access reminder** - banks cut the access after 90 to 180 days: you are reminded before it expires
 
 ### History & Analytics
-- **History & charts** - monthly evolution (planned or actual), breakdown by category, top recurring costs
+- **History & charts** - monthly evolution (planned or actual), and planned vs actual by category over the months with bank statements; open a category to see where the money went, merchant by merchant
 - **Personal budget** - each person plans their own income, personal expenses and investments, visible only to them
 - **Sankey diagram** - visualize income, shared expenses, personal spending and investments
 - **CSV export** - keep a backup of all your data
