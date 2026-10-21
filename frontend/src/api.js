@@ -103,8 +103,6 @@ export const api = {
                                      .then(r => { invalidate('months', `month:${id}`) ; return r }),
   updateShare:     (id, data)   => request(`/months/${id}/share`, { method: 'PATCH', body: JSON.stringify(data) })
                                      .then(r => { invalidate('months', `month:${id}`, 'stats') ; return r }),
-  validateMonth:   (id)         => request(`/months/${id}/validate`, { method: 'POST' })
-                                     .then(r => { invalidate('months', `month:${id}`) ; return r }),
 
   exportCsv: async () => {
     const res = await fetch('/api/export/csv', {

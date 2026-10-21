@@ -85,7 +85,7 @@ function CurrentCard({ month, config, myKey, onOpen, onCategorize, t }) {
         {done1 && done2 ? (
           <p className="flex items-center gap-3 py-2.5 text-sm text-emerald-700">
             <span className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Check /></span>
-            {t(month.validated_by ? 'months.transfers_done_validated' : 'months.transfers_done')}
+            {t('months.transfers_done')}
           </p>
         ) : (
           [[done1, config?.user1_username], [done2, config?.user2_username]].filter(([d, n]) => !d && n).map(([, name]) => (

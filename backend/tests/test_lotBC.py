@@ -38,12 +38,6 @@ def test_deleted_category_is_no_longer_guessed(app_client, db):
     assert db.query(models.BankTransaction).filter_by(saltedge_id="new2").one().category == "Alimentation"
 
 
-def test_either_partner_can_undo_validation(app_client, db):
-    t1, t2, g, oct_ = _couple(app_client, db)
-    assert app_client.post(f"/api/months/{oct_.id}/validate", headers=headers(t2)).json()["validated_by"] == g.user2_id
-    assert app_client.post(f"/api/months/{oct_.id}/validate", headers=headers(t1)).json()["validated_by"] is None
-
-
 def test_emptied_budget_stays_empty(client):
     t = register(client, "camille", PW)
     h = headers(t)

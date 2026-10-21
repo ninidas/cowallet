@@ -703,21 +703,8 @@ export default function MonthDetailPage() {
             </button>
           </div>
 
-          {/* Valider le mois */}
-          <button
-            onClick={() => {
-              const optimistic = { ...month, validated_by: month.validated_by ? null : -1 }
-              setMonth(optimistic)
-              api.validateMonth(month.id).then(m => setMonth(m)).catch(() => setMonth(month))
-            }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition shrink-0 ${month.validated_by ? 'bg-emerald-400/80 active:bg-emerald-500/80' : 'bg-white/20 active:bg-white/30'}`}
-            aria-label={t('month_detail.aria_validate_month')}
-            title={month.validated_by ? t('month_detail.title_validated') : t('month_detail.title_validate')}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="white" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
-          </button>
+          {/* Pendant de la flèche retour : garde le mois centré sur téléphone */}
+          <span className="w-10 shrink-0 lg:hidden" aria-hidden="true" />
 
         </div>
       </div>

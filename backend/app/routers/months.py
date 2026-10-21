@@ -252,24 +252,6 @@ def update_share(
     return _to_detail(month, db)
 
 
-@router.post("/{month_id}/validate", response_model=schemas.MonthDetail)
-def validate_month(
-    month_id: int,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-    group: models.Group = Depends(get_current_group),
-):
-    month = db.query(models.Month).filter_by(id=month_id, group_id=group.id).first()
-    if not month:
-        raise HTTPException(status_code=404, detail="Month not found")
-
-    # Bascule : un mois validé, par soi ou par l'autre, se dévalide (avant : le clic reprenait la validation de l'autre)
-    month.validated_by = None if month.validated_by is not None else current_user.id
-    db.commit()
-    db.refresh(month)
-    return _to_detail(month, db)
-
-
 @router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
 def bulk_delete_months(
     body: schemas.BulkDeleteMonths,
