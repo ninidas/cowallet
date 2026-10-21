@@ -63,10 +63,14 @@ def get_stats(
     for m in months_q:
         for tx in m.bank_transactions:
             key, name, kind = merchant_group(tx.description, tx.is_card, tx.detail)
+            # PayPal ne dit pas chez qui : un achat différent à chaque fois, donc une ligne par prélèvement, datée
+            date = tx.purchase_date or tx.date if key == "PAYPAL" else None
+            if date:
+                key = f"PAYPAL|{tx.id}"
             cat = tx.category or UNCATEGORIZED
             row = merchants.setdefault((m.id, cat, key), {
                 "month": m.label, "month_id": m.id, "category": cat, "key": key,
-                "merchant": name, "kind": kind, "total": 0.0, "count": 0,
+                "merchant": name, "kind": kind, "date": date, "total": 0.0, "count": 0,
             })
             row["total"] = round(row["total"] + tx.amount, 2)
             row["count"] += 1

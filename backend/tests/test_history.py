@@ -33,6 +33,7 @@ def test_stats_give_each_merchant_per_month_and_category(app_client, db):
     _tx(db, oct_, "b", "EPICERIE CENTRE99DEMOVILLE", 60.5, "Alimentation", card=True)
     _tx(db, oct_, "c", "BOULANGERIE DU COFR DEMOVILLE", 9.2, "Alimentation", card=True)
     _tx(db, oct_, "d", "PRLV SEPA PayPal (Europe", 25)
+    _tx(db, oct_, "e", "PRLV SEPA PayPal (Europe", 20)
     from fastapi import APIRouter
     api = APIRouter(prefix="/api"); api.include_router(stats.router); app_client.app.include_router(api)
     s = app_client.get("/api/stats", headers=headers(t1)).json()
@@ -40,6 +41,8 @@ def test_stats_give_each_merchant_per_month_and_category(app_client, db):
     assert rows == [
         ("Octobre 2026", "Alimentation", "EPICERIE CENTRE", "card", 100.5, 2),
         ("Octobre 2026", stats.UNCATEGORIZED, "PayPal", "debit", 25, 1),
+        ("Octobre 2026", stats.UNCATEGORIZED, "PayPal", "debit", 20, 1),     # un achat par prélèvement PayPal
         ("Octobre 2026", "Alimentation", "BOULANGERIE DU", "card", 9.2, 1),
     ]
+    assert [r["date"] for r in s["by_merchant"] if r["merchant"] == "PayPal"] == ["2026-10-05", "2026-10-05"]
     assert "by_label" not in s

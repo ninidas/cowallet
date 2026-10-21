@@ -301,7 +301,8 @@
     "kind_other_other": "{{count}} opérations",
     "more_merchants_one": "+ 1 autre pour {{amount}}",
     "more_merchants_other": "+ {{count}} autres pour {{amount}}",
-    "sort_in_month": "Classer dans {{month}}"
+    "sort_in_month": "Classer dans {{month}}",
+    "paypal_on": "PayPal du {{date}}"
   },
   "budget": {
     "confirm_delete_short": "Supprimer ?",

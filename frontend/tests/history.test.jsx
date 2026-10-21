@@ -25,7 +25,7 @@ const stats = {
     { month: 'Septembre 2026', month_id: 2, category: 'Alimentation', key: 'SUPER', merchant: 'Supermarché Central', kind: 'card', total: 380, count: 4 },
     { month: 'Août 2026', month_id: 1, category: 'Alimentation', key: 'BOUL', merchant: 'Boulangerie du coin', kind: 'card', total: 160, count: 12 },
     { month: 'Septembre 2026', month_id: 2, category: 'Alimentation', key: 'BOUL', merchant: 'Boulangerie du coin', kind: 'card', total: 100, count: 8 },
-    { month: 'Août 2026', month_id: 1, category: UNCATEGORIZED, key: 'PAYPAL', merchant: 'PayPal', kind: 'debit', total: 25, count: 1 },
+    { month: 'Août 2026', month_id: 1, category: UNCATEGORIZED, key: 'PAYPAL|7', merchant: 'PayPal', kind: 'debit', date: '2026-08-19', total: 25, count: 1 },
   ],
 }
 const categoriesMap = new Map([['Maison', { color: '#3b82f6' }], ['Alimentation', { color: '#10b981' }]])
@@ -87,6 +87,8 @@ describe('CategoryBreakdown', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Août' }))
     expect(screen.getByText('Août 2026')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Sans catégorie/ }))
+    expect(screen.getByText('PayPal du 19 août')).toBeInTheDocument()
+    expect(screen.getByText('25,00 €')).toBeInTheDocument()
     expect(screen.getByText('1 prélèvement')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Classer dans Août 2026' }))
     expect(onOpenMonth).toHaveBeenCalledWith(1)

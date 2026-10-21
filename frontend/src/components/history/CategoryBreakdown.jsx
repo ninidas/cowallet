@@ -28,7 +28,7 @@ export function merchantsOf(stats, labels, category) {
   const byKey = new Map()
   for (const r of stats.by_merchant ?? []) {
     if (r.category !== category || !labels.includes(r.month)) continue
-    const m = byKey.get(r.key) ?? { key: r.key, merchant: r.merchant, kind: r.kind, total: 0, count: 0 }
+    const m = byKey.get(r.key) ?? { key: r.key, merchant: r.merchant, kind: r.kind, date: r.date, total: 0, count: 0 }
     m.total = round2(m.total + r.total)
     m.count += r.count
     byKey.set(r.key, m)
@@ -37,8 +37,11 @@ export function merchantsOf(stats, labels, category) {
 }
 
 export default function CategoryBreakdown({ stats, months, categoriesMap, shortLabel, onOpenMonth }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const fmt = useFmt({ maximumFractionDigits: 0 })
+  const fmtCents = useFmt()
+  // Un prélèvement PayPal n'a pas de commerçant : on le reconnaît à sa date et à son montant
+  const day = iso => new Date(`${iso}T00:00:00`).toLocaleDateString(i18n.language?.startsWith('en') ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'short' })
   const [selected, setSelected] = useState('all')
   const [open, setOpen] = useState(null)
 
@@ -153,13 +156,13 @@ export default function CategoryBreakdown({ stats, months, categoriesMap, shortL
                   {shown.map(m => (
                     <div key={m.key} className={`flex items-center gap-2.5 py-2 border-t ${uncategorized ? 'border-amber-100' : 'border-slate-100'}`}>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800 truncate">{m.merchant}</p>
+                        <p className="text-sm font-medium text-slate-800 truncate">{m.date ? t('history.paypal_on', { date: day(m.date) }) : m.merchant}</p>
                         <p className="text-xs text-slate-500">{t(`history.kind_${m.kind}`, { count: m.count })}</p>
                       </div>
                       <div aria-hidden="true" className="w-14 h-1 rounded-full bg-slate-100 overflow-hidden shrink-0">
                         <div className="h-full" style={{ width: `${Math.min(100, m.total / actual * 100)}%`, backgroundColor: color }} />
                       </div>
-                      <span className="text-sm font-bold text-slate-700 tabular-nums w-16 text-right shrink-0">{fmt(m.total)}</span>
+                      <span className="text-sm font-bold text-slate-700 tabular-nums w-20 text-right shrink-0">{m.date ? fmtCents(m.total) : fmt(m.total)}</span>
                     </div>
                   ))}
                   {rest.length > 0 && (
