@@ -52,9 +52,10 @@ describe('parseAmount', () => {
     expect(parseAmount('abc')).toBeNaN()
   })
 
-  it("s'arrête au premier caractère illisible (espace compris)", () => {
+  it("ignore les espaces des milliers et « € », s'arrête au premier caractère illisible", () => {
     expect(parseAmount('12abc')).toBe(12)
-    expect(parseAmount('1 234,5')).toBe(1)
+    expect(parseAmount('1 234,5')).toBe(1234.5)
+    expect(parseAmount('1\u00a0234,50\u00a0€')).toBe(1234.5)
     // Seule la première virgule devient un point
     expect(parseAmount('1,234,5')).toBe(1.234)
   })

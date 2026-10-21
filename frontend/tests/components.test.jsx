@@ -84,6 +84,11 @@ describe('SpentStrip', () => {
     expect(screen.getByText('+20,00 € au-dessus')).toBeInTheDocument()
     expect(container.querySelector('.bg-red-300')).toHaveStyle({ width: '100%' })
   })
+
+  it('rien de prévu ni de dépensé : barre vide', () => {
+    const { container } = render(<SpentStrip bva={{ ...bva, total_budget: 0, total_actual: 0 }} isCurrent />)
+    expect(container.querySelector('.bg-emerald-300')).toHaveStyle({ width: '0%' })
+  })
 })
 
 describe('BudgetVsActualCard', () => {

@@ -14,6 +14,7 @@ export default function TransactionsTab({ monthId, month, bva, onBvaChange, onUn
   const { i18n } = useTranslation()
   const [transactions, setTx]   = useState([])
   const [loading,      setLoad] = useState(true)
+  const [loadError,    setLoadError] = useState(false)
   const [openTx,       setOpenTx] = useState(null)
   const [filter,       setFilter] = useState('all')   // 'all' | 'todo'
   const [showBva,      setShowBva] = useState(false)
@@ -30,6 +31,9 @@ export default function TransactionsTab({ monthId, month, bva, onBvaChange, onUn
       setTx(txs)
       onBvaChange(bvaData)
       onUncategorizedChange?.(txs.filter(tx => !tx.category).length)
+      setLoadError(false)
+    } catch {
+      setLoadError(true)
     } finally {
       setLoad(false)
     }
@@ -51,13 +55,25 @@ export default function TransactionsTab({ monthId, month, bva, onBvaChange, onUn
 
   async function handleDeleteAll() {
     if (!confirmAll('all')) return
-    await Promise.all(transactions.map(tx => api.deleteTransaction(tx.id)))
+    // Liste rechargée même si une suppression échoue : on voit ce qui reste
+    await Promise.allSettled(transactions.map(tx => api.deleteTransaction(tx.id)))
     await load()
   }
 
   if (loading) return (
     <div className="flex justify-center py-10">
       <div className="w-6 h-6 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+    </div>
+  )
+
+  if (loadError) return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center space-y-3">
+      <p className="font-semibold text-slate-800">{t('month_detail.tx_load_error')}</p>
+      <p className="text-sm text-slate-500">{t('months.load_error_hint')}</p>
+      <button onClick={() => { setLoad(true); load() }}
+        className="px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:bg-violet-700 transition">
+        {t('months.btn_retry')}
+      </button>
     </div>
   )
 

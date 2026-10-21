@@ -5,7 +5,7 @@ import Field from './Field'
 import Input from './Input'
 
 // Rubrique Couple : répartition par défaut, invitation, nom du groupe et devise
-export default function CoupleSettings({ share, setShare, groupName, setGroupName, currency, setCurrency, handleSave, setSuccess }) {
+export default function CoupleSettings({ share, setShare, groupName, setGroupName, currency, setCurrency, handleSave, setSuccess, setError }) {
   const { t } = useTranslation()
   const { config } = useAuth()
   return (
@@ -41,11 +41,20 @@ export default function CoupleSettings({ share, setShare, groupName, setGroupNam
             onClick={async () => {
               const url = `${window.location.origin}/invite/${config.invite_code}`
               if (navigator.share) {
-                await navigator.share({ title: 'CoWallet', text: t('settings.invite_text'), url })
-              } else {
+                try {
+                  await navigator.share({ title: 'CoWallet', text: t('settings.invite_text'), url })
+                  return
+                } catch (err) {
+                  if (err?.name === 'AbortError') return   // partage annulé : rien à signaler
+                }
+              }
+              // Pas de partage (ou refusé) : copie du lien, et à défaut un message
+              try {
                 await navigator.clipboard.writeText(url)
                 setSuccess(t('settings.invite_copied'))
                 setTimeout(() => setSuccess(''), 3000)
+              } catch {
+                setError(t('settings.invite_copy_failed'))
               }
             }}
             className="px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold active:scale-95 transition shrink-0"

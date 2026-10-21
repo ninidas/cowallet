@@ -37,7 +37,7 @@ export function useSettingsForm({ setError, setSuccess }) {
       payload.current_password = currentPassword
       payload.new_password     = newPassword
     }
-    if (share !== config?.default_user1_share) payload.default_user1_share = share
+    if (share !== (config?.default_user1_share ?? 50)) payload.default_user1_share = share
     if (cards.trim() !== (config?.my_cards ?? '')) payload.card_digits = cards.trim()
     const nameChanged     = groupName.trim() && groupName.trim() !== (config?.group_name ?? '')
     const currencyChanged = currency !== (config?.currency ?? 'EUR')

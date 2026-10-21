@@ -135,6 +135,7 @@
     "btn_loading": "Création…"
   },
   "month_detail": {
+    "tx_load_error": "Impossible de charger les transactions",
     "tx_card_of": "Carte de {{name}}",
     "one_off": "Ce mois seulement",
     "tx_card": "Carte",
@@ -397,6 +398,7 @@
     "invite_hint": "Partagez ce lien pour inviter votre partenaire à rejoindre le groupe.",
     "invite_share": "Partager",
     "invite_copied": "Lien copié !",
+    "invite_copy_failed": "Copie impossible : sélectionnez le lien ci-dessus",
     "invite_text": "Rejoins notre budget commun !",
     "group_name_placeholder": "Notre budget",
     "group_name_hint": "S'affiche dans l'app si renseigné.",

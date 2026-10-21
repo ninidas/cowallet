@@ -8,7 +8,7 @@ export default function SpentStrip({ bva, isCurrent }) {
   const fmt = useFmt()
   const gap = Math.round((bva.total_actual - bva.total_budget) * 100) / 100
   const over = gap > 0
-  const pct = bva.total_budget > 0 ? Math.min(100, (bva.total_actual / bva.total_budget) * 100) : 100
+  const pct = bva.total_budget > 0 ? Math.min(100, (bva.total_actual / bva.total_budget) * 100) : (bva.total_actual > 0 ? 100 : 0)
   return (
     <div className="bg-white/10 rounded-2xl px-3.5 py-3 mb-3 lg:mb-4 space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">

@@ -76,7 +76,7 @@ export default function SettingsPage() {
             <SpendingSettings {...spending} armed={armed} />
           )}
           {active === 'couple' && (
-            <CoupleSettings {...form} setSuccess={setSuccess} />
+            <CoupleSettings {...form} setSuccess={setSuccess} setError={setError} />
           )}
           {active === 'me' && (
             <MeSettings {...form} {...me} />

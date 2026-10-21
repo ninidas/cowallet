@@ -10,5 +10,5 @@ export function cleanAmountInput(value) {
 
 // Montant saisi → nombre (NaN si vide ou invalide)
 export function parseAmount(value) {
-  return parseFloat(String(value ?? '').replace(',', '.'))
+  return parseFloat(String(value ?? '').replace(/[\s\u00a0\u202f€]/g, '').replace(',', '.'))
 }

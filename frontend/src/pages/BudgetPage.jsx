@@ -7,8 +7,6 @@ import { useFmt } from '../hooks/useFmt'
 import { useArm } from '../hooks/useArm'
 import { cleanAmountInput, parseAmount } from '../utils/amount'
 
-const DEMO_SHARED = 600
-
 const INCOME_COLORS     = ['#7c82d6','#6870cc','#555ec2']
 const EXPENSE_COLORS    = ['#9068c0','#4898c0','#48b090','#c09048','#c05050','#a06898','#5088b8','#80a848','#c08050','#9050a0']
 const INVEST_COLORS     = ['#b84848','#a83838','#c86060','#d07070','#983030']
@@ -31,10 +29,6 @@ function buildSankeyData(entries, sharedTotal, sharedLabel = 'Shared expenses') 
   const investments = entries.filter(e => e.type === 'investment')
 
   const totalIncome     = incomes.reduce((s, e) => s + e.amount, 0)
-  const totalExpense    = expenses.reduce((s, e) => s + e.amount, 0)
-  const totalInvestment = investments.reduce((s, e) => s + e.amount, 0)
-  const totalOut        = totalExpense + totalInvestment + (sharedTotal || 0)
-  const remaining       = Math.max(0, totalIncome - totalOut)
 
   if (totalIncome === 0) return null
 
@@ -364,7 +358,6 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames, fmt) {
   const NodeRenderer = ({ x, y, width, height, index, payload }) => {
     const color    = colors[index] || '#94a3b8'
     const isDummy  = payload.name === '__shared_dummy__'
-    const isLeft   = index <= centerIdx
     if (isDummy) return <g><rect x={x} y={y} width={width} height={height} rx={3} fill={color} fillOpacity={0.9} /></g>
     // Revenus : étiquette à gauche de la barre (dans la marge) ; Budget : au-dessus de la barre centrale.
     // Dans le ruban qui les relie, les deux étiquettes se chevauchaient.
@@ -419,7 +412,7 @@ function makeSankeyRenderers(colors, centerIdx, nodeNames, fmt) {
 export default function BudgetPage() {
   const { t, i18n } = useTranslation()
   const fmt = useFmt({ maximumFractionDigits: 0 })
-  const { config, getMyUserKey } = useAuth()
+  const { getMyUserKey } = useAuth()
   const [entries, setEntries]         = useState([])
   const [months, setMonths]           = useState([])
   const [sharedMode, setSharedMode]   = useState('avg') // 'avg' | 'last' | 'custom'
@@ -586,8 +579,6 @@ export default function BudgetPage() {
           { key: 'expense',    label: t('budget.tab_expense'),    short: t('budget.tab_expense_short'),    color: EXPENSE_COLORS[0], badge: 'bg-purple-100 text-purple-700' },
           { key: 'shared',     label: t('budget.tab_shared'),     short: t('budget.tab_shared_short'),     color: SHARED_COLOR,      badge: 'bg-slate-100 text-slate-600' },
         ]
-        const active = TABS.find(t => t.key === activeTab)
-
         return (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             {/* Onglets */}

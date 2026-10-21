@@ -135,6 +135,7 @@
     "btn_loading": "Creating..."
   },
   "month_detail": {
+    "tx_load_error": "Couldn't load the transactions",
     "tx_card_of": "{{name}}'s card",
     "one_off": "This month only",
     "tx_card": "Card",
@@ -397,6 +398,7 @@
     "invite_hint": "Share this link to invite your partner to join the group.",
     "invite_share": "Share",
     "invite_copied": "Link copied!",
+    "invite_copy_failed": "Couldn't copy: select the link above",
     "invite_text": "Join our shared budget!",
     "group_name_placeholder": "Our budget",
     "group_name_hint": "Displayed in the app if set.",
