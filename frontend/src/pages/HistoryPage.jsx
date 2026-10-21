@@ -22,8 +22,9 @@ function shortLabel(label) {
   const parts = label.split(' ')
   const year = parts[parts.length - 1]
   const month = parts.slice(0, parts.length - 1).join(' ')
-  // Juin et juillet donneraient tous deux « Jui. »
-  const short = { juin: 'Juin', juillet: 'Juil.' }[month.toLowerCase()] ?? `${month.slice(0, 3)}.`
+  // Un mois court s'écrit en entier (« May », « Août », pas « May. ») ; juillet en « Juil. », pas « Jui. » comme juin
+  const short = month.length <= 4 ? month
+    : month.toLowerCase() === 'juillet' ? 'Juil.' : `${month.slice(0, 3)}.`
   return `${short} ${String(year).slice(2)}`
 }
 
