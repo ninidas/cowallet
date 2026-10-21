@@ -387,6 +387,8 @@
     "notif_partner_hint": "Mois créé, dépenses ajoutées, modifiées ou supprimées, virement",
     "notif_bank": "Banque",
     "notif_bank_hint": "Nouvelles transactions, import en échec, fin de l'accès",
+    "notif_budget": "Budget dépassé",
+    "notif_budget_hint": "Quand le réel du mois passe au-dessus du prévu, au total ou dans une catégorie",
     "notif_reminder": "Rappel du 28",
     "notif_reminder_hint": "Préparer le mois suivant s'il n'existe pas encore",
     "notif_blocked": "Notifications bloquées dans le navigateur",

@@ -17,6 +17,7 @@ class User(Base):
     notif_partner  = Column(Boolean, default=True, nullable=False, server_default="1")
     notif_bank     = Column(Boolean, default=True, nullable=False, server_default="1")
     notif_reminder = Column(Boolean, default=True, nullable=False, server_default="1")
+    notif_budget   = Column(Boolean, default=True, nullable=False, server_default="1")
 
     def get_display_name(self):
         return self.display_name if self.display_name else self.username

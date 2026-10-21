@@ -147,6 +147,70 @@ def notify_import_results(db, report: list):
         db.add(models.AppConfig(key=key, value=date.today().isoformat()))
     db.commit()
 
+    notify_budget_overruns(db, {r["month_id"] for r in report if "error" not in r and r["imported"]})
+
+
+NOTIF_BUDGET = {
+    "en": {"total": "{month} budget exceeded", "total_body": "{actual} spent of {budget} planned (+{over})",
+           "one": "{cat} is over budget", "one_body": "{month}: {actual} spent of {budget} planned",
+           "many": "{n} categories are over budget"},
+    "fr": {"total": "Budget {de_month} dépassé", "total_body": "{actual} dépensés sur {budget} prévus (+{over})",
+           "one": "{cat} dépasse son budget", "one_body": "{month} : {actual} dépensés sur {budget} prévus",
+           "many": "{n} catégories dépassent leur budget"},
+}
+BUDGET_KEY = "budget_alert:"   # + "{month_id}:{catégorie}" ou "{month_id}:__total__" : une seule alerte par mois
+
+
+def _euros(x: float, lang: str) -> str:
+    n = f"{int(x + 0.5):,}"
+    return f"€{n}" if lang == "en" else n.replace(",", " ") + " €"
+
+
+def notify_budget_overruns(db, month_ids):
+    """Après un import : prévient les deux membres la première fois que le réel du mois passe au-dessus
+    du prévu, au total ou dans une catégorie. Les catégories sans prévu ne déclenchent rien seules ;
+    le total compte tout, transactions non catégorisées comprises (comme l'écran du mois)."""
+    lang = APP_LANG if APP_LANG in NOTIF_BUDGET else "en"
+    txt = NOTIF_BUDGET[lang]
+    for month in filter(None, (db.get(models.Month, i) for i in sorted(month_ids))):
+        budget, actual = {}, {}
+        for c in month.charges:
+            budget[c.category] = budget.get(c.category, 0.0) + c.amount
+        txs = db.query(models.BankTransaction).filter_by(month_id=month.id).all()
+        for tx in txs:
+            if tx.category:
+                actual[tx.category] = actual.get(tx.category, 0.0) + tx.amount
+        total_budget, total_actual = sum(budget.values()), sum(tx.amount for tx in txs)
+
+        prefix = f"{BUDGET_KEY}{month.id}:"
+        done = {f.key[len(prefix):] for f in db.query(models.AppConfig).filter(models.AppConfig.key.startswith(prefix))}
+        over = [c for c in sorted(budget) if c and budget[c] > 0 and actual.get(c, 0) > budget[c] + 0.005]
+        new = [c for c in over if c not in done]
+        new_total = total_budget > 0 and total_actual > total_budget + 0.005 and "__total__" not in done
+        name = MONTH_LABELS[lang][month.month]
+        line = lambda c: f"{c} {_euros(actual[c], lang)} / {_euros(budget[c], lang)}"
+        if new_total:
+            # Le total reprend toutes les catégories en dépassement, même celles déjà signalées
+            de_month = (f"d'{name.lower()}" if name[0] in "AEIOU" else f"de {name.lower()}") if lang == "fr" else name
+            title = txt["total"].format(de_month=de_month, month=name)
+            body = txt["total_body"].format(actual=_euros(total_actual, lang), budget=_euros(total_budget, lang),
+                                            over=_euros(total_actual - total_budget, lang))
+            if over:
+                body += "\n" + " · ".join(line(c) for c in over)
+        elif len(new) == 1:
+            title = txt["one"].format(cat=new[0])
+            body = txt["one_body"].format(month=name, actual=_euros(actual[new[0]], lang), budget=_euros(budget[new[0]], lang))
+        elif new:
+            title, body = txt["many"].format(n=len(new)), " · ".join(line(c) for c in new)
+        else:
+            continue
+        for key in new + (["__total__"] if new_total else []):
+            db.add(models.AppConfig(key=prefix + key, value=date.today().isoformat()))
+        db.commit()
+        group = db.get(models.Group, month.group_id)
+        for user_id in filter(None, [group.user1_id, group.user2_id]):
+            send_notification(db, user_id, title=title, body=body, url=f"/months/{month.id}", kind="budget")
+
 
 RETRY_KEY = "bank_import_retry:"
 

@@ -387,6 +387,8 @@
     "notif_partner_hint": "Month created, expenses added, changed or deleted, transfer",
     "notif_bank": "Bank",
     "notif_bank_hint": "New transactions, failed import, access ending",
+    "notif_budget": "Over budget",
+    "notif_budget_hint": "When the month's actual spending goes over the plan, in total or in a category",
     "notif_reminder": "Reminder on the 28th",
     "notif_reminder_hint": "Prepare next month if it doesn't exist yet",
     "notif_blocked": "Notifications blocked in browser",

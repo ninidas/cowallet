@@ -157,7 +157,7 @@ export default function SettingsPage() {
   const [aspspSearch,     setAspspSearch]     = useState('')
 
   // Types de notifications choisis (enregistrés sur le serveur, valables sur tous les appareils)
-  const [notif, setNotif] = useState(config?.notif ?? { partner: true, bank: true, reminder: true })
+  const [notif, setNotif] = useState(config?.notif ?? { partner: true, bank: true, budget: true, reminder: true })
   const partnerName = getMyUserKey() === 'user2' ? config?.user1_username : config?.user2_username
   async function toggleNotif(kind) {
     const next = { ...notif, [kind]: !notif[kind] }
@@ -778,6 +778,7 @@ export default function SettingsPage() {
                 {[
                   ['partner',  t('settings.notif_partner', { name: partnerName }), t('settings.notif_partner_hint')],
                   ['bank',     t('settings.notif_bank'),     t('settings.notif_bank_hint')],
+                  ['budget',   t('settings.notif_budget'),   t('settings.notif_budget_hint')],
                   ['reminder', t('settings.notif_reminder'), t('settings.notif_reminder_hint')],
                 ].filter(([kind]) => kind !== 'partner' || partnerName).map(([kind, label, hint]) => (
                   <NotifRow key={kind} label={label} hint={hint} on={notif[kind]} onToggle={() => toggleNotif(kind)} />

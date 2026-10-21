@@ -54,3 +54,45 @@ def test_each_person_chooses_notification_types(app_client, db, monkeypatch):
     push.send_notification(db, me.id, "lou a ajouté 2 dépenses", "", kind="partner")
     push.send_notification(db, me.id, "Test", "")      # sans type : toujours envoyé
     assert len(pushed) == 2
+
+
+def test_budget_overrun_alerts_once_per_category_and_for_the_total(app_client, db, monkeypatch):
+    from app import scheduler
+    from .test_lot1 import _charge, _tx
+    _, _, g, oct_ = _couple(app_client, db)
+    monkeypatch.setattr(scheduler, "APP_LANG", "fr")
+    sent = []
+    monkeypatch.setattr(scheduler, "send_notification", lambda db, uid, title, body, url="/", kind=None: sent.append((uid, title, body, url, kind)))
+    for cat, amount in (("Alimentation", 600), ("Bébé", 143.75), ("Divertissement", 200), ("Maison", 1662.9), ("Voiture", 60)):
+        _charge(db, oct_, amount, label=cat, category=cat)
+    check = lambda: scheduler.notify_budget_overruns(db, {oct_.id})
+
+    _tx(db, oct_, "t1", 74.17, "Voiture")
+    check()
+    assert sent == [(u, "Voiture dépasse son budget", "Octobre : 74\u00a0€ dépensés sur 60\u00a0€ prévus", f"/months/{oct_.id}", "budget")
+                    for u in (g.user1_id, g.user2_id)]
+    sent.clear(); check()
+    assert sent == []                                  # déjà signalée ce mois-ci
+
+    _tx(db, oct_, "t2", 666.43, "Alimentation"); _tx(db, oct_, "t3", 1755.18, "Maison")
+    check()
+    assert [s[1:3] for s in sent][0] == ("2 catégories dépassent leur budget",
+                                         "Alimentation 666\u00a0€ / 600\u00a0€ · Maison 1\u00a0755\u00a0€ / 1\u00a0663\u00a0€")
+    # Sans prévu (Autre) ou sans catégorie : rien seules, mais comptées dans le total
+    sent.clear()
+    _tx(db, oct_, "t4", 54.08, "Autre"); _tx(db, oct_, "t5", 206.19)
+    scheduler.notify_import_results(db, [{"connection_id": 1, "group_id": g.id, "month_id": oct_.id,
+                                          "month": "Octobre 2026", "imported": 2, "auto_categorized": 1}])
+    budget = [s for s in sent if s[4] == "budget"]
+    assert [s[1:3] for s in budget] == [("Budget d'octobre dépassé",
+        "2\u00a0756\u00a0€ dépensés sur 2\u00a0667\u00a0€ prévus (+89\u00a0€)\n"
+        "Alimentation 666\u00a0€ / 600\u00a0€ · Maison 1\u00a0755\u00a0€ / 1\u00a0663\u00a0€ · Voiture 74\u00a0€ / 60\u00a0€")] * 2
+    sent.clear(); check()
+    assert sent == []
+
+
+def test_budget_alerts_can_be_turned_off(app_client, db):
+    t1, _, g, _ = _couple(app_client, db)
+    api = APIRouter(prefix="/api"); api.include_router(settings.router); app_client.app.include_router(api)
+    assert app_client.patch("/api/settings", headers=headers(t1), json={"notif_budget": False}).status_code == 200
+    assert db.get(models.User, g.user1_id).notif_budget is False
