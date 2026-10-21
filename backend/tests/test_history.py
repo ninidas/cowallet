@@ -12,6 +12,9 @@ def test_merchant_group_keeps_one_line_per_shop():
     assert merchant_group("PRLV SEPA Energie Plus")[1:] == ("Energie Plus", "debit")
     assert merchant_group("PRLV SEPA PayPal (Europe")[1:] == ("PayPal", "debit")
     assert merchant_group("VIR MME ALEX MARTIN")[1:] == ("VIR MME ALEX MARTIN", "transfer")
+    # Un virement par motif : le dentiste et la lampe ne sont pas le même « commerçant »
+    dent, lamp = merchant_group("VIR M SAM DUPONT", detail="Rembours dentiste"), merchant_group("VIR M SAM DUPONT", detail="Rembours lampe")
+    assert dent[1:] == ("Rembours dentiste", "transfer") and dent[0] != lamp[0]
     assert merchant_group("ECHEANCE PRET")[1:] == ("ECHEANCE PRET", "other")
     # Pas un paiement par carte : le libellé entier, même s'il ressemble à « commerçant + ville »
     assert merchant_group("COTIS PACK SERENITE", is_card=False)[1:] == ("COTIS PACK SERENITE", "other")

@@ -119,6 +119,12 @@ def is_generic(description: str) -> bool:
     return any(g in merchant_key(description, raw=True) for g in GENERIC_MERCHANTS)
 
 
+# Un virement (« VIR M ALEX MARTIN ») n'a pas de commerçant : chacun a son motif (un remboursement de dentiste,
+# puis d'une lampe) ; jamais de catégorie devinée ni recopiée d'un virement à l'autre (2026-10-22)
+def is_transfer(description: str) -> bool:
+    return merchant_key(description, raw=True).strip().startswith("VIR ")
+
+
 def merchant_key(description: str, raw: bool = False) -> str:
     """Le commerçant derrière un libellé, pour reconnaître un même achat d'un mois à l'autre.
 
@@ -129,7 +135,7 @@ def merchant_key(description: str, raw: bool = False) -> str:
     s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn").upper()
     if raw:
         return s
-    if any(g in s for g in GENERIC_MERCHANTS):
+    if any(g in s for g in GENERIC_MERCHANTS) or s.strip().startswith("VIR "):
         return ""
     if s.startswith("PRLV SEPA "):
         s = s[len("PRLV SEPA "):]
@@ -138,16 +144,16 @@ def merchant_key(description: str, raw: bool = False) -> str:
     return re.sub(r"\s+", " ", s).strip()
 
 
-def merchant_group(description: str, is_card: bool = None) -> tuple:
+def merchant_group(description: str, is_card: bool = None, detail: str = None) -> tuple:
     """(clé, nom affiché, genre) d'un commerçant, pour regrouper ses opérations dans l'Historique.
     Même découpe que merchant_key, sur le libellé d'origine (accents et casse gardés), et le nom raccourci
-    seulement pour un paiement par carte quand on le sait (is_card) ; un virement
-    garde son libellé entier (« VIR MME ALEX MARTIN ») ; PayPal est un seul commerçant."""
+    seulement pour un paiement par carte quand on le sait (is_card) ; un virement est nommé par son motif
+    (detail, « Rembours dentiste »), sinon par son libellé ; PayPal est un seul commerçant."""
     desc = re.sub(r"\s+", " ", (description or "").strip())
+    if is_transfer(desc):
+        return f"{merchant_key(desc, raw=True)}|{detail or ''}", detail or desc, "transfer"
     if is_generic(desc):
         return "PAYPAL", "PayPal", "debit"
-    if desc.upper().startswith("VIR "):
-        return merchant_key(desc, raw=True), desc, "transfer"
     key = merchant_key(description)          # libellé d'origine : la découpe compte les espaces
     if (description or "").startswith("PRLV SEPA "):
         return key, desc[len("PRLV SEPA "):].strip(), "debit"
@@ -179,7 +185,7 @@ def category_index(db: Session, group: models.Group) -> tuple:
 
 
 def guess_category(index: tuple, description: str):
-    if is_generic(description):
+    if is_generic(description) or is_transfer(description):
         return None
     exact, by_merchant = index
     return exact.get(description) or by_merchant.get(merchant_key(description))

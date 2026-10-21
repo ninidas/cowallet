@@ -62,7 +62,7 @@ def get_stats(
     merchants: dict[tuple, dict] = {}
     for m in months_q:
         for tx in m.bank_transactions:
-            key, name, kind = merchant_group(tx.description, tx.is_card)
+            key, name, kind = merchant_group(tx.description, tx.is_card, tx.detail)
             cat = tx.category or UNCATEGORIZED
             row = merchants.setdefault((m.id, cat, key), {
                 "month": m.label, "month_id": m.id, "category": cat, "key": key,

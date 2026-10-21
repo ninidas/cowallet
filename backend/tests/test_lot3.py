@@ -153,6 +153,17 @@ def test_categorizing_one_categorizes_same_merchant(client, db):
     assert got == {"a": "Alimentation", "b": "Alimentation", "c": None, "d": "Autre"}
 
 
+def test_transfers_are_never_guessed_nor_copied(client, db):
+    # Classer « Rembours dentiste » en Santé ne doit pas classer le remboursement d'une lampe
+    token, g, (oct_,) = _setup(client, db)
+    a = _tx(db, oct_, "a", "VIR M SAM DUPONT")
+    _tx(db, oct_, "b", "VIR M SAM DUPONT")
+    r = client.patch(f"/api/bank/transactions/{a.id}", json={"category": "Santé"}, headers=headers(token))
+    assert r.status_code == 200 and r.json()["also_categorized"] == 0
+    assert bank_sync.guess_category(bank_sync.category_index(db, g), "VIR M SAM DUPONT") is None
+    assert {t.saltedge_id: t.category for t in db.query(models.BankTransaction)} == {"a": "Santé", "b": None}
+
+
 def test_search_finds_charges_and_transactions(client, db):
     token, g, (oct_,) = _setup(client, db)
     db.add(models.Charge(month_id=oct_.id, label="Électricité", amount=138.0, category="Maison")); db.commit()
