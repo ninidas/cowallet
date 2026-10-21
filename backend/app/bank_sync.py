@@ -159,8 +159,8 @@ def merchant_group(description: str, is_card: bool = None, detail: str = None) -
         return key, desc[len("PRLV SEPA "):].strip(), "debit"
     s = description or ""
     card = is_card if is_card is not None else bool(len(s) > 17 and re.match(r"[A-Z]{2}|\d{2}", merchant_key(s, raw=True)[15:17]))
-    if card and len(s) > 17:
-        return key, re.sub(r"\s+", " ", s[:15]).strip(), "card"
+    if card:          # « EPICERIE CENTREFR DEMOVILLE » -> « EPICERIE CENTRE » ; un libellé court reste entier
+        return key, re.sub(r"\s+", " ", s[:15]).strip() if len(s) > 17 else desc, "card"
     return key, desc, "other"
 
 

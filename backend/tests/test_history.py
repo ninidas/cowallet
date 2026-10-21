@@ -19,6 +19,7 @@ def test_merchant_group_keeps_one_line_per_shop():
     # Pas un paiement par carte : le libellé entier, même s'il ressemble à « commerçant + ville »
     assert merchant_group("COTIS PACK SERENITE", is_card=False)[1:] == ("COTIS PACK SERENITE", "other")
     assert merchant_group("COTIS PACK SERENITE", is_card=True)[1:] == ("COTIS PACK SERE", "card")
+    assert merchant_group("Drive Demo", is_card=True)[1:] == ("Drive Demo", "card")      # carte, libellé court
 
 
 def _tx(db, m, sid, desc, amount, category=None, card=False):
