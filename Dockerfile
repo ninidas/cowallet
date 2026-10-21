@@ -4,6 +4,8 @@ WORKDIR /app
 COPY frontend/package.json .
 RUN npm install
 COPY frontend/ .
+# Tests du front : un test cassé arrête la construction de l'image (donc la mise en prod et la CI)
+RUN npm test
 RUN npm run build
 
 # ── Stage 2: Backend + frontend static files ──────────────────────────────────
