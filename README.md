@@ -16,7 +16,6 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 - **Recurring charges** - automatically copied to the next month
 - **Installment payments** - split a purchase over N months, auto-carried forward
 - **Actual vs planned** - enter real amounts alongside budgeted ones, see the delta
-- **Month validation** - mark a month as closed once transfers are done
 - **Bulk delete** - select and delete multiple months at once
 
 ### Categories & Organization
@@ -26,25 +25,27 @@ Most finance apps are built for one person. CoWallet is built for two. A self-ho
 
 ### Bank Sync (optional)
 - **Connect your bank** - link a joint account via Enable Banking (supports 2000+ banks across Europe)
-- **Import transactions** - manually import transactions month by month, with debit filter and duplicate detection
-- **Auto-categorization** - transactions are automatically categorized based on past imports
+- **Automatic import** - new debits arrive every morning (7:00, Europe/Paris), retried once at noon if the bank is unreachable
+- **Manual import** - import transactions month by month, with debit filter and duplicate detection
+- **Auto-categorization** - transactions are categorized from past imports, recognizing the same merchant across stores
+- **Full bank label** - payment reason, loan instalment breakdown, real purchase date, and who paid (from each person's card's last 4 digits)
 - **Budget vs actual** - compare planned charges against real spending, category by category
+- **Access reminder** - banks cut the access after 90 to 180 days: you are reminded before it expires
 
 ### History & Analytics
-- **History & charts** - monthly evolution, breakdown by category, top recurring costs
+- **History & charts** - monthly evolution (planned or actual), breakdown by category, top recurring costs
 - **Sankey diagram** - visualize income, shared expenses, personal spending and investments
 - **CSV export** - keep a backup of all your data
 
 ### Collaboration
 - **Multi-user** - invite your partner via a private invite link
-- **Push notifications** - get notified when your partner validates a month (iOS & Android)
+- **Push notifications** - your partner's changes, new bank transactions, over-budget alerts and a monthly reminder, each one switchable per person (iOS & Android)
 - **Group isolation** - each couple's data is fully isolated
 
 ### App & Security
 - **PWA** - installable on iOS (Safari) and Android home screen
-- **Sticky header** - validate button always accessible while scrolling on mobile
 - **Rate-limited login** - brute-force protection on the auth endpoint
-- **Password policy** - minimum 8 characters, at least 1 digit
+- **Password policy** - minimum 12 characters
 - **First-run setup** - no config file needed, just open the app
 
 ## Screenshots
@@ -136,7 +137,16 @@ Once configured, a **Bank connection** section appears in the app settings where
 
 ## Push Notifications
 
-Push notifications are supported on mobile (iOS and Android). To receive them, install the app on your phone first (Chrome or Safari: use "Add to Home Screen"), then open the app, go to settings and toggle "Notifications". No server configuration needed.
+Push notifications are supported on mobile (iOS and Android). To receive them, install the app on your phone first (Chrome or Safari: use "Add to Home Screen"), then open the app and go to **Settings › Profile › Notifications**. No server configuration needed.
+
+"On this device" turns notifications on for the phone or computer you are using. Each person then chooses what they receive, on all their devices:
+
+| Notification | When |
+|--------------|------|
+| **Your partner's changes** | Month created, charge added, edited or deleted, transfer done. Charges added in a row are grouped into one notification, sent 2 minutes after the last one. |
+| **Bank** | New transactions after the morning import, failed import, bank access about to expire |
+| **Over budget** | The first time in a month that actual spending goes over the plan, in total or in a category (checked after each import) |
+| **Reminder on the 28th** | Next month doesn't exist yet |
 
 ## Configuration
 
@@ -151,6 +161,7 @@ All variables are optional. The app runs without any of them.
 | `MAX_GROUPS` | Maximum number of groups allowed to register. Defaults to `1`. Set to a higher value to allow multiple couples on the same instance. |
 | `ENABLEBANKING_APP_ID` | Enable Banking app ID - required for bank sync |
 | `ENABLEBANKING_PRIVATE_KEY_PATH` | Path to the RSA private key inside the container - required for bank sync |
+| `AUTO_IMPORT` | Set to `0` to disable the automatic morning import (e.g. on a test instance sharing the bank connection: banks limit reads to about 4 per day) |
 
 ## Tech Stack
 
