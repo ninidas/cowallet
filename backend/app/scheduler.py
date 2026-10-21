@@ -145,17 +145,58 @@ def notify_import_results(db, report: list):
     db.commit()
 
 
-def import_bank_transactions():
+RETRY_KEY = "bank_import_retry:"
+
+
+def _retry_later(r: dict) -> bool:
+    """Échec à retenter à midi : banque injoignable ou en panne, pas un refus pour trop de lectures
+    (un nouvel essai le jour même serait refusé lui aussi)."""
+    return "error" in r and not ("429" in r["error"] or "RATE_LIMIT" in r["error"])
+
+
+def _auto_import_enabled() -> bool:
+    # AUTO_IMPORT=0 coupe l'import (instance de dev : elle partage la connexion bancaire de la prod
+    # et doublerait les lectures, limitées à environ 4 par jour par la banque)
+    return enablebanking.is_configured() and os.environ.get("AUTO_IMPORT", "1") != "0"
+
+
+def import_bank_transactions(today: date = None):
     """Chaque matin : les nouveaux débits de la banque arrivent seuls dans le mois en cours.
-    AUTO_IMPORT=0 le coupe (instance de dev : elle partage la connexion bancaire de la prod et
-    doublerait les lectures, limitées à environ 4 par jour par la banque)."""
-    if not enablebanking.is_configured() or os.environ.get("AUTO_IMPORT", "1") == "0":
+    Une banque injoignable est relue une fois à midi ; on ne prévient de l'échec qu'après ce second essai."""
+    if not _auto_import_enabled():
         return
+    today = today or date.today()
     db = SessionLocal()
     try:
-        notify_import_results(db, bank_sync.auto_import(db))
+        report = bank_sync.auto_import(db, today=today)
+        later = [r for r in report if _retry_later(r)]
+        for r in later:
+            db.merge(models.AppConfig(key=f"{RETRY_KEY}{r['connection_id']}", value=today.isoformat()))
+        db.commit()
+        notify_import_results(db, [r for r in report if r not in later])
     except Exception:
         logger.exception("Automatic bank import failed")
+    finally:
+        db.close()
+
+
+def retry_bank_import(today: date = None):
+    """Midi : nouvel essai, une seule fois, pour les banques en échec ce matin."""
+    if not _auto_import_enabled():
+        return
+    today = today or date.today()
+    db = SessionLocal()
+    try:
+        flags = db.query(models.AppConfig).filter(models.AppConfig.key.startswith(RETRY_KEY)).all()
+        ids = {int(f.key[len(RETRY_KEY):]) for f in flags if f.value == today.isoformat()}
+        for f in flags:
+            db.delete(f)
+        db.commit()
+        if ids:
+            logger.info("Import automatique : nouvel essai pour %s", sorted(ids))
+            notify_import_results(db, bank_sync.auto_import(db, today=today, only=ids))
+    except Exception:
+        logger.exception("Automatic bank import retry failed")
     finally:
         db.close()
 
@@ -167,4 +208,5 @@ def create_scheduler() -> AsyncIOScheduler:
     scheduler.add_job(send_bank_expiry_reminders, CronTrigger(hour=9, minute=5))
     # 7 h à Paris (le conteneur est à l'heure UTC)
     scheduler.add_job(import_bank_transactions, CronTrigger(hour=7, minute=0, timezone="Europe/Paris"))
+    scheduler.add_job(retry_bank_import, CronTrigger(hour=12, minute=0, timezone="Europe/Paris"))
     return scheduler

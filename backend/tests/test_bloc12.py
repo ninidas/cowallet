@@ -86,3 +86,44 @@ def test_actual_total_counts_uncategorized(client, db):
     assert (bva["total_budget"], bva["total_actual"], bva["uncategorized"], bva["uncategorized_count"]) == (600.0, 884.27, 183.2, 1)
     m = client.get("/api/months", headers=headers(token)).json()[0]
     assert (m["planned"], m["spent"]) == (600.0, 884.27)
+
+
+def test_unreachable_bank_is_retried_once_at_noon(client, db, monkeypatch):
+    """Banque injoignable à 7 h (panne Enable Banking du 20/10) : un seul nouvel essai à midi, et la
+    notification d'échec seulement si ce second essai échoue aussi."""
+    _setup(client, db)
+    monkeypatch.setattr(scheduler, "APP_LANG", "fr")
+    monkeypatch.setattr(scheduler, "SessionLocal", lambda: type("S", (), {"__getattr__": lambda _, n: getattr(db, n), "close": lambda _: None})())
+    sent = _capture(monkeypatch)
+    day = datetime.date(2026, 10, 20)
+    reads = []
+    def down(*a):
+        reads.append(1); raise Exception("ConnectTimeout")
+    monkeypatch.setattr(enablebanking, "get_transactions", down)
+    scheduler.import_bank_transactions(day)
+    assert sent == [] and len(reads) == 1                     # pas encore d'alerte
+    monkeypatch.setattr(enablebanking, "get_transactions", lambda *a: reads.append(1) or [_eb("n1", "MEUBLES DEMO", 99.0)])
+    scheduler.retry_bank_import(day)
+    assert len(reads) == 2 and sent[0][1] == "1 nouvelle transaction"
+    scheduler.retry_bank_import(day)                          # une seule fois par jour
+    assert len(reads) == 2
+    # Second essai en échec aussi : là on prévient
+    monkeypatch.setattr(enablebanking, "get_transactions", down)
+    sent.clear()
+    scheduler.import_bank_transactions(day + datetime.timedelta(days=1))
+    scheduler.retry_bank_import(day + datetime.timedelta(days=1))
+    assert [s[1] for s in sent] == ["L'import bancaire de ce matin a échoué"]
+
+
+def test_rate_limit_is_not_retried_at_noon(client, db, monkeypatch):
+    _setup(client, db)
+    monkeypatch.setattr(scheduler, "SessionLocal", lambda: type("S", (), {"__getattr__": lambda _, n: getattr(db, n), "close": lambda _: None})())
+    sent = _capture(monkeypatch)
+    reads = []
+    def limited(*a):
+        reads.append(1); raise Exception('HTTP 429 — {"error":"ASPSP_RATE_LIMIT_EXCEEDED"}')
+    monkeypatch.setattr(enablebanking, "get_transactions", limited)
+    day = datetime.date(2026, 10, 20)
+    scheduler.import_bank_transactions(day)
+    scheduler.retry_bank_import(day)
+    assert len(reads) == 1 and len(sent) == 1

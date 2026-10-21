@@ -1,27 +1,33 @@
+import { lazy, Suspense, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
-import LandingPage from './pages/LandingPage'
-import InvitePage from './pages/InvitePage'
 import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import GroupSetupPage from './pages/GroupSetupPage'
-import SetupPage from './pages/SetupPage'
 import MonthsPage from './pages/MonthsPage'
 import MonthDetailPage from './pages/MonthDetailPage'
-import HistoryPage from './pages/HistoryPage'
-import SettingsPage from './pages/SettingsPage'
-import BudgetPage from './pages/BudgetPage'
-import BankCallbackPage from './pages/BankCallbackPage'
-import BankImportPage from './pages/BankImportPage'
-import SearchPage from './pages/SearchPage'
+
+// Chargées à la demande : les graphiques (Historique, Budget) pèsent plus que tout le reste,
+// le premier écran (Mes mois, un mois) s'ouvre sans les attendre
+const historyPage = () => import('./pages/HistoryPage')
+const budgetPage  = () => import('./pages/BudgetPage')
+const HistoryPage      = lazy(historyPage)
+const BudgetPage       = lazy(budgetPage)
+const LandingPage      = lazy(() => import('./pages/LandingPage'))
+const InvitePage       = lazy(() => import('./pages/InvitePage'))
+const RegisterPage     = lazy(() => import('./pages/RegisterPage'))
+const GroupSetupPage   = lazy(() => import('./pages/GroupSetupPage'))
+const SetupPage        = lazy(() => import('./pages/SetupPage'))
+const SettingsPage     = lazy(() => import('./pages/SettingsPage'))
+const BankCallbackPage = lazy(() => import('./pages/BankCallbackPage'))
+const BankImportPage   = lazy(() => import('./pages/BankImportPage'))
+const SearchPage       = lazy(() => import('./pages/SearchPage'))
 
 function PrivateRoute({ children }) {
   const { user, config, ready } = useAuth()
   if (!ready) return null
   if (!user) return <Navigate to="/" replace />
   if (config && !config.has_group) return <Navigate to="/group-setup" replace />
-  return <Layout>{children}</Layout>
+  return <Layout><Suspense fallback={null}>{children}</Suspense></Layout>
 }
 
 function PublicRoute({ children }) {
@@ -32,7 +38,14 @@ function PublicRoute({ children }) {
 }
 
 export default function App() {
+  // Une fois l'appli ouverte, Historique et Budget se chargent en fond : l'onglet s'ouvre sans attente
+  useEffect(() => {
+    const id = setTimeout(() => { historyPage(); budgetPage() }, 1500)
+    return () => clearTimeout(id)
+  }, [])
+
   return (
+    <Suspense fallback={null}>
     <Routes>
       <Route path="/"            element={<PublicRoute><LandingPage /></PublicRoute>} />
       <Route path="/setup"       element={<SetupPage />} />
@@ -50,5 +63,6 @@ export default function App() {
       <Route path="/bank/import/:monthId" element={<PrivateRoute><BankImportPage /></PrivateRoute>} />
       <Route path="*"            element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }

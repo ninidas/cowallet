@@ -195,18 +195,21 @@ def add_transactions(db: Session, group: models.Group, month: models.Month, item
     return {"imported": imported, "skipped": skipped, "auto_categorized": auto_categorized}
 
 
-def auto_import(db: Session, today: datetime.date = None) -> list:
+def auto_import(db: Session, today: datetime.date = None, only: set = None) -> list:
     """Import du matin : pour chaque connexion bancaire active, les débits du mois en cours (et du mois
     précédent les premiers jours) vont dans le mois correspondant s'il est créé. Mêmes règles que l'écran
     d'import avec « Débits uniquement » : sans doublon, catégorie devinée.
     Une seule lecture par compte, toute la période d'un coup : la banque n'en sert qu'environ 4 par jour
-    sans l'utilisateur. Une banque en erreur (accès expiré, quota atteint…) n'empêche pas les autres."""
+    sans l'utilisateur. Une banque en erreur (accès expiré, quota atteint…) n'empêche pas les autres.
+    only : identifiants de connexion à relire (nouvel essai de midi), toutes sinon."""
     today = today or datetime.date.today()
     first = today.replace(day=1)
     if today.day <= PREVIOUS_MONTH_DAYS:
         first = (first - datetime.timedelta(days=1)).replace(day=1)
     report = []
     for conn in db.query(models.BankConnection).filter_by(status="active").all():
+        if only is not None and conn.id not in only:
+            continue
         group = db.query(models.Group).filter(
             (models.Group.user1_id == conn.user_id) | (models.Group.user2_id == conn.user_id)
         ).first()
