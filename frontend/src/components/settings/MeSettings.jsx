@@ -1,42 +1,18 @@
 import { useTranslation } from 'react-i18next'
-import { usePush } from '../../context/PushContext'
 import { tError } from '../../utils/tError'
 import Section from './Section'
 import Field from './Field'
 import Input from './Input'
-import NotifRow from './NotifRow'
 
-// Rubrique Profil : notifications, prénom et carte, mot de passe, langue, suppression du compte
+// Rubrique Profil : prénom et carte, mot de passe, langue, suppression du compte
 export default function MeSettings({
   username, setUsername, cards, setCards, currentPassword, setCurrentPassword, newPassword, setNewPassword,
-  showPassword, setShowPassword, handleSave, notif, partnerName, toggleNotif,
+  showPassword, setShowPassword, handleSave,
   showDeleteConfirm, setShowDeleteConfirm, deletePassword, setDeletePassword, deleteError, setDeleteError, deleting, handleDeleteAccount,
 }) {
   const { t, i18n } = useTranslation()
-  const { supported: pushSupported, permission, subscribed, loading: pushLoading, subscribe, unsubscribe } = usePush()
   return (
     <div id="settings-me" className="space-y-4 scroll-mt-4">
-    {/* Notifications : l'appareil (abonnement push), puis les types voulus (valables partout) */}
-    {pushSupported && (
-      <Section title={t('settings.section_notifications')}>
-        <NotifRow label={t('settings.notif_device')} hint={t('settings.notif_device_hint')}
-          on={subscribed} disabled={pushLoading || permission === 'denied'}
-          onToggle={subscribed ? unsubscribe : subscribe}>
-          {permission === 'denied' && <p className="text-xs text-red-500 mt-1">{t('settings.notif_blocked')}</p>}
-        </NotifRow>
-        <div className={`border-t border-slate-100 pt-4 space-y-4 transition-opacity ${subscribed ? '' : 'opacity-50'}`}>
-          {[
-            ['partner',  t('settings.notif_partner', { name: partnerName }), t('settings.notif_partner_hint')],
-            ['bank',     t('settings.notif_bank'),     t('settings.notif_bank_hint')],
-            ['budget',   t('settings.notif_budget'),   t('settings.notif_budget_hint')],
-            ['reminder', t('settings.notif_reminder'), t('settings.notif_reminder_hint')],
-          ].filter(([kind]) => kind !== 'partner' || partnerName).map(([kind, label, hint]) => (
-            <NotifRow key={kind} label={label} hint={hint} on={notif[kind]} onToggle={() => toggleNotif(kind)} />
-          ))}
-        </div>
-      </Section>
-    )}
-
     <form onSubmit={handleSave}>
       <Section title={t('settings.section_account')}>
         <Field label={t('settings.field_display_name')}>

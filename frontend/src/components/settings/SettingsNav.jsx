@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../context/AuthContext'
 import { usePush } from '../../context/PushContext'
 import { SECTIONS, SECTION_ICONS } from './sections'
+import { notifKinds } from './NotifSettings'
 
 // Sommaire des réglages, avec la déconnexion dessous
 export default function SettingsNav({ active, bankStatus, categories, paymentMethods }) {
@@ -31,8 +32,15 @@ export default function SettingsNav({ active, bankStatus, categories, paymentMet
       const partner = getMyUserKey?.() === 'user2' ? config?.user1_username : config?.user2_username
       return { text: partner ? t('settings.sum_couple', { name: partner, split }) : t('settings.sum_couple_alone', { split }) }
     }
-    const name = user?.displayName ?? user?.username ?? ''
-    return { text: pushSupported ? `${name} · ${t(subscribed ? 'settings.sum_notif_on' : 'settings.sum_notif_off')}` : name }
+    if (id === 'notifications') {
+      if (!pushSupported) return { text: t('settings.sum_notif_unsupported') }
+      if (!subscribed) return { text: t('settings.sum_notif_off') }
+      const partner = getMyUserKey?.() === 'user2' ? config?.user1_username : config?.user2_username
+      const kinds = notifKinds(partner)
+      const on = kinds.filter(kind => config?.notif?.[kind] ?? true).length
+      return { text: on === kinds.length ? t('settings.sum_notif_all') : t('settings.sum_notif_some', { on, total: kinds.length }) }
+    }
+    return { text: user?.displayName ?? user?.username ?? '' }
   }
 
   return (

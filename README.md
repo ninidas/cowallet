@@ -141,7 +141,7 @@ Once configured, a **Bank connection** section appears in the app settings where
 
 ## Push Notifications
 
-Push notifications are supported on mobile (iOS and Android). To receive them, install the app on your phone first (Chrome or Safari: use "Add to Home Screen"), then open the app and go to **Settings › Profile › Notifications**. No server configuration needed.
+Push notifications are supported on mobile (iOS and Android). To receive them, install the app on your phone first (Chrome or Safari: use "Add to Home Screen"), then open the app and go to **Settings › Notifications**. No server configuration needed.
 
 "On this device" turns notifications on for the phone or computer you are using. Each person then chooses what they receive, on all their devices:
 

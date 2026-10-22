@@ -7,12 +7,14 @@ import { useIsDesktop } from '../hooks/useIsDesktop'
 import { SECTIONS } from '../components/settings/sections'
 import { useSettingsForm } from '../components/settings/useSettingsForm'
 import { useMeSettings } from '../components/settings/useMeSettings'
+import { useNotifSettings } from '../components/settings/useNotifSettings'
 import { useSpendingSettings } from '../components/settings/useSpendingSettings'
 import { useBankSettings } from '../components/settings/useBankSettings'
 import SettingsNav from '../components/settings/SettingsNav'
 import BankSettings from '../components/settings/BankSettings'
 import SpendingSettings from '../components/settings/SpendingSettings'
 import CoupleSettings from '../components/settings/CoupleSettings'
+import NotifSettings from '../components/settings/NotifSettings'
 import MeSettings from '../components/settings/MeSettings'
 import BankPickerModal from '../components/settings/BankPickerModal'
 
@@ -33,6 +35,7 @@ export default function SettingsPage() {
   const form = useSettingsForm({ setError, setSuccess })
   const { saving, hasChanges, handleSave } = form
   const me = useMeSettings()
+  const notifs = useNotifSettings()
 
   useEffect(() => { window.scrollTo(0, 0) }, [section])
 
@@ -77,6 +80,9 @@ export default function SettingsPage() {
           )}
           {active === 'couple' && (
             <CoupleSettings {...form} setSuccess={setSuccess} setError={setError} />
+          )}
+          {active === 'notifications' && (
+            <NotifSettings {...notifs} />
           )}
           {active === 'me' && (
             <MeSettings {...form} {...me} />
