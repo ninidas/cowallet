@@ -95,7 +95,7 @@ def test_status_without_consent_does_not_wait_for_enable_banking(bclient, db, mo
 def test_transactions_expired_gives_clear_error(bclient, db, monkeypatch):
     token = register(bclient, "camille", PW); _connect(db)
     _session(monkeypatch, "CLOSED", datetime.date(2026, 7, 13))
-    monkeypatch.setattr(enablebanking, "get_transactions", lambda *a: (_ for _ in ()).throw(Exception("HTTP 401 — Unauthorized")))
+    monkeypatch.setattr(enablebanking, "get_transactions", lambda *a: (_ for _ in ()).throw(Exception("HTTP 401: Unauthorized")))
     r = bclient.get("/api/bank/transactions?from_date=2026-11-01&to_date=2026-11-30", headers=headers(token))
     assert r.status_code == 409 and r.json()["detail"] == "Bank access expired"
 

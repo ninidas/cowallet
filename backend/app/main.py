@@ -363,7 +363,7 @@ def health():
 
 @app.get("/api/config")
 def get_config(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user_optional)):
-    """Configuration exposée au frontend — groupe si authentifié, sinon infos minimales."""
+    """Configuration exposée au frontend : groupe si authentifié, sinon infos minimales."""
     if current_user:
         group = db.query(models.Group).filter(
             (models.Group.user1_id == current_user.id) |

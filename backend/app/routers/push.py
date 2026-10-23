@@ -95,7 +95,7 @@ def send_notification(db: Session, user_id: int, title: str, body: str, url: str
 
     subs = db.query(models.PushSubscription).filter_by(user_id=user_id).all()
     logger.info("send_notification: user_id=%s, subs=%s", user_id, len(subs))
-    # Declarative Web Push (iOS 18.4+) — plus fiable, bypass le service worker
+    # Declarative Web Push (iOS 18.4+) : plus fiable, bypass le service worker
     payload = json.dumps({
         "web_push": 8030,
         "notification": {
@@ -118,7 +118,7 @@ def send_notification(db: Session, user_id: int, title: str, body: str, url: str
                 ttl=86400,
                 timeout=10,
             )
-            logger.info("Push sent to sub %s — status=%s body=%s", sub.id, resp.status_code if resp else 'N/A', resp.text[:200] if resp else '')
+            logger.info("Push sent to sub %s: status=%s body=%s", sub.id, resp.status_code if resp else 'N/A', resp.text[:200] if resp else '')
         except WebPushException as e:
             logger.warning("Push failed for sub %s: %s", sub.id, e)
             if e.response and e.response.status_code in (404, 410):

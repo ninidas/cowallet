@@ -35,7 +35,7 @@ export function usePushNotifications() {
         await api.subscribePush({ endpoint: json.endpoint, keys: json.keys })
         setSubscribed(true)
       } catch {
-        // Échec silencieux — l'utilisateur pourra re-activer manuellement
+        // Échec silencieux : l'utilisateur pourra re-activer manuellement
       }
     }
   }

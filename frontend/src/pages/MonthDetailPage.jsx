@@ -147,13 +147,13 @@ export default function MonthDetailPage() {
     <div
       className="min-h-screen bg-slate-50 pb-safe page-enter"
     >
-      {/* Header — sticky sur mobile */}
+      {/* Header : sticky sur mobile */}
       <MonthHeader month={month} prevMonth={prevMonth} nextMonth={nextMonth} />
 
       {/* Layout desktop 2 colonnes */}
       <div className="max-w-6xl mx-auto lg:px-6 lg:py-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
 
-        {/* Colonne droite sur desktop (hero + virements) — affichée en premier sur mobile */}
+        {/* Colonne droite sur desktop (hero + virements) : affichée en premier sur mobile */}
         <div className="lg:col-span-1 lg:sticky lg:top-36 space-y-4">
           {/* Hero */}
           <div className="mt-4 mx-4 lg:mx-0 lg:mt-0 lg:-mt-10">

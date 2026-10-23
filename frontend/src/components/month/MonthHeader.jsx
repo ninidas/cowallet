@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-// Header — sticky sur mobile : retour, mois précédent / suivant
+// Header : sticky sur mobile : retour, mois précédent / suivant
 export default function MonthHeader({ month, prevMonth, nextMonth }) {
   const { t } = useTranslation()
   const navigate = useNavigate()

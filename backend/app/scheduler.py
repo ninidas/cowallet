@@ -23,8 +23,8 @@ MONTH_LABELS = {
 }
 
 NOTIF_REMINDER = {
-    "en": "{label} is coming — time to prepare next month",
-    "fr": "{label} arrive — pensez à préparer le mois",
+    "en": "{label} is coming, time to prepare next month",
+    "fr": "{label} arrive, pensez à préparer le mois",
 }
 
 

@@ -92,5 +92,5 @@ def get_current_group(
         (models.Group.user2_id == current_user.id)
     ).first()
     if not group:
-        raise HTTPException(status_code=404, detail="No group — create or join a group")
+        raise HTTPException(status_code=404, detail="No group: create or join a group")
     return group

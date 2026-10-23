@@ -18,7 +18,7 @@ def test_prev_total_isolation_between_groups(client):
     Groupe 2 (lou) a aussi janvier 2025 avec une charge de 200€.
     Quand camille crée février, prev_total doit être 500€ (pas 700€).
     """
-    # Groupe 1 — camille
+    # Groupe 1 : camille
     token1 = register(client, "camille")
     create_group(client, token1, "Budget Camille")
     r = client.post("/api/months",json={"year": 2025, "month": 1}, headers=headers(token1))
@@ -27,7 +27,7 @@ def test_prev_total_isolation_between_groups(client):
         json={"label": "Loyer", "amount": 500.0, "category": "Maison"},
         headers=headers(token1))
 
-    # Groupe 2 — lou (groupe séparé)
+    # Groupe 2 : lou (groupe séparé)
     token2 = register(client, "lou")
     create_group(client, token2, "Budget Lou")
     r = client.post("/api/months",json={"year": 2025, "month": 1}, headers=headers(token2))
@@ -36,7 +36,7 @@ def test_prev_total_isolation_between_groups(client):
         json={"label": "Courses", "amount": 200.0, "category": "Alimentation"},
         headers=headers(token2))
 
-    # Camille crée février — prev_total doit être 500€ uniquement
+    # Camille crée février : prev_total doit être 500€ uniquement
     r = client.post("/api/months",json={"year": 2025, "month": 2}, headers=headers(token1))
     assert r.status_code == 201
     detail = client.get(f"/api/months/{r.json()['id']}", headers=headers(token1)).json()

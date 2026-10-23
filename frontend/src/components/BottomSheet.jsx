@@ -17,7 +17,7 @@ export default function BottomSheet({ open, onClose, title, children }) {
         onClick={onClose}
       />
 
-      {/* Sheet — bottom sur mobile, modale centrée sur desktop ; au-dessus de la barre du bas (z-50) */}
+      {/* Sheet : bottom sur mobile, modale centrée sur desktop ; au-dessus de la barre du bas (z-50) */}
       <div
         className={`fixed inset-0 z-[70] flex items-end justify-center lg:items-center ${
           open ? 'pointer-events-auto' : 'pointer-events-none'

@@ -91,7 +91,7 @@ export default function ChargeItem({ charge, onTap, onSwipeDelete, config, suivi
         </button>
       </div>
 
-      {/* Bouton delete au hover — desktop uniquement */}
+      {/* Bouton delete au hover : desktop uniquement */}
       <button
         onClick={() => onSwipeDelete(charge)}
         className="hidden lg:flex absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-red-50 text-red-400 items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-all"

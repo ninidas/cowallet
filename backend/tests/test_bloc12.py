@@ -39,7 +39,7 @@ def test_bank_error_notifies_owner_once_until_it_works(client, db, monkeypatch):
     g.user2_id = 77; db.commit()
     monkeypatch.setattr(scheduler, "APP_LANG", "fr")
     sent = _capture(monkeypatch)
-    fail = lambda *a: (_ for _ in ()).throw(Exception('HTTP 429 — {"error":"ASPSP_RATE_LIMIT_EXCEEDED"}'))
+    fail = lambda *a: (_ for _ in ()).throw(Exception('HTTP 429: {"error":"ASPSP_RATE_LIMIT_EXCEEDED"}'))
     monkeypatch.setattr(enablebanking, "get_transactions", fail)
     _run(db, datetime.date(2026, 10, 20))
     assert [(s[0], s[3]) for s in sent] == [(g.user1_id, "/settings/bank")] and "demain matin" in sent[0][2]
@@ -121,7 +121,7 @@ def test_rate_limit_is_not_retried_at_noon(client, db, monkeypatch):
     sent = _capture(monkeypatch)
     reads = []
     def limited(*a):
-        reads.append(1); raise Exception('HTTP 429 — {"error":"ASPSP_RATE_LIMIT_EXCEEDED"}')
+        reads.append(1); raise Exception('HTTP 429: {"error":"ASPSP_RATE_LIMIT_EXCEEDED"}')
     monkeypatch.setattr(enablebanking, "get_transactions", limited)
     day = datetime.date(2026, 10, 20)
     scheduler.import_bank_transactions(day)

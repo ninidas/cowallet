@@ -211,7 +211,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           )}
         </div>
 
-        {/* Paiement fractionné — create only */}
+        {/* Paiement fractionné : create only */}
         {!isEdit && (
           <div>
             <label className="block text-sm font-medium text-slate-600 mb-2">
@@ -236,7 +236,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           </div>
         )}
 
-        {/* Correction échéance — edit only, fractionné uniquement */}
+        {/* Correction échéance : edit only, fractionné uniquement */}
         {isEdit && isInstallmentCharge && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
             <p className="text-sm font-semibold text-amber-800">{t('chargeform.field_installment_fix')}</p>
@@ -341,7 +341,7 @@ export default function ChargeForm({ open, onClose, onSaved, monthId, charge, co
           </div>
         </div>
 
-        {/* Récurrente — masqué si fractionné */}
+        {/* Récurrente : masqué si fractionné */}
         {(isEdit || form.installments === 1) && (
           <button
             type="button"

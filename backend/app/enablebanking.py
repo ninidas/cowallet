@@ -43,7 +43,7 @@ def get_aspsps(country: str = "FR") -> list:
         timeout=15,
     )
     if not resp.is_success:
-        raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+        raise Exception(f"HTTP {resp.status_code}: {resp.text}")
     data = resp.json()
     return data if isinstance(data, list) else data.get("aspsps", data.get("data", []))
 
@@ -83,7 +83,7 @@ def start_auth(aspsp_name: str, aspsp_country: str, redirect_url: str) -> dict:
     }
     resp = httpx.post(f"{BASE_URL}/auth", headers=_headers(), json=body, timeout=15)
     if not resp.is_success:
-        raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+        raise Exception(f"HTTP {resp.status_code}: {resp.text}")
     return resp.json()
 
 
@@ -96,7 +96,7 @@ def create_session(auth_code: str) -> dict:
         timeout=15,
     )
     if not resp.is_success:
-        raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+        raise Exception(f"HTTP {resp.status_code}: {resp.text}")
     return resp.json()
 
 
@@ -104,7 +104,7 @@ def get_session(session_id: str) -> dict:
     """État d'une session : status (AUTHORIZED, CLOSED…) et access.valid_until."""
     resp = httpx.get(f"{BASE_URL}/sessions/{session_id}", headers=_headers(), timeout=15)
     if not resp.is_success:
-        raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+        raise Exception(f"HTTP {resp.status_code}: {resp.text}")
     return resp.json()
 
 
@@ -144,7 +144,7 @@ def get_accounts(session_id: str) -> list:
         timeout=15,
     )
     if not resp.is_success:
-        raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+        raise Exception(f"HTTP {resp.status_code}: {resp.text}")
     data = resp.json()
     return data if isinstance(data, list) else data.get("accounts", data.get("data", []))
 
@@ -165,7 +165,7 @@ def get_transactions(account_id: str, date_from: str, date_to: str = None, psu_h
     for _ in range(MAX_PAGES):
         resp = httpx.get(f"{BASE_URL}/accounts/{account_id}/transactions", headers=headers, params=params, timeout=30)
         if not resp.is_success:
-            raise Exception(f"HTTP {resp.status_code} — {resp.text}")
+            raise Exception(f"HTTP {resp.status_code}: {resp.text}")
         data = resp.json()
         if isinstance(data, list):
             return result + data

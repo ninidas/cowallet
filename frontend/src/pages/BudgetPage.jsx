@@ -47,7 +47,7 @@ function buildSankeyData(entries, sharedTotal, sharedLabel = 'Shared expenses') 
   // Liens revenus → centre en premier (évite les croisements)
   incomeIdxs.forEach((idx, i) => links.push({ source: idx, target: centerIdx, value: incomes[i].amount }))
 
-  // Charges communes — nœud intermédiaire factice pour aligner avec les autres colonnes
+  // Charges communes : nœud intermédiaire factice pour aligner avec les autres colonnes
   if (sharedTotal > 0) {
     const dummyIdx = addNode('__shared_dummy__', SHARED_COLOR)
     const leafIdx  = addNode(sharedLabel, SHARED_COLOR)
@@ -55,7 +55,7 @@ function buildSankeyData(entries, sharedTotal, sharedLabel = 'Shared expenses') 
     links.push({ source: dummyIdx,  target: leafIdx,  value: sharedTotal })
   }
 
-  // Investissements — avec catégories intermédiaires si présentes
+  // Investissements : avec catégories intermédiaires si présentes
   const expGroups = groupByCategory(expenses)
   const expCatColor = (ci) => EXPENSE_COLORS[ci % EXPENSE_COLORS.length]
   let expColorIdx = 0
@@ -80,7 +80,7 @@ function buildSankeyData(entries, sharedTotal, sharedLabel = 'Shared expenses') 
     }
   })
 
-  // Investissements — avec catégories intermédiaires si présentes
+  // Investissements : avec catégories intermédiaires si présentes
   const invGroups = groupByCategory(investments)
   const invCatColor = (ci) => INVEST_COLORS[ci % INVEST_COLORS.length]
   let invColorIdx = 0
