@@ -62,7 +62,7 @@ def _max_consent_seconds(aspsp_name: str, aspsp_country: str) -> int:
     return DEFAULT_CONSENT_DAYS * 86400
 
 
-def start_auth(aspsp_name: str, aspsp_country: str, redirect_url: str) -> dict:
+def start_auth(aspsp_name: str, aspsp_country: str, redirect_url: str, state: str) -> dict:
     """Démarre le flux d'authentification. Retourne {url, auth_code}.
     L'accès est demandé pour la durée maximale permise par la banque (à la journée près).
     Une session sans compte venait du mode restreint d'Enable Banking (comptes à relier
@@ -77,7 +77,7 @@ def start_auth(aspsp_name: str, aspsp_country: str, redirect_url: str) -> dict:
             "name":    aspsp_name,
             "country": aspsp_country,
         },
-        "state":        os.urandom(8).hex(),
+        "state":        state,
         "redirect_url": redirect_url,
         "psu_type":     "personal",
     }

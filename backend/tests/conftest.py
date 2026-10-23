@@ -41,6 +41,13 @@ def _make_app(session):
     return app
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    # Les limites (connexion, inscription, invitations) sont comptées en mémoire : chaque test repart de zéro
+    limiter.reset()
+    yield
+
+
 @pytest.fixture
 def db():
     engine = create_engine(

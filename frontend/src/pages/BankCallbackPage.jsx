@@ -15,9 +15,13 @@ export default function BankCallbackPage() {
       setError(t('bank_callback.error_missing_param'))
       return
     }
-    api.finishBankConnect(code)
+    // « state » prouve que ce retour vient du parcours lancé depuis ce compte
+    api.finishBankConnect(code, searchParams.get('state') ?? '')
       .then(() => navigate('/settings/bank?bank=connected', { replace: true }))
-      .catch(err => setError(err.message === 'No account shared by the bank' ? t('bank_callback.error_no_accounts') : err.message))
+      .catch(err => setError(
+        err.message === 'No account shared by the bank' ? t('bank_callback.error_no_accounts')
+        : err.message === 'Bank connection expired, please start again' ? t('bank_callback.error_expired')
+        : err.message))
   }, [])
 
   if (error) return (

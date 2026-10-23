@@ -1,11 +1,13 @@
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..limiter import limiter
 from .. import models, schemas
-from ..auth import hash_password, get_current_user, verify_password
+from ..auth import hash_password, get_current_user, verify_password, password_problem, create_access_token
+from .groups import new_invite_code
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -15,27 +17,33 @@ class DeleteAccountRequest(BaseModel):
     password: schemas.Password
 
 
+def registration_open(db: Session) -> bool:
+    """Un couple = deux comptes : MAX_GROUPS couples, c'est au plus 2 × MAX_GROUPS comptes.
+    Compter les couples seulement laissait créer des comptes sans limite tant qu'aucun couple n'existait."""
+    max_groups = int(os.getenv("MAX_GROUPS", "1"))
+    return db.query(models.User).count() < 2 * max_groups
+
+
 @router.post("/register", response_model=schemas.TokenResponse, status_code=201)
-def register(body: schemas.RegisterRequest, db: Session = Depends(get_db)):
-    if not body.username.strip():
+@limiter.limit("10/minute")
+def register(request: Request, body: schemas.RegisterRequest, db: Session = Depends(get_db)):
+    # Inscriptions fermées d'abord : sinon « identifiant déjà pris » révélerait les comptes existants
+    if not registration_open(db):
+        raise HTTPException(status_code=403, detail="Registration is closed: maximum number of groups reached")
+    username = body.username.strip()
+    if not username:
         raise HTTPException(status_code=400, detail="Username is required")
-    if len(body.password) < 12:
-        raise HTTPException(status_code=400, detail="Password too short (12 characters min.)")
-    if db.query(models.User).filter_by(username=body.username.strip()).first():
+    if problem := password_problem(body.password):
+        raise HTTPException(status_code=400, detail=problem)
+    if db.query(models.User).filter_by(username=username).first():
         raise HTTPException(status_code=409, detail="Username already taken")
 
-    max_groups = int(os.getenv("MAX_GROUPS", "1"))
-    group_count = db.query(models.Group).count()
-    if group_count >= max_groups:
-        raise HTTPException(status_code=403, detail="Registration is closed: maximum number of groups reached")
-
-    user = models.User(username=body.username.strip(), password_hash=hash_password(body.password))
+    user = models.User(username=username, password_hash=hash_password(body.password))
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    from ..auth import create_access_token
-    token = create_access_token(user.id, user.username)
+    token = create_access_token(user)
     return schemas.TokenResponse(access_token=token, user_id=user.id, username=user.username, display_name=user.get_display_name())
 
 
@@ -62,9 +70,11 @@ def delete_account(
             # user1 part, user2 reste → promouvoir user2
             group.user1_id = group.user2_id
             group.user2_id = None
+            group.invite_code = new_invite_code()   # l'ancien lien ne doit plus ouvrir le couple
         else:
             # user2 part → retirer du groupe
             group.user2_id = None
+            group.invite_code = new_invite_code()
 
     # Ce qui n'appartient qu'à lui : accès bancaire (et ses comptes), budget perso, notifications, réglages
     uid = current_user.id

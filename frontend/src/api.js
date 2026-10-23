@@ -147,7 +147,7 @@ export const api = {
   getBankStatus:        (consent = true) => request(consent ? '/bank/status' : '/bank/status?consent=false'),
   getAspsps:            (country = 'FR') => request(`/bank/aspsps?country=${country}`),
   startBankConnect:     (return_to, aspsp_name, aspsp_country = 'FR') => request('/bank/connect', { method: 'POST', body: JSON.stringify({ return_to, aspsp_name, aspsp_country }) }),
-  finishBankConnect:    (auth_code)   => request('/bank/finish',    { method: 'POST', body: JSON.stringify({ auth_code }) }),
+  finishBankConnect:    (auth_code, state) => request('/bank/finish', { method: 'POST', body: JSON.stringify({ auth_code, state }) }),
   toggleBankAccount:    (id)          => request(`/bank/accounts/${id}`, { method: 'PATCH' }),
   deleteBankConnection: ()            => request('/bank/connection', { method: 'DELETE' }),
   getBankTransactions:  (from_date, to_date) => request(`/bank/transactions?${from_date ? `from_date=${from_date}` : ''}${to_date ? `&to_date=${to_date}` : ''}`),

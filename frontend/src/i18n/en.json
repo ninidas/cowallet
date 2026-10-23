@@ -62,7 +62,7 @@
     "btn_loading": "Configuring...",
     "btn_back": "← Back",
     "error_username_required": "Username is required",
-    "error_password_short": "Password must be at least 6 characters",
+    "error_password_short": "Password must be at least 12 characters",
     "error_password_mismatch": "Passwords do not match",
     "error_username_duplicate": "Both usernames must be different"
   },
@@ -482,6 +482,7 @@
     "error_title": "Connection failed",
     "error_missing_param": "Missing parameter in Enable Banking redirect.",
     "btn_back": "Back to settings",
+    "error_expired": "This connection expired or was not started from this account. Start again from Settings › Bank.",
     "error_no_accounts": "The bank authorised access without sharing any account, so nothing could be imported. Try again; if it shows a list of accounts, tick your joint account. Your previous connection is kept."
   },
   "bank_import": {

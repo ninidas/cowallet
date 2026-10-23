@@ -1,3 +1,5 @@
+import secrets
+
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
@@ -11,6 +13,8 @@ class User(Base):
     username      = Column(String, unique=True, index=True, nullable=False)
     display_name  = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
+    # Clé de session, recopiée dans chaque jeton : la changer déconnecte tous les appareils du compte
+    session_key   = Column(String, nullable=True, default=lambda: secrets.token_hex(16))
     # 4 derniers chiffres de sa ou ses cartes (« 4242 » ou « 4242,1234 ») : « Carte de Camille » sur les transactions
     card_digits   = Column(String, nullable=True)
     # Notifications choisies (valables sur tous ses appareils) : activité du couple, banque, rappel du 28
@@ -176,6 +180,8 @@ class BankConnection(Base):
     provider_name          = Column(String, nullable=True)
     provider_code          = Column(String, nullable=True)
     status                 = Column(String, default="pending")  # pending | active | expired | error
+    # Connexion en attente : jeton « state » envoyé à la banque et heure de départ (« jeton|horodatage »)
+    oauth_state            = Column(String, nullable=True)
 
     user     = relationship("User", foreign_keys=[user_id])
     accounts = relationship("BankAccount", back_populates="connection", cascade="all, delete-orphan")

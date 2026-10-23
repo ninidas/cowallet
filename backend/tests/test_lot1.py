@@ -128,7 +128,7 @@ def test_push_failure_never_breaks_the_request(db, monkeypatch):
     import py_vapid
     monkeypatch.setattr(py_vapid.Vapid, "from_pem", staticmethod(lambda pem: object()))
     def boom(**kw):
-        assert kw["timeout"] == 10
+        assert kw["timeout"] == 5
         raise ConnectionError("réseau coupé")
     monkeypatch.setattr(push, "webpush", boom)
     push.send_notification(db, 1, "titre", "")   # ne lève rien
@@ -140,9 +140,18 @@ def _request(headers):
 
 
 def test_rate_limit_is_per_visitor():
-    assert client_ip(_request({"CF-Connecting-IP": "203.0.113.7", "X-Forwarded-For": "10.0.0.1"})) == "203.0.113.7"
+    # Derrière notre proxy (adresse privée) : la dernière adresse publique ajoutée à X-Forwarded-For
     assert client_ip(_request({"X-Forwarded-For": "198.51.100.2, 10.0.0.21"})) == "198.51.100.2"
     assert client_ip(_request({})) == "10.0.0.21"
+    # Ce que le visiteur écrit lui-même ne compte pas : ni une adresse inventée à gauche de la chaîne,
+    # ni CF-Connecting-IP (n'importe qui pouvait l'envoyer et contourner la limite de connexion)
+    assert client_ip(_request({"X-Forwarded-For": "1.2.3.4, 198.51.100.2"})) == "198.51.100.2"
+    assert client_ip(_request({"CF-Connecting-IP": "203.0.113.7", "X-Forwarded-For": "198.51.100.2"})) == "198.51.100.2"
+
+
+def test_forwarded_headers_ignored_from_the_internet():
+    direct = Request({"type": "http", "headers": [(b"x-forwarded-for", b"1.2.3.4")], "client": ("203.0.113.50", 1234)})
+    assert client_ip(direct) == "203.0.113.50"
 
 
 def test_spa_refuses_files_outside_frontend(tmp_path, monkeypatch):

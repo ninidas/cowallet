@@ -27,6 +27,12 @@ def export_csv(db: Session = Depends(get_db), group: models.Group = Depends(get_
     buf = io.StringIO()
     buf.write("\ufeff")  # BOM UTF-8 pour Excel
     writer = csv.writer(buf, delimiter=";")
+
+    def cell(value) -> str:
+        """Texte saisi par l'un ou l'autre : neutralisé s'il commencerait une formule dans Excel ou LibreOffice."""
+        value = value or ""
+        return "'" + value if value[:1] in ("=", "+", "-", "@", "\t", "\r") else value
+
     writer.writerow([
         "Mois", "Catégorie", "Libellé", "Montant", "Montant prévu",
         "Type de paiement", "Récurrente", "Avancé par",
@@ -40,14 +46,14 @@ def export_csv(db: Session = Depends(get_db), group: models.Group = Depends(get_
 
         for charge in month.charges:
             writer.writerow([
-                month.label,
-                charge.category if charge.category else "",
-                charge.label,
+                cell(month.label),
+                cell(charge.category),
+                cell(charge.label),
                 f"{effective_amount(charge):.2f}".replace(".", ","),
                 f"{charge.amount:.2f}".replace(".", ","),
-                charge.payment_type if charge.payment_type else "",
+                cell(charge.payment_type),
                 "Oui" if charge.is_recurring else "Non",
-                payers.get(charge.paid_by, ""),
+                cell(payers.get(charge.paid_by, "")),
                 f"{total:.2f}".replace(".", ","),
                 f"{month.user1_share}/{100 - month.user1_share}",
                 f"{u1_due:.2f}".replace(".", ","),

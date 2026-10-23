@@ -1,11 +1,12 @@
 import os
 import secrets
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from .. import models, schemas
 from ..auth import get_current_user, get_current_group
+from ..limiter import limiter
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -47,6 +48,11 @@ DEFAULT_PAYMENT_METHODS = {
 }
 
 
+def new_invite_code() -> str:
+    """96 bits aléatoires (l'ancien code de 32 bits se devinait), en majuscules : la saisie ignore la casse."""
+    return secrets.token_hex(12).upper()
+
+
 def _seed_group(group: models.Group, db: Session):
     lang = APP_LANG if APP_LANG in DEFAULT_CATEGORIES else "en"
     for i, name in enumerate(DEFAULT_PAYMENT_METHODS[lang]):
@@ -56,7 +62,8 @@ def _seed_group(group: models.Group, db: Session):
 
 
 @router.get("/invite-info/{code}")
-def get_invite_info(code: str, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def get_invite_info(request: Request, code: str, db: Session = Depends(get_db)):
     """Infos publiques sur une invitation (pas d'auth requise)."""
     group = db.query(models.Group).filter_by(invite_code=code.upper()).first()
     if not group or group.user2_id is not None:
@@ -93,8 +100,11 @@ def create_group(
     ).first()
     if existing:
         raise HTTPException(status_code=409, detail="You already have a group")
+    # La limite d'instance porte aussi sur la création, pas seulement sur l'inscription
+    if db.query(models.Group).count() >= int(os.getenv("MAX_GROUPS", "1")):
+        raise HTTPException(status_code=403, detail="Maximum number of groups reached")
 
-    invite_code = secrets.token_hex(4).upper()
+    invite_code = new_invite_code()
     lang = APP_LANG if APP_LANG in DEFAULT_GROUP_NAMES else "en"
     group = models.Group(
         name=body.name or DEFAULT_GROUP_NAMES[lang],
@@ -140,7 +150,9 @@ def rename_group(
 
 
 @router.post("/join", response_model=schemas.GroupOut)
+@limiter.limit("10/minute")
 def join_group(
+    request: Request,
     body: schemas.GroupJoin,
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -160,7 +172,13 @@ def join_group(
     if group.user1_id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot join your own group")
 
-    group.user2_id = current_user.id
+    # Mise à jour conditionnelle : deux arrivées simultanées avec le même code, une seule gagne
+    joined = db.query(models.Group).filter(
+        models.Group.id == group.id, models.Group.user2_id.is_(None)
+    ).update({"user2_id": current_user.id, "invite_code": new_invite_code()}, synchronize_session=False)
+    if not joined:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Group is already full")
     db.commit()
     db.refresh(group)
     return _to_out(group)

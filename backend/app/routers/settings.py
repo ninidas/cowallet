@@ -7,7 +7,8 @@ from ..schemas import Password, Username
 
 from ..database import get_db
 from .. import models
-from ..auth import get_current_user, get_current_group, verify_password, hash_password
+from ..auth import (get_current_user, get_current_group, verify_password, hash_password,
+                    password_problem, new_session_key, create_access_token)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -49,6 +50,7 @@ def update_settings(
     current_user: models.User = Depends(get_current_user),
     group: models.Group = Depends(get_current_group),
 ):
+    new_token = False
     if body.display_name is not None:
         name = body.display_name.strip()
         if not name:
@@ -60,9 +62,12 @@ def update_settings(
             raise HTTPException(status_code=400, detail="Current password is required")
         if not verify_password(body.current_password, current_user.password_hash):
             raise HTTPException(status_code=400, detail="Invalid current password")
-        if len(body.new_password) < 12:
-            raise HTTPException(status_code=400, detail="Password must be at least 12 characters")
+        if problem := password_problem(body.new_password):
+            raise HTTPException(status_code=400, detail=problem)
         current_user.password_hash = hash_password(body.new_password)
+        # Tous les autres appareils sont déconnectés ; celui-ci reçoit un nouveau jeton (plus bas)
+        current_user.session_key = new_session_key()
+        new_token = True
 
     if body.card_digits is not None:
         current_user.card_digits = body.card_digits or None
@@ -77,4 +82,7 @@ def update_settings(
 
     db.commit()
     db.refresh(current_user)
-    return {"display_name": current_user.get_display_name()}
+    out = {"display_name": current_user.get_display_name()}
+    if new_token:
+        out["access_token"] = create_access_token(current_user)
+    return out

@@ -113,8 +113,10 @@ def test_manual_import_screen_sends_psu_headers(client, db, monkeypatch):
     token, _, _ = _setup(client, db)
     seen = []
     monkeypatch.setattr(enablebanking, "get_transactions", lambda acc, f, t=None, h=None: seen.append(h) or [])
+    from app import limiter as limiter_module   # requête arrivée par notre proxy (adresse privée)
+    monkeypatch.setattr(limiter_module, "get_remote_address", lambda request: "10.0.0.21")
     r = client.get("/api/bank/transactions?from_date=2026-10-01&to_date=2026-10-31",
-                   headers={**headers(token), "CF-Connecting-IP": "203.0.113.9", "User-Agent": "iPhone Safari"})
+                   headers={**headers(token), "X-Forwarded-For": "203.0.113.9", "User-Agent": "iPhone Safari"})
     assert r.status_code == 200
     assert seen == [{"Psu-Ip-Address": "203.0.113.9", "Psu-User-Agent": "iPhone Safari"}]
 

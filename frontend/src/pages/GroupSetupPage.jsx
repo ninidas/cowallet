@@ -138,9 +138,9 @@ export default function GroupSetupPage() {
                 type="text"
                 value={inviteCode}
                 onChange={e => setInviteCode(e.target.value.toUpperCase())}
-                className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition text-center tracking-widest font-mono text-lg uppercase"
-                placeholder="XXXXXXXX"
-                maxLength={8}
+                className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition text-center tracking-wider font-mono text-base uppercase"
+                placeholder="XXXXXXXXXXXXXXXXXXXXXXXX"
+                maxLength={24}
                 required
               />
             </div>

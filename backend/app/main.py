@@ -4,9 +4,8 @@ logging.basicConfig(level=logging.INFO)
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, APIRouter, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from .limiter import limiter
@@ -50,12 +49,23 @@ with engine.connect() as _conn:
                 "ALTER TABLE users ADD COLUMN notif_partner BOOLEAN NOT NULL DEFAULT 1",
                 "ALTER TABLE users ADD COLUMN notif_bank BOOLEAN NOT NULL DEFAULT 1",
                 "ALTER TABLE users ADD COLUMN notif_reminder BOOLEAN NOT NULL DEFAULT 1",
-                "ALTER TABLE users ADD COLUMN notif_budget BOOLEAN NOT NULL DEFAULT 1"):
+                "ALTER TABLE users ADD COLUMN notif_budget BOOLEAN NOT NULL DEFAULT 1",
+                "ALTER TABLE users ADD COLUMN session_key VARCHAR",
+                "ALTER TABLE bank_connections ADD COLUMN oauth_state VARCHAR"):
         try:
             _conn.execute(text(ddl))
             _conn.commit()
         except Exception:
             pass
+
+    # Clé de session des comptes existants : préfixe « legacy- » pour que les jetons d'avant la v1.1.1
+    # (sans clé) restent valables jusqu'à leur expiration, sans déconnecter personne à la mise à jour
+    _conn.execute(text("UPDATE users SET session_key = 'legacy-' || lower(hex(randomblob(16))) WHERE session_key IS NULL"))
+    # Codes d'invitation de 8 caractères (32 bits, se devinaient) : remplacés par des codes de 96 bits
+    import secrets as _secrets
+    for (_gid,) in _conn.execute(text("SELECT id FROM groups WHERE length(invite_code) < 24")).fetchall():
+        _conn.execute(text("UPDATE groups SET invite_code=:c WHERE id=:g"), {"c": _secrets.token_hex(12).upper(), "g": _gid})
+    _conn.commit()
 
     # Colonne installment_amount sur charges (paiement en plusieurs fois au centime près)
     try:
@@ -270,21 +280,23 @@ with engine.connect() as _conn:
     except Exception:
         pass
 
-    # Migration : auto-créer un groupe pour les installations existantes (2 users, pas de groupe)
-    import secrets as _secrets
+    # Migration : auto-créer un groupe pour les installations d'avant les groupes (données sans groupe).
+    # Seulement s'il existe de telles données : sur une installation neuve, deux inscrits sans couple
+    # ne doivent pas être mis ensemble au redémarrage.
     _users = _conn.execute(text("SELECT id FROM users ORDER BY id")).fetchall()
     _groups = _conn.execute(text("SELECT id FROM groups")).fetchall()
-    if len(_users) >= 1 and len(_groups) == 0:
+    _legacy = _conn.execute(text("SELECT 1 FROM months WHERE group_id IS NULL LIMIT 1")).fetchone()
+    if 1 <= len(_users) <= 2 and len(_groups) == 0 and _legacy:
         _share_cfg = _conn.execute(text("SELECT value FROM app_config WHERE key='default_user1_share'")).fetchone()
         _share = int(_share_cfg[0]) if _share_cfg else 50
-        _code = _secrets.token_hex(4).upper()
+        _code = _secrets.token_hex(12).upper()
         _u1 = _users[0][0]
         _u2 = _users[1][0] if len(_users) >= 2 else None
         _app_lang = os.environ.get("APP_LANG", "en").lower()
         _default_group_names = {"en": "My budget", "fr": "Notre budget"}
         _default_group_name = _default_group_names.get(_app_lang, "My budget")
         _conn.execute(text(
-            "INSERT INTO groups (name, invite_code, default_share, user1_id, user2_id) VALUES (:n, :c, :s, :u1, :u2)"
+            "INSERT INTO groups (name, invite_code, default_share, user1_id, user2_id, currency) VALUES (:n, :c, :s, :u1, :u2, 'EUR')"
         ), {"n": _default_group_name, "c": _code, "s": _share, "u1": _u1, "u2": _u2})
         _conn.commit()
         _gid = _conn.execute(text("SELECT id FROM groups WHERE invite_code=:c"), {"c": _code}).fetchone()[0]
@@ -323,17 +335,14 @@ async def lifespan(app: FastAPI):
     yield
     scheduler.shutdown()
 
-app = FastAPI(title="CoWallet", lifespan=lifespan)
+# Documentation de l'API (/docs) seulement avec DEBUG=1 : inutile en usage normal, et elle détaille l'API
+_DEBUG = os.environ.get("DEBUG", "") == "1"
+app = FastAPI(title="CoWallet", lifespan=lifespan,
+              docs_url="/docs" if _DEBUG else None, redoc_url="/redoc" if _DEBUG else None,
+              openapi_url="/openapi.json" if _DEBUG else None)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Pas de CORS : l'interface est servie par ce même serveur, aucun autre site n'a à appeler l'API
 
 # ── API routes (all under /api) ───────────────────────────────────────────────
 api_router = APIRouter(prefix="/api")
@@ -400,8 +409,14 @@ if (_FRONTEND_DIST / "assets").exists():
 
 @app.get("/{full_path:path}")
 async def spa_handler(full_path: str):
+    # Une adresse d'API inconnue répond 404, pas la page de l'application
+    if full_path == "api" or full_path.startswith("api/"):
+        return JSONResponse({"detail": "Not Found"}, status_code=404)
     if _FRONTEND_DIST.exists():
-        candidate = (_FRONTEND_DIST / full_path).resolve()
+        try:
+            candidate = (_FRONTEND_DIST / full_path).resolve()
+        except (ValueError, OSError):   # caractère nul ou chemin illisible : page de l'application
+            return FileResponse(str(_FRONTEND_DIST / "index.html"))
         # Jamais de fichier hors du dossier du front (chemins avec « .. »)
         if full_path and candidate.is_relative_to(_FRONTEND_DIST.resolve()) and candidate.is_file():
             headers = {}

@@ -1,3 +1,4 @@
+import hmac
 import os
 import secrets
 import bcrypt
@@ -38,6 +39,21 @@ bearer_scheme = HTTPBearer()
 bearer_scheme_optional = HTTPBearer(auto_error=False)
 
 
+PASSWORD_MIN = 12
+# bcrypt ne regarde que les 72 premiers octets : au-delà, deux mots de passe différents passeraient
+PASSWORD_MAX_BYTES = 72
+
+
+def password_problem(password: str) -> str | None:
+    """Message d'erreur si le mot de passe ne respecte pas la règle, None sinon (inscription,
+    installation et changement de mot de passe passent tous par ici)."""
+    if len(password) < PASSWORD_MIN:
+        return "Password must be at least 12 characters"
+    if len(password.encode()) > PASSWORD_MAX_BYTES:
+        return "Password is too long"
+    return None
+
+
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
@@ -46,26 +62,51 @@ def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_access_token(user_id: int, username: str) -> str:
+# Empreinte de calcul pour un identifiant inconnu : la connexion prend le même temps qu'il existe ou non
+_DUMMY_HASH = bcrypt.hashpw(b"cowallet-dummy-password", bcrypt.gensalt()).decode()
+
+
+def burn_password_check(plain: str) -> None:
+    bcrypt.checkpw(plain.encode(), _DUMMY_HASH.encode())
+
+
+def new_session_key() -> str:
+    return secrets.token_hex(16)
+
+
+def create_access_token(user: models.User) -> str:
+    """Le jeton porte la clé de session du compte : la changer (mot de passe modifié) déconnecte
+    tous les appareils, et un compte recréé avec le même numéro n'accepte pas les anciens jetons."""
     expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
-    payload = {"sub": str(user_id), "username": username, "exp": expire}
+    payload = {"sub": str(user.id), "username": user.username, "sk": user.session_key, "exp": expire}
     return jwt.encode(payload, _get_secret_key(), algorithm=ALGORITHM)
+
+
+def _user_from_token(token: str, db: Session) -> models.User | None:
+    try:
+        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
+        user_id = int(payload.get("sub"))
+    except (JWTError, TypeError, ValueError):
+        return None
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user or payload.get("username") != user.username:
+        return None
+    key = user.session_key or ""
+    sk = payload.get("sk")
+    if sk is None:
+        # Jetons émis avant la v1.1.1 (sans clé) : acceptés jusqu'à leur expiration, tant que le compte
+        # garde la clé posée par la migration (préfixe « legacy- ») ; un changement de mot de passe les coupe
+        return user if key.startswith("legacy-") else None
+    return user if hmac.compare_digest(str(sk), key) else None
 
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> models.User:
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, _get_secret_key(), algorithms=[ALGORITHM])
-        user_id = int(payload.get("sub"))
-    except (JWTError, TypeError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-    user = db.query(models.User).filter(models.User.id == user_id).first()
+    user = _user_from_token(credentials.credentials, db)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return user
 
 
@@ -75,12 +116,7 @@ def get_current_user_optional(
 ) -> models.User | None:
     if not credentials:
         return None
-    try:
-        payload = jwt.decode(credentials.credentials, _get_secret_key(), algorithms=[ALGORITHM])
-        user_id = int(payload.get("sub"))
-        return db.query(models.User).filter(models.User.id == user_id).first()
-    except Exception:
-        return None
+    return _user_from_token(credentials.credentials, db)
 
 
 def get_current_group(

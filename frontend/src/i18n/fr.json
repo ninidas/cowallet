@@ -62,7 +62,7 @@
     "btn_loading": "Configuration…",
     "btn_back": "← Retour",
     "error_username_required": "L'identifiant est requis",
-    "error_password_short": "Le mot de passe doit faire au moins 6 caractères",
+    "error_password_short": "Le mot de passe doit faire au moins 12 caractères",
     "error_password_mismatch": "Les mots de passe ne correspondent pas",
     "error_username_duplicate": "Les deux identifiants doivent être différents"
   },
@@ -482,6 +482,7 @@
     "error_title": "Connexion échouée",
     "error_missing_param": "Paramètre manquant dans la redirection Enable Banking.",
     "btn_back": "Retour aux paramètres",
+    "error_expired": "Cette connexion a expiré ou n'a pas été lancée depuis ce compte. Recommencez depuis Réglages › Banque.",
     "error_no_accounts": "La banque a autorisé l'accès sans partager aucun compte, rien ne pourrait être importé. Réessayez ; si elle vous propose une liste de comptes, cochez votre compte joint. Votre connexion précédente est conservée."
   },
   "bank_import": {

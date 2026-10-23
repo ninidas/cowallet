@@ -165,13 +165,13 @@ export default function SetupPage() {
     setError('')
     if (step === 0) {
       if (!u1.trim()) return setError(t('setup.error_username_required')), false
-      if (p1.length < 6) return setError(t('setup.error_password_short')), false
+      if (p1.length < 12) return setError(t('setup.error_password_short')), false
       if (p1 !== c1) return setError(t('setup.error_password_mismatch')), false
     }
     if (step === 1) {
       if (!u2.trim()) return setError(t('setup.error_username_required')), false
       if (u2.trim() === u1.trim()) return setError(t('setup.error_username_duplicate')), false
-      if (p2.length < 6) return setError(t('setup.error_password_short')), false
+      if (p2.length < 12) return setError(t('setup.error_password_short')), false
       if (p2 !== c2) return setError(t('setup.error_password_mismatch')), false
     }
     return true

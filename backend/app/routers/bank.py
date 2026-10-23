@@ -1,5 +1,10 @@
 import datetime
+import hmac
+import secrets
+import time
 from typing import Annotated, Optional, List
+
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -43,14 +48,29 @@ class ConnectRequest(BaseModel):
     aspsp_country: str = "FR"
 
 class FinishRequest(BaseModel):
-    auth_code: str
+    auth_code: Annotated[str, Field(max_length=500)]
+    state:     Annotated[str, Field(max_length=100)] = ""
+
+
+# Une connexion commencée et jamais terminée ne peut plus être finalisée au bout de 30 minutes
+PENDING_MAX_SECONDS = 30 * 60
+
+
+def _check_return_to(return_to: str, request: Request) -> str:
+    """Le retour de la banque ne peut ramener que sur la page /bank/callback de cette même instance."""
+    url = urlsplit(return_to)
+    host = request.headers.get("host", "")
+    if url.scheme not in ("https", "http") or url.path != "/bank/callback" or url.query or url.fragment \
+            or not host or url.netloc.lower() != host.lower():
+        raise HTTPException(status_code=400, detail="Invalid return URL")
+    return f"{url.scheme}://{url.netloc}/bank/callback"
 
 class TransactionImportItem(BaseModel):
-    saltedge_id:  str
-    date:         str
-    description:  str
+    saltedge_id:  Annotated[str, Field(min_length=1, max_length=200)]
+    date:         Annotated[str, Field(max_length=10)]
+    description:  Annotated[str, Field(max_length=300)]
     amount:       float
-    account_name: str
+    account_name: Annotated[str, Field(max_length=120)]
     is_card:      bool = False
     is_debit:     bool = True
     detail:        Optional[Annotated[str, Field(max_length=200)]] = None
@@ -114,11 +134,13 @@ def get_status(
 @router.post("/connect")
 def start_connect(
     body: ConnectRequest,
+    request: Request,
     db:   Session      = Depends(get_db),
     user: models.User  = Depends(get_current_user),
 ):
     """Démarre le flux Enable Banking. Retourne un url à ouvrir côté frontend."""
     _require_enablebanking()
+    return_to = _check_return_to(body.return_to, request)
 
     # Supprime une éventuelle connexion pending précédente
     existing = db.query(models.BankConnection).filter_by(user_id=user.id, status="pending").first()
@@ -127,7 +149,10 @@ def start_connect(
         db.commit()
 
     try:
-        result = enablebanking.start_auth(body.aspsp_name, body.aspsp_country, body.return_to)
+        # « state » revient avec le code de la banque : il prouve que le retour appartient à ce
+        # parcours, commencé par ce compte (sans lui, un lien piégé pouvait relier la banque d'un autre)
+        state = secrets.token_urlsafe(32)
+        result = enablebanking.start_auth(body.aspsp_name, body.aspsp_country, return_to, state)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Enable Banking error: {exc}")
 
@@ -139,6 +164,7 @@ def start_connect(
         provider_name=body.aspsp_name,
         provider_code=body.aspsp_country,
         status="pending",
+        oauth_state=f"{state}|{int(time.time())}",
     )
     db.add(conn)
     db.commit()
@@ -159,6 +185,10 @@ def finish_connect(
     conn = db.query(models.BankConnection).filter_by(user_id=user.id, status="pending").first()
     if not conn:
         raise HTTPException(status_code=404, detail="Connection not found")
+    expected, _, started = (conn.oauth_state or "").partition("|")
+    if not expected or not body.state or not hmac.compare_digest(expected, body.state) \
+            or time.time() - int(started or 0) > PENDING_MAX_SECONDS:
+        raise HTTPException(status_code=400, detail="Bank connection expired, please start again")
 
     try:
         session = enablebanking.create_session(body.auth_code)
@@ -177,6 +207,7 @@ def finish_connect(
     conn.saltedge_connection_id = session_id
     conn.saltedge_customer_id   = session_id
     conn.status                 = "active"
+    conn.oauth_state            = None
 
     # Les comptes sont retournés directement dans la réponse de session
     db.query(models.BankAccount).filter_by(connection_id=conn.id).delete()

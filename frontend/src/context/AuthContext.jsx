@@ -3,6 +3,25 @@ import { api, clearCache, clearSession } from '../api'
 
 const AuthContext = createContext(null)
 
+// À la déconnexion, l'appareil cesse de recevoir les notifications de ce compte (téléphone prêté ou
+// partagé). En arrière-plan, avec le jeton de la session qui se termine : la déconnexion n'attend pas.
+async function forgetPushOnDevice(token) {
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null
+    const sub = reg && await reg.pushManager?.getSubscription()
+    if (!sub) return
+    const { endpoint, keys } = sub.toJSON()
+    if (token) {
+      await fetch('/api/push/subscribe', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ endpoint, keys }),
+      }).catch(() => {})
+    }
+    await sub.unsubscribe()
+  } catch { /* navigateur sans notifications : rien à faire */ }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser]     = useState(() => {
     const stored = localStorage.getItem('user')
@@ -39,16 +58,26 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    const token = localStorage.getItem('token')
     clearCache()
     clearSession()
     setUser(null)
     setConfig(null)
+    forgetPushOnDevice(token)
   }
 
   async function refreshConfig() {
     const cfg = await api.getConfig()
     setConfig(cfg)
     return cfg
+  }
+
+  // Après un changement de mot de passe, les anciens jetons ne valent plus rien : on garde le nouveau
+  function updateToken(token) {
+    const updated = { ...user, token }
+    localStorage.setItem('token', token)
+    localStorage.setItem('user', JSON.stringify(updated))
+    setUser(updated)
   }
 
   function updateDisplayName(newDisplayName) {
@@ -69,7 +98,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, config, ready, login, logout, getMyUserKey, refreshConfig, updateDisplayName, darkMode, toggleDarkMode }}>
+    <AuthContext.Provider value={{ user, config, ready, login, logout, getMyUserKey, refreshConfig, updateDisplayName, updateToken, darkMode, toggleDarkMode }}>
       {children}
     </AuthContext.Provider>
   )

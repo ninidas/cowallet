@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext'
 // Champs enregistrés par la barre du bas (Couple et Profil) : prénom, mot de passe, part, nom du groupe, devise, carte
 export function useSettingsForm({ setError, setSuccess }) {
   const { t } = useTranslation()
-  const { user, config, refreshConfig, updateDisplayName } = useAuth()
+  const { user, config, refreshConfig, updateDisplayName, updateToken } = useAuth()
   const [username,        setUsername]        = useState(user?.displayName ?? user?.username ?? '')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword,     setNewPassword]     = useState('')
@@ -47,7 +47,10 @@ export function useSettingsForm({ setError, setSuccess }) {
       return
     }
     try {
-      if (Object.keys(payload).length > 0) await api.updateSettings(payload)
+      if (Object.keys(payload).length > 0) {
+        const res = await api.updateSettings(payload)
+        if (res?.access_token) updateToken(res.access_token)
+      }
       if (nameChanged) await api.renameGroup(groupName.trim())
       if (currencyChanged) await api.updateCurrency(currency)
       if (payload.display_name) updateDisplayName(payload.display_name)
